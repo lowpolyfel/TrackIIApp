@@ -103,7 +103,7 @@ private fun LoginScreen(onLogin: () -> Unit, onRegister: () -> Unit) {
             verticalArrangement = Arrangement.Center
         ) {
             Image(
-                painter = painterResource(id = R.drawable.logoTrackII),
+                painter = painterResource(id = R.drawable.logo_trackii),
                 contentDescription = "TrackII logo",
                 modifier = Modifier
                     .size(140.dp)

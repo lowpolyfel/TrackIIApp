@@ -43,7 +43,7 @@ fun LoginScreen(onLogin: () -> Unit, onRegister: () -> Unit) {
         ),
         label = "logoScale"
     )
-    TrackIIBackground {
+    TrackIIBackground(glowOffsetX = 80.dp, glowOffsetY = (-40).dp) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -52,10 +52,10 @@ fun LoginScreen(onLogin: () -> Unit, onRegister: () -> Unit) {
             verticalArrangement = Arrangement.Center
         ) {
             Image(
-                painter = painterResource(id = R.drawable.logo_trackii),
+                painter = painterResource(id = R.drawable.logo_texto_sin_fondo_b),
                 contentDescription = "TrackII logo",
                 modifier = Modifier
-                    .size(200.dp)
+                    .size(260.dp)
                     .graphicsLayer {
                         scaleX = scale
                         scaleY = scale
@@ -63,12 +63,6 @@ fun LoginScreen(onLogin: () -> Unit, onRegister: () -> Unit) {
                 contentScale = ContentScale.Fit
             )
             Spacer(modifier = Modifier.size(20.dp))
-            Text(
-                text = "TrackII",
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.size(12.dp))
             GlassCard {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     TrackIITextField(label = "Correo electrónico")

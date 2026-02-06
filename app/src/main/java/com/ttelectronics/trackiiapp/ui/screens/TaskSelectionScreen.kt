@@ -25,13 +25,14 @@ import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
 
 @Composable
 fun TaskSelectionScreen(onBackToLogin: () -> Unit) {
-    TrackIIBackground {
+    TrackIIBackground(glowOffsetX = 40.dp, glowOffsetY = 80.dp) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 24.dp, vertical = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(modifier = Modifier.weight(1f))
             Text(
                 text = "Selecciona una tarea",
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
@@ -44,23 +45,19 @@ fun TaskSelectionScreen(onBackToLogin: () -> Unit) {
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 6.dp, bottom = 22.dp)
             )
-            Spacer(modifier = Modifier.weight(1f))
             GlassCard {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     TaskCard(
                         title = "Seguimiento de hojas viajeras",
-                        icon = Icons.Rounded.Description,
-                        animationDelayMillis = 0
+                        icon = Icons.Rounded.Description
                     )
                     TaskCard(
                         title = "Cancelar Orden",
-                        icon = Icons.Rounded.HighlightOff,
-                        animationDelayMillis = 200
+                        icon = Icons.Rounded.HighlightOff
                     )
                     TaskCard(
                         title = "Retrabajo",
-                        icon = Icons.Rounded.Build,
-                        animationDelayMillis = 400
+                        icon = Icons.Rounded.Build
                     )
                 }
             }

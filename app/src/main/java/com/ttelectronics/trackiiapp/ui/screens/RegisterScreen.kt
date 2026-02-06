@@ -40,7 +40,7 @@ fun RegisterScreen(onCreateAccount: () -> Unit, onBackToLogin: () -> Unit) {
         ),
         label = "cardLift"
     )
-    TrackIIBackground {
+    TrackIIBackground(glowOffsetX = (-40).dp, glowOffsetY = 30.dp) {
         Column(
             modifier = Modifier
                 .fillMaxSize()

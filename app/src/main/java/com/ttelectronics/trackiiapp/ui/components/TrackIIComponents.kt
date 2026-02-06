@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -45,6 +46,7 @@ import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ttelectronics.trackiiapp.ui.theme.TTAccent
@@ -55,12 +57,17 @@ import com.ttelectronics.trackiiapp.ui.theme.TTBlueTint
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
 
 @Composable
-fun TrackIIBackground(content: @Composable () -> Unit) {
+fun TrackIIBackground(
+    glowOffsetX: Dp,
+    glowOffsetY: Dp,
+    content: @Composable () -> Unit
+) {
     val gradient = Brush.verticalGradient(
         colors = listOf(
-            TTBlueTint,
+            TTBlueTint.copy(alpha = 0.92f),
             Color.White,
-            TTBlueLight.copy(alpha = 0.45f)
+            TTBlueLight.copy(alpha = 0.6f),
+            TTBlueDark.copy(alpha = 0.08f)
         )
     )
     Box(
@@ -68,13 +75,13 @@ fun TrackIIBackground(content: @Composable () -> Unit) {
             .fillMaxSize()
             .background(gradient)
     ) {
-        DecorativeGlow()
+        DecorativeGlow(glowOffsetX, glowOffsetY)
         content()
     }
 }
 
 @Composable
-private fun BoxScope.DecorativeGlow() {
+private fun BoxScope.DecorativeGlow(glowOffsetX: Dp, glowOffsetY: Dp) {
     val transition = rememberInfiniteTransition(label = "glow")
     val blurAlpha by transition.animateFloat(
         initialValue = 0.25f,
@@ -85,11 +92,30 @@ private fun BoxScope.DecorativeGlow() {
         ),
         label = "blurAlpha"
     )
+    val driftX by transition.animateFloat(
+        initialValue = -12f,
+        targetValue = 12f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3200),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "driftX"
+    )
+    val driftY by transition.animateFloat(
+        initialValue = -10f,
+        targetValue = 10f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3600),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "driftY"
+    )
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(220.dp)
             .align(Alignment.TopCenter)
+            .offset(x = glowOffsetX + driftX.dp, y = glowOffsetY + driftY.dp)
             .background(
                 Brush.radialGradient(
                     listOf(TTAccent.copy(alpha = blurAlpha), Color.Transparent)
@@ -233,33 +259,9 @@ fun SoftActionButton(text: String, onClick: () -> Unit) {
 }
 
 @Composable
-fun TaskCard(title: String, icon: ImageVector, animationDelayMillis: Int) {
-    val transition = rememberInfiniteTransition(label = "taskPulse")
-    val pulse by transition.animateFloat(
-        initialValue = 0.96f,
-        targetValue = 1.02f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1800, delayMillis = animationDelayMillis),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "taskScale"
-    )
-    val glow by transition.animateFloat(
-        initialValue = 0.2f,
-        targetValue = 0.45f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, delayMillis = animationDelayMillis),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "taskGlow"
-    )
+fun TaskCard(title: String, icon: ImageVector) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-                scaleX = pulse
-                scaleY = pulse
-            },
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
@@ -280,7 +282,7 @@ fun TaskCard(title: String, icon: ImageVector, animationDelayMillis: Int) {
                         .matchParentSize()
                         .background(
                             Brush.radialGradient(
-                                listOf(TTAccent.copy(alpha = glow), Color.Transparent)
+                                listOf(TTAccent.copy(alpha = 0.35f), Color.Transparent)
                             )
                         )
                 )

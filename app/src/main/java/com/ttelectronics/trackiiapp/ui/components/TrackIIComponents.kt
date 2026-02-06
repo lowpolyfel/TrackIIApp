@@ -14,16 +14,18 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -39,6 +41,9 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -96,12 +101,38 @@ private fun BoxScope.DecorativeGlow() {
 
 @Composable
 fun GlassCard(content: @Composable () -> Unit) {
+    val transition = rememberInfiniteTransition(label = "glassShift")
+    val shift by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3200),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "glassShift"
+    )
+    val gradient = Brush.linearGradient(
+        colors = listOf(
+            Color.White.copy(alpha = 0.9f),
+            TTBlueTint.copy(alpha = 0.65f),
+            Color.White.copy(alpha = 0.95f)
+        ),
+        start = androidx.compose.ui.geometry.Offset(0f, 0f),
+        end = androidx.compose.ui.geometry.Offset(600f * shift + 200f, 600f),
+        tileMode = TileMode.Mirror
+    )
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer(shadowElevation = 18f, shape = RoundedCornerShape(28.dp), clip = false),
         shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.95f))
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.88f))
     ) {
-        Column(modifier = Modifier.padding(24.dp)) {
+        Column(
+            modifier = Modifier
+                .background(gradient)
+                .padding(24.dp)
+        ) {
             content()
         }
     }
@@ -145,6 +176,21 @@ fun PrimaryGlowButton(text: String, onClick: () -> Unit) {
         ),
         label = "glowAlpha"
     )
+    val gradientShift by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2200),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "gradientShift"
+    )
+    val gradient = Brush.linearGradient(
+        colors = listOf(TTBlue, TTAccent, TTBlueDark),
+        start = androidx.compose.ui.geometry.Offset(0f, 0f),
+        end = androidx.compose.ui.geometry.Offset(400f * gradientShift + 200f, 0f),
+        tileMode = TileMode.Mirror
+    )
     Box(modifier = Modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier
@@ -157,10 +203,19 @@ fun PrimaryGlowButton(text: String, onClick: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = TTBlue),
-            shape = RoundedCornerShape(20.dp)
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+            shape = RoundedCornerShape(20.dp),
+            contentPadding = PaddingValues(0.dp)
         ) {
-            Text(text = text, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(gradient),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = text, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+            }
         }
     }
 }
@@ -178,9 +233,33 @@ fun SoftActionButton(text: String, onClick: () -> Unit) {
 }
 
 @Composable
-fun TaskCard(title: String) {
+fun TaskCard(title: String, icon: ImageVector, animationDelayMillis: Int) {
+    val transition = rememberInfiniteTransition(label = "taskPulse")
+    val pulse by transition.animateFloat(
+        initialValue = 0.96f,
+        targetValue = 1.02f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1800, delayMillis = animationDelayMillis),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "taskScale"
+    )
+    val glow by transition.animateFloat(
+        initialValue = 0.2f,
+        targetValue = 0.45f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, delayMillis = animationDelayMillis),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "taskGlow"
+    )
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = pulse
+                scaleY = pulse
+            },
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
@@ -190,18 +269,41 @@ fun TaskCard(title: String) {
                 .padding(18.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(
-                modifier = Modifier.size(54.dp),
-                shape = CircleShape,
-                color = TTBlueTint
+            Box(
+                modifier = Modifier
+                    .size(58.dp)
+                    .clip(CircleShape)
+                    .background(TTBlueTint)
             ) {
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .matchParentSize()
                         .background(
-                            Brush.linearGradient(listOf(TTBlue, TTBlueDark))
+                            Brush.radialGradient(
+                                listOf(TTAccent.copy(alpha = glow), Color.Transparent)
+                            )
                         )
                 )
+                Surface(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .align(Alignment.Center),
+                    shape = CircleShape,
+                    color = TTBlueTint
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Brush.linearGradient(listOf(TTBlue, TTBlueDark))),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = Color.White
+                        )
+                    }
+                }
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column {

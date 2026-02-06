@@ -5,6 +5,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Build
+import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material.icons.rounded.HighlightOff
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,11 +44,24 @@ fun TaskSelectionScreen(onBackToLogin: () -> Unit) {
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 6.dp, bottom = 22.dp)
             )
+            Spacer(modifier = Modifier.weight(1f))
             GlassCard {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    TaskCard(title = "Seguimiento de hojas viajeras")
-                    TaskCard(title = "Cancelar Orden")
-                    TaskCard(title = "Retrabajo")
+                    TaskCard(
+                        title = "Seguimiento de hojas viajeras",
+                        icon = Icons.Rounded.Description,
+                        animationDelayMillis = 0
+                    )
+                    TaskCard(
+                        title = "Cancelar Orden",
+                        icon = Icons.Rounded.HighlightOff,
+                        animationDelayMillis = 200
+                    )
+                    TaskCard(
+                        title = "Retrabajo",
+                        icon = Icons.Rounded.Build,
+                        animationDelayMillis = 400
+                    )
                 }
             }
             Spacer(modifier = Modifier.weight(1f))

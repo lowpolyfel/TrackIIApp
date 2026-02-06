@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -86,8 +87,16 @@ fun LoginScreen(onLogin: () -> Unit, onRegister: () -> Unit) {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     TrackIITextField(label = "Correo electrónico")
                     TrackIITextField(label = "Contraseña", isPassword = true)
-                    PrimaryGlowButton(text = "Iniciar sesión", onClick = onLogin)
-                    SoftActionButton(text = "Crear cuenta", onClick = onRegister)
+                    PrimaryGlowButton(
+                        text = "Iniciar sesión",
+                        onClick = onLogin,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    SoftActionButton(
+                        text = "Crear cuenta",
+                        onClick = onRegister,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
         }

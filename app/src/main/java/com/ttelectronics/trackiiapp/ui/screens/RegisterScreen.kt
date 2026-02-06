@@ -8,6 +8,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -69,8 +70,16 @@ fun RegisterScreen(onCreateAccount: () -> Unit, onBackToLogin: () -> Unit) {
                     TrackIITextField(label = "Correo electrónico")
                     TrackIITextField(label = "Contraseña", isPassword = true)
                     TrackIITextField(label = "Confirmar contraseña", isPassword = true)
-                    PrimaryGlowButton(text = "Registrar", onClick = onCreateAccount)
-                    SoftActionButton(text = "Ya tengo cuenta", onClick = onBackToLogin)
+                    PrimaryGlowButton(
+                        text = "Registrar",
+                        onClick = onCreateAccount,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    SoftActionButton(
+                        text = "Ya tengo cuenta",
+                        onClick = onBackToLogin,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
             Spacer(modifier = Modifier.size(16.dp))

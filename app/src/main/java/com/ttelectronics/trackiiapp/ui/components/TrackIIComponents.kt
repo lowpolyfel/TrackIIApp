@@ -191,7 +191,39 @@ fun TrackIITextField(label: String, isPassword: Boolean = false) {
 }
 
 @Composable
-fun PrimaryGlowButton(text: String, onClick: () -> Unit) {
+fun TrackIIReadOnlyField(label: String, value: String, helper: String? = null) {
+    TextField(
+        value = value,
+        onValueChange = {},
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true,
+        readOnly = true,
+        label = { Text(text = label) },
+        placeholder = {
+            if (helper != null) {
+                Text(text = helper, color = TTTextSecondary)
+            }
+        },
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = TTBlueTint,
+            unfocusedContainerColor = TTBlueTint,
+            disabledContainerColor = TTBlueTint,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            disabledIndicatorColor = Color.Transparent,
+            disabledTextColor = MaterialTheme.colorScheme.onSurface
+        ),
+        shape = RoundedCornerShape(18.dp)
+    )
+}
+
+@Composable
+fun PrimaryGlowButton(
+    text: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier
+) {
     val transition = rememberInfiniteTransition(label = "buttonGlow")
     val gradientShift by transition.animateFloat(
         initialValue = 0f,
@@ -208,7 +240,7 @@ fun PrimaryGlowButton(text: String, onClick: () -> Unit) {
         end = androidx.compose.ui.geometry.Offset(400f * gradientShift + 200f, 0f),
         tileMode = TileMode.Mirror
     )
-    Box(modifier = Modifier.fillMaxWidth()) {
+    Box(modifier = modifier) {
         Box(
             modifier = Modifier
                 .matchParentSize()
@@ -217,6 +249,7 @@ fun PrimaryGlowButton(text: String, onClick: () -> Unit) {
         )
         Button(
             onClick = onClick,
+            enabled = enabled,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -238,10 +271,10 @@ fun PrimaryGlowButton(text: String, onClick: () -> Unit) {
 }
 
 @Composable
-fun SoftActionButton(text: String, onClick: () -> Unit) {
+fun SoftActionButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Button(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         colors = ButtonDefaults.buttonColors(containerColor = TTBlueLight),
         shape = RoundedCornerShape(18.dp)
     ) {
@@ -250,8 +283,9 @@ fun SoftActionButton(text: String, onClick: () -> Unit) {
 }
 
 @Composable
-fun TaskCard(title: String, icon: ImageVector) {
+fun TaskCard(title: String, icon: ImageVector, onClick: () -> Unit) {
     Card(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)

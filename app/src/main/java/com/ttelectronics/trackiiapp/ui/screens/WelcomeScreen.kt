@@ -3,6 +3,7 @@ package com.ttelectronics.trackiiapp.ui.screens
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -16,6 +17,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -68,18 +72,24 @@ fun WelcomeScreen(onStart: () -> Unit) {
         ),
         label = "arrowThree"
     )
+    val textOffset by animateDpAsState(
+        targetValue = if (showHint) 0.dp else 180.dp,
+        animationSpec = tween(durationMillis = 900),
+        label = "textOffset"
+    )
 
     TrackIIBackground(glowOffsetX = (-10).dp, glowOffsetY = (-20).dp) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp),
+                .padding(horizontal = 24.dp)
+                .clickable(onClick = onStart),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Text(
                 text = "Hola usuario",
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.size(24.dp))
@@ -87,27 +97,30 @@ fun WelcomeScreen(onStart: () -> Unit) {
                 painter = painterResource(id = R.drawable.logo_trackii),
                 contentDescription = "TrackII logo",
                 modifier = Modifier
-                    .size(220.dp)
-                    .clickable(onClick = onStart),
+                    .size(280.dp),
                 contentScale = ContentScale.Fit
             )
             Spacer(modifier = Modifier.size(20.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                ArrowHint(alpha = arrowOne)
-                ArrowHint(alpha = arrowTwo)
-                ArrowHint(alpha = arrowThree)
-            }
             AnimatedVisibility(
                 visible = showHint,
-                enter = slideInVertically(initialOffsetY = { it / 2 })
+                enter = slideInVertically(initialOffsetY = { it })
             ) {
-                Text(
-                    text = "Da click en el logo para empezar",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TTTextSecondary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 12.dp)
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        ArrowHint(alpha = arrowOne)
+                        ArrowHint(alpha = arrowTwo)
+                        ArrowHint(alpha = arrowThree)
+                    }
+                    Text(
+                        text = "Da click en el logo para empezar",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TTTextSecondary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .padding(top = 16.dp)
+                            .graphicsLayer { translationY = textOffset.toPx() }
+                    )
+                }
             }
         }
     }
@@ -115,14 +128,12 @@ fun WelcomeScreen(onStart: () -> Unit) {
 
 @Composable
 private fun ArrowHint(alpha: Float) {
-    Text(
-        text = ">>>",
-        style = MaterialTheme.typography.titleMedium,
+    Icon(
+        imageVector = Icons.Rounded.KeyboardArrowUp,
+        contentDescription = null,
         modifier = Modifier
-            .graphicsLayer {
-                rotationZ = -90f
-                this.alpha = alpha
-            },
-        color = TTTextSecondary
+            .size(48.dp)
+            .graphicsLayer { this.alpha = alpha },
+        tint = TTTextSecondary
     )
 }

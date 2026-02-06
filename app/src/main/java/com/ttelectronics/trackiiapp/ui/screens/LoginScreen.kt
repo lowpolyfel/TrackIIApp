@@ -75,7 +75,7 @@ fun LoginScreen(onLogin: () -> Unit, onRegister: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 Image(
-                    painter = painterResource(id = R.drawable.tt_logo),
+                    painter = painterResource(id = R.drawable.ttlogo),
                     contentDescription = "TT logo",
                     modifier = Modifier.size(120.dp),
                     contentScale = ContentScale.Fit

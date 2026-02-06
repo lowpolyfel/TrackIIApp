@@ -1,14 +1,16 @@
 package com.ttelectronics.trackiiapp.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenu
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -93,7 +95,6 @@ fun TaskDetailScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CancelReasonDropdown() {
     val reasons = listOf(
@@ -105,18 +106,21 @@ private fun CancelReasonDropdown() {
     var expanded by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf(reasons.first()) }
 
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded }
-    ) {
+    Column {
         TextField(
             value = selected,
             onValueChange = {},
             modifier = Modifier
-                .menuAnchor()
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .clickable { expanded = true },
             readOnly = true,
             label = { Text(text = "Motivo de cancelación") },
+            trailingIcon = {
+                androidx.compose.material3.Icon(
+                    imageVector = Icons.Rounded.ExpandMore,
+                    contentDescription = null
+                )
+            },
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = TTBlueTint,
                 unfocusedContainerColor = TTBlueTint,
@@ -125,12 +129,12 @@ private fun CancelReasonDropdown() {
                 unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
             )
         )
-        ExposedDropdownMenu(
+        DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
             reasons.forEach { reason ->
-                androidx.compose.material3.DropdownMenuItem(
+                DropdownMenuItem(
                     text = { Text(reason) },
                     onClick = {
                         selected = reason

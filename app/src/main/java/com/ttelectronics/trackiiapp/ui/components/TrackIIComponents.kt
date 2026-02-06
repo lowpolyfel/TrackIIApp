@@ -193,20 +193,11 @@ fun TrackIITextField(label: String, isPassword: Boolean = false) {
 @Composable
 fun PrimaryGlowButton(text: String, onClick: () -> Unit) {
     val transition = rememberInfiniteTransition(label = "buttonGlow")
-    val glowAlpha by transition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.55f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1800),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "glowAlpha"
-    )
     val gradientShift by transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2200),
+            animation = tween(4200),
             repeatMode = RepeatMode.Reverse
         ),
         label = "gradientShift"
@@ -222,7 +213,7 @@ fun PrimaryGlowButton(text: String, onClick: () -> Unit) {
             modifier = Modifier
                 .matchParentSize()
                 .clip(RoundedCornerShape(20.dp))
-                .background(TTAccent.copy(alpha = glowAlpha))
+                .background(TTAccent.copy(alpha = 0.18f))
         )
         Button(
             onClick = onClick,

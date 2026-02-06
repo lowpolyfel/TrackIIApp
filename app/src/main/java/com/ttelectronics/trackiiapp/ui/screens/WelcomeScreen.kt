@@ -133,7 +133,10 @@ private fun ArrowHint(alpha: Float) {
         contentDescription = null,
         modifier = Modifier
             .size(48.dp)
-            .graphicsLayer { this.alpha = alpha },
+            .graphicsLayer {
+                this.alpha = alpha
+                translationY = (1f - alpha) * 24f
+            },
         tint = TTTextSecondary
     )
 }

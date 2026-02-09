@@ -84,7 +84,7 @@ fun TrackIINavHost(
         composable(TrackIIRoute.Welcome) {
             WelcomeScreen(
                 onStart = { navController.navigate(TrackIIRoute.Tasks) },
-                onHome = navigateHome
+                userName = "Usuario"
             )
         }
         composable(TrackIIRoute.Tasks) {

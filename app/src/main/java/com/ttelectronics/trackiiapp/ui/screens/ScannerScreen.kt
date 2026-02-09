@@ -249,6 +249,7 @@ fun ScannerScreen(
                         .fillMaxWidth(0.9f)
                         .aspectRatio(1.4f)
                         .align(Alignment.Center)
+                        .offset(y = (-48).dp)
                         .clip(RoundedCornerShape(26.dp))
                         .background(Color.Black.copy(alpha = 0.12f))
                 ) {
@@ -256,7 +257,7 @@ fun ScannerScreen(
                         factory = { previewView },
                         modifier = Modifier.fillMaxSize()
                     )
-                    ScannerFrameOverlay(hasBarcodeInFrame = hasBarcodeInFrame)
+                    ScannerFrameOverlay(showFrame = !hasBarcodeInFrame)
                 }
 
                 ScannerOverlay(
@@ -279,7 +280,7 @@ fun ScannerScreen(
                 PermissionFallback(onRequest = { permissionLauncher.launch(Manifest.permission.CAMERA) })
             }
 
-            OrderFoundOverlay(visible = showOrderFound)
+            OrderFoundOverlay(visible = showOrderFound, highlightSuccess = canContinue)
             FloatingHomeButton(
                 onClick = onHome,
                 modifier = Modifier
@@ -360,7 +361,7 @@ private fun ScannerOverlay(
 }
 
 @Composable
-private fun OrderFoundOverlay(visible: Boolean) {
+private fun OrderFoundOverlay(visible: Boolean, highlightSuccess: Boolean) {
     AnimatedVisibility(
         visible = visible,
         enter = fadeIn(tween(200)) + scaleIn(initialScale = 0.9f, animationSpec = tween(260)),
@@ -369,7 +370,9 @@ private fun OrderFoundOverlay(visible: Boolean) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.38f)),
+                .background(
+                    if (highlightSuccess) TTGreen.copy(alpha = 0.75f) else Color.Black.copy(alpha = 0.38f)
+                ),
             contentAlignment = Alignment.Center
         ) {
             Card(
@@ -411,7 +414,7 @@ private fun OrderFoundOverlay(visible: Boolean) {
 }
 
 @Composable
-private fun ScannerFrameOverlay(hasBarcodeInFrame: Boolean) {
+private fun ScannerFrameOverlay(showFrame: Boolean) {
     val transition = rememberInfiniteTransition(label = "scanLine")
     val lineOffset by transition.animateFloat(
         initialValue = 0f,
@@ -423,7 +426,7 @@ private fun ScannerFrameOverlay(hasBarcodeInFrame: Boolean) {
         label = "scanLineOffset"
     )
     val frameAlpha by animateFloatAsState(
-        targetValue = if (hasBarcodeInFrame) 1f else 0f,
+        targetValue = if (showFrame) 1f else 0f,
         animationSpec = tween(360),
         label = "frameAlpha"
     )
@@ -505,17 +508,17 @@ private fun StatusRow(label: String, value: String, placeholder: String) {
             modifier = Modifier
                 .size(32.dp)
                 .clip(CircleShape)
-                .background(TTBlueTint),
+                .background(if (value.isBlank()) TTBlueTint else TTGreenTint),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = if (value.isBlank()) Icons.Rounded.DocumentScanner else Icons.Rounded.CheckCircle,
                 contentDescription = null,
-                tint = if (value.isBlank()) TTBlue else TTBlueDark
+                tint = if (value.isBlank()) TTBlue else TTGreen
             )
         }
         Spacer(modifier = Modifier.width(12.dp))
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
@@ -523,8 +526,22 @@ private fun StatusRow(label: String, value: String, placeholder: String) {
             Text(
                 text = if (value.isBlank()) placeholder else value,
                 style = MaterialTheme.typography.bodySmall,
-                color = if (value.isBlank()) TTTextSecondary else TTBlueDark
+                color = if (value.isBlank()) TTTextSecondary else TTGreen
             )
+        }
+        if (value.isNotBlank()) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(TTGreen.copy(alpha = 0.16f))
+                    .padding(horizontal = 10.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = "Detectado",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = TTGreen
+                )
+            }
         }
     }
 }

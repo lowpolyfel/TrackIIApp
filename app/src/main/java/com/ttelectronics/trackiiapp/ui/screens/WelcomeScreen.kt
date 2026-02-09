@@ -10,6 +10,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -38,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ttelectronics.trackiiapp.R
+import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
 
@@ -102,19 +104,49 @@ fun WelcomeScreen(onStart: () -> Unit, userName: String) {
                 painter = painterResource(id = R.drawable.logo_trackii),
                 contentDescription = "TrackII logo",
                 modifier = Modifier
-                    .size(360.dp),
-                contentScale = ContentScale.Fit
-            )
-            Spacer(modifier = Modifier.size(20.dp))
-            AnimatedVisibility(
-                visible = showHint,
-                enter = slideInVertically(initialOffsetY = { it })
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onStart
+                    ),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        ArrowHint(alpha = arrowOne)
-                        ArrowHint(alpha = arrowTwo)
-                        ArrowHint(alpha = arrowThree)
+                Text(
+                    text = "Hola usuario",
+                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.size(24.dp))
+                Image(
+                    painter = painterResource(id = R.drawable.logo_trackii),
+                    contentDescription = "TrackII logo",
+                    modifier = Modifier
+                        .size(360.dp),
+                    contentScale = ContentScale.Fit
+                )
+                Spacer(modifier = Modifier.size(20.dp))
+                AnimatedVisibility(
+                    visible = showHint,
+                    enter = slideInVertically(initialOffsetY = { it })
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            ArrowHint(alpha = arrowOne)
+                            ArrowHint(alpha = arrowTwo)
+                            ArrowHint(alpha = arrowThree)
+                        }
+                        Text(
+                            text = "Puedes dar click en cualquier parte de la pantalla",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TTTextSecondary,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .padding(top = 16.dp)
+                                .graphicsLayer { translationY = textOffset.toPx() }
+                        )
                     }
                     Text(
                         text = "Puedes dar click en cualquier parte de la pantalla",
@@ -127,6 +159,12 @@ fun WelcomeScreen(onStart: () -> Unit, userName: String) {
                     )
                 }
             }
+            FloatingHomeButton(
+                onClick = onHome,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(20.dp)
+            )
         }
     }
 }

@@ -295,7 +295,14 @@ fun SoftActionButton(text: String, onClick: () -> Unit, modifier: Modifier = Mod
 }
 
 @Composable
-fun TaskCard(title: String, icon: ImageVector, onClick: () -> Unit) {
+fun TaskCard(
+    title: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    accentColor: Color = TTBlue,
+    accentDark: Color = TTBlueDark,
+    accentTint: Color = TTBlueTint
+) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -312,14 +319,14 @@ fun TaskCard(title: String, icon: ImageVector, onClick: () -> Unit) {
                 modifier = Modifier
                     .size(58.dp)
                     .clip(CircleShape)
-                    .background(TTBlueTint)
+                    .background(accentTint)
             ) {
                 Box(
                     modifier = Modifier
                         .matchParentSize()
                         .background(
                             Brush.radialGradient(
-                                listOf(TTAccent.copy(alpha = 0.35f), Color.Transparent)
+                                listOf(accentColor.copy(alpha = 0.35f), Color.Transparent)
                             )
                         )
                 )
@@ -328,12 +335,12 @@ fun TaskCard(title: String, icon: ImageVector, onClick: () -> Unit) {
                         .size(48.dp)
                         .align(Alignment.Center),
                     shape = CircleShape,
-                    color = TTBlueTint
+                    color = accentTint
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Brush.linearGradient(listOf(TTBlue, TTBlueDark))),
+                            .background(Brush.linearGradient(listOf(accentColor, accentDark))),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(

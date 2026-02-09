@@ -31,23 +31,12 @@ fun LoginScreen(onLogin: () -> Unit, onRegister: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.logo_texto_sin_fondo_b),
-                    contentDescription = "TrackII logo",
-                    modifier = Modifier.size(220.dp),
-                    contentScale = ContentScale.Fit
-                )
-                Image(
-                    painter = painterResource(id = R.drawable.ttlogo),
-                    contentDescription = "TT logo",
-                    modifier = Modifier.size(110.dp),
-                    contentScale = ContentScale.Fit
-                )
-            }
+            Image(
+                painter = painterResource(id = R.drawable.ttlogo),
+                contentDescription = "TT logo",
+                modifier = Modifier.size(260.dp),
+                contentScale = ContentScale.Fit
+            )
             Spacer(modifier = Modifier.size(20.dp))
             GlassCard {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {

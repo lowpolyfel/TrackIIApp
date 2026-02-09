@@ -23,7 +23,16 @@ import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
 import com.ttelectronics.trackiiapp.ui.components.TaskCard
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
+import com.ttelectronics.trackiiapp.ui.theme.TTGreen
+import com.ttelectronics.trackiiapp.ui.theme.TTGreenDark
+import com.ttelectronics.trackiiapp.ui.theme.TTGreenTint
+import com.ttelectronics.trackiiapp.ui.theme.TTRed
+import com.ttelectronics.trackiiapp.ui.theme.TTRedDark
+import com.ttelectronics.trackiiapp.ui.theme.TTRedTint
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
+import com.ttelectronics.trackiiapp.ui.theme.TTYellow
+import com.ttelectronics.trackiiapp.ui.theme.TTYellowDark
+import com.ttelectronics.trackiiapp.ui.theme.TTYellowTint
 
 @Composable
 fun TaskSelectionScreen(
@@ -55,17 +64,26 @@ fun TaskSelectionScreen(
                     TaskCard(
                         title = "Seguimiento de hojas viajeras",
                         icon = Icons.Rounded.Description,
-                        onClick = { onTaskSelected(TaskType.TravelSheet) }
+                        onClick = { onTaskSelected(TaskType.TravelSheet) },
+                        accentColor = TTGreen,
+                        accentDark = TTGreenDark,
+                        accentTint = TTGreenTint
                     )
                     TaskCard(
                         title = "Cancelar Orden",
                         icon = Icons.Rounded.HighlightOff,
-                        onClick = { onTaskSelected(TaskType.CancelOrder) }
+                        onClick = { onTaskSelected(TaskType.CancelOrder) },
+                        accentColor = TTRed,
+                        accentDark = TTRedDark,
+                        accentTint = TTRedTint
                     )
                     TaskCard(
                         title = "Retrabajo",
                         icon = Icons.Rounded.Build,
-                        onClick = { onTaskSelected(TaskType.Rework) }
+                        onClick = { onTaskSelected(TaskType.Rework) },
+                        accentColor = TTYellow,
+                        accentDark = TTYellowDark,
+                        accentTint = TTYellowTint
                     )
                 }
             }

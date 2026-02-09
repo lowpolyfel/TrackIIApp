@@ -117,7 +117,7 @@ fun WelcomeScreen(onStart: () -> Unit) {
                         ArrowHint(alpha = arrowThree)
                     }
                     Text(
-                        text = "Da click en el logo para empezar",
+                        text = "Puedes dar click en cualquier parte de la pantalla",
                         style = MaterialTheme.typography.bodyMedium,
                         color = TTTextSecondary,
                         textAlign = TextAlign.Center,

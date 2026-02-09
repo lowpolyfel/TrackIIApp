@@ -10,6 +10,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -83,7 +84,11 @@ fun WelcomeScreen(onStart: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 24.dp)
-                .clickable(onClick = onStart),
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onStart
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -97,7 +102,7 @@ fun WelcomeScreen(onStart: () -> Unit) {
                 painter = painterResource(id = R.drawable.logo_trackii),
                 contentDescription = "TrackII logo",
                 modifier = Modifier
-                    .size(280.dp),
+                    .size(360.dp),
                 contentScale = ContentScale.Fit
             )
             Spacer(modifier = Modifier.size(20.dp))

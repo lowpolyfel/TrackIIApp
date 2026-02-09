@@ -76,6 +76,7 @@ import com.google.mlkit.vision.common.InputImage
 import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
+import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
 import com.ttelectronics.trackiiapp.ui.theme.TTAccent
 import com.ttelectronics.trackiiapp.ui.theme.TTBlue
@@ -91,7 +92,8 @@ import java.util.concurrent.Executors
 fun ScannerScreen(
     taskType: TaskType,
     onBack: () -> Unit,
-    onComplete: (String, String) -> Unit
+    onComplete: (String, String) -> Unit,
+    onHome: () -> Unit
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -278,6 +280,12 @@ fun ScannerScreen(
             }
 
             OrderFoundOverlay(visible = showOrderFound)
+            FloatingHomeButton(
+                onClick = onHome,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(20.dp)
+            )
         }
     }
 }

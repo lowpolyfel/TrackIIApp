@@ -1,31 +1,36 @@
 package com.ttelectronics.trackiiapp.ui.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.ttelectronics.trackiiapp.R
-import com.ttelectronics.trackiiapp.ui.components.GlassCard
 import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
+import com.ttelectronics.trackiiapp.ui.components.GlassCard
 import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.components.TrackIITextField
+import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
 
 @Composable
-fun LoginScreen(onLogin: () -> Unit, onRegister: () -> Unit, onHome: () -> Unit) {
-    TrackIIBackground(glowOffsetX = 80.dp, glowOffsetY = (-40).dp) {
+fun RegisterTokenScreen(
+    onContinue: () -> Unit,
+    onBack: () -> Unit,
+    onHome: () -> Unit
+) {
+    TrackIIBackground(glowOffsetX = (-20).dp, glowOffsetY = 40.dp) {
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
@@ -34,29 +39,34 @@ fun LoginScreen(onLogin: () -> Unit, onRegister: () -> Unit, onHome: () -> Unit)
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.ttlogo),
-                    contentDescription = "TT logo",
-                    modifier = Modifier.size(260.dp),
-                    contentScale = ContentScale.Fit
+                Text(
+                    text = "Ingresa tu token",
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    textAlign = TextAlign.Center
                 )
-                Spacer(modifier = Modifier.size(20.dp))
+                Text(
+                    text = "Validaremos el acceso antes de crear tu cuenta.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TTTextSecondary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 6.dp, bottom = 20.dp)
+                )
                 GlassCard {
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        TrackIITextField(label = "Correo electrónico")
-                        TrackIITextField(label = "Contraseña", isPassword = true)
+                        TrackIITextField(label = "Token de acceso")
                         PrimaryGlowButton(
-                            text = "Iniciar sesión",
-                            onClick = onLogin,
+                            text = "Continuar",
+                            onClick = onContinue,
                             modifier = Modifier.fillMaxWidth()
                         )
                         SoftActionButton(
-                            text = "Crear cuenta",
-                            onClick = onRegister,
+                            text = "Volver",
+                            onClick = onBack,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
+                Spacer(modifier = Modifier.size(16.dp))
             }
             FloatingHomeButton(
                 onClick = onHome,

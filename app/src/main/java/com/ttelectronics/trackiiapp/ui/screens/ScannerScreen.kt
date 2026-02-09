@@ -9,6 +9,7 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -68,6 +69,7 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
+import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
 import com.ttelectronics.trackiiapp.ui.theme.TTAccent
 import com.ttelectronics.trackiiapp.ui.theme.TTBlue
@@ -106,9 +108,12 @@ fun ScannerScreen(
 
     var lotNumber by rememberSaveable { mutableStateOf("") }
     var partNumber by rememberSaveable { mutableStateOf("") }
+    var hasBarcodeInFrame by remember { mutableStateOf(false) }
 
     val lotRegex = remember { Regex("^[0-9]{7}$") }
     val partRegex = remember { Regex("^[A-Za-z].+") }
+    var lotScanState by remember { mutableStateOf(StableScanState()) }
+    var partScanState by remember { mutableStateOf(StableScanState()) }
 
     val onLotFound by rememberUpdatedState<(String) -> Unit> { value ->
         if (lotNumber.isBlank()) {
@@ -142,11 +147,29 @@ fun ScannerScreen(
             )
             barcodeScanner.process(inputImage)
                 .addOnSuccessListener(mainExecutor) { barcodes ->
-                    barcodes.forEach { barcode ->
-                        val value = barcode.rawValue ?: return@forEach
-                        when {
-                            lotNumber.isBlank() && lotRegex.matches(value) -> onLotFound(value)
-                            partNumber.isBlank() && partRegex.matches(value) -> onPartFound(value)
+                    val now = System.currentTimeMillis()
+                    val rawValues = barcodes.mapNotNull { it.rawValue?.trim() }.filter { it.isNotEmpty() }
+                    hasBarcodeInFrame = rawValues.isNotEmpty()
+                    if (rawValues.isEmpty()) {
+                        lotScanState = lotScanState.clear()
+                        partScanState = partScanState.clear()
+                    } else {
+                        val lotCandidate = rawValues.firstOrNull { lotRegex.matches(it) }
+                        val partCandidate = rawValues.firstOrNull { partRegex.matches(it) }
+                        if (lotNumber.isBlank() && lotCandidate != null) {
+                            lotScanState = lotScanState.record(lotCandidate)
+                            if (lotScanState.canAccept(now)) {
+                                onLotFound(lotCandidate)
+                                lotScanState = lotScanState.markAccepted(now)
+                            }
+                        }
+                        if (partNumber.isBlank() && partCandidate != null) {
+                            val normalizedPart = partCandidate.uppercase()
+                            partScanState = partScanState.record(normalizedPart)
+                            if (partScanState.canAccept(now)) {
+                                onPartFound(normalizedPart)
+                                partScanState = partScanState.markAccepted(now)
+                            }
                         }
                     }
                 }
@@ -188,34 +211,41 @@ fun ScannerScreen(
         )
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-    ) {
-        if (hasCameraPermission) {
-            AndroidView(
-                factory = { previewView },
-                modifier = Modifier.fillMaxSize()
-            )
-        } else {
-            PermissionFallback(onRequest = { permissionLauncher.launch(Manifest.permission.CAMERA) })
-        }
+    TrackIIBackground(glowOffsetX = 40.dp, glowOffsetY = (-30).dp) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (hasCameraPermission) {
+                Box(
+                    modifier = Modifier
+                        .size(width = 320.dp, height = 220.dp)
+                        .align(Alignment.Center)
+                        .clip(RoundedCornerShape(26.dp))
+                        .background(Color.Black.copy(alpha = 0.12f))
+                ) {
+                    AndroidView(
+                        factory = { previewView },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    ScannerFrameOverlay(hasBarcodeInFrame = hasBarcodeInFrame)
+                }
 
-        ScannerOverlay(
-            taskTitle = taskType.title,
-            lotNumber = lotNumber,
-            partNumber = partNumber,
-            onReset = {
-                lotNumber = ""
-                partNumber = ""
-            },
-            onBack = onBack,
-            onContinue = {
-                onComplete(lotNumber, partNumber)
-            },
-            canContinue = lotNumber.isNotBlank() && partNumber.isNotBlank()
-        )
+                ScannerOverlay(
+                    taskTitle = taskType.title,
+                    lotNumber = lotNumber,
+                    partNumber = partNumber,
+                    onReset = {
+                        lotNumber = ""
+                        partNumber = ""
+                    },
+                    onBack = onBack,
+                    onContinue = {
+                        onComplete(lotNumber, partNumber)
+                    },
+                    canContinue = lotNumber.isNotBlank() && partNumber.isNotBlank()
+                )
+            } else {
+                PermissionFallback(onRequest = { permissionLauncher.launch(Manifest.permission.CAMERA) })
+            }
+        }
     }
 }
 
@@ -229,17 +259,6 @@ private fun ScannerOverlay(
     onContinue: () -> Unit,
     canContinue: Boolean
 ) {
-    val transition = rememberInfiniteTransition(label = "scanLine")
-    val lineOffset by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2400),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "scanLineOffset"
-    )
-
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -247,7 +266,7 @@ private fun ScannerOverlay(
                 .align(Alignment.TopCenter)
                 .background(
                     Brush.verticalGradient(
-                        listOf(Color.Black.copy(alpha = 0.65f), Color.Transparent)
+                        listOf(TTBlueDark.copy(alpha = 0.18f), Color.Transparent)
                     )
                 )
                 .padding(horizontal = 24.dp, vertical = 28.dp)
@@ -264,44 +283,13 @@ private fun ScannerOverlay(
             )
         }
 
-        Box(
-            modifier = Modifier
-                .size(width = 260.dp, height = 190.dp)
-                .align(Alignment.Center)
-                .clip(RoundedCornerShape(28.dp))
-                .background(Color.White.copy(alpha = 0.12f))
-                .borderGlow()
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(3.dp)
-                    .align(Alignment.TopCenter)
-                    .offset(y = (lineOffset * 170).dp)
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(Color.Transparent, TTAccent, Color.Transparent)
-                        )
-                    )
-                    .blur(2.dp)
-            )
-            Icon(
-                imageVector = Icons.Rounded.CenterFocusStrong,
-                contentDescription = null,
-                tint = Color.White.copy(alpha = 0.6f),
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .size(48.dp)
-            )
-        }
-
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .background(
                     Brush.verticalGradient(
-                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f))
+                        listOf(Color.Transparent, TTBlueDark.copy(alpha = 0.16f))
                     )
                 )
                 .padding(horizontal = 24.dp, vertical = 20.dp),
@@ -325,6 +313,58 @@ private fun ScannerOverlay(
                 text = "Volver",
                 onClick = onBack,
                 modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+@Composable
+private fun ScannerFrameOverlay(hasBarcodeInFrame: Boolean) {
+    val transition = rememberInfiniteTransition(label = "scanLine")
+    val lineOffset by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2400),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scanLineOffset"
+    )
+    val frameAlpha by animateFloatAsState(
+        targetValue = if (hasBarcodeInFrame) 1f else 0f,
+        animationSpec = tween(360),
+        label = "frameAlpha"
+    )
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .graphicsLayer { alpha = frameAlpha }
+                .clip(RoundedCornerShape(26.dp))
+                .borderGlow()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .align(Alignment.TopCenter)
+                    .offset(y = (lineOffset * 190).dp)
+                    .graphicsLayer { alpha = frameAlpha }
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(Color.Transparent, TTAccent, Color.Transparent)
+                        )
+                    )
+                    .blur(2.dp)
+            )
+            Icon(
+                imageVector = Icons.Rounded.CenterFocusStrong,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.6f * frameAlpha),
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(48.dp)
             )
         }
     }
@@ -462,3 +502,27 @@ private fun Modifier.borderGlow(): Modifier {
             )
         )
 }
+
+private data class StableScanState(
+    val lastValue: String = "",
+    val stableCount: Int = 0,
+    val lastAcceptedAt: Long = 0L
+) {
+    fun record(value: String): StableScanState {
+        val newCount = if (value == lastValue) stableCount + 1 else 1
+        return copy(lastValue = value, stableCount = newCount)
+    }
+
+    fun canAccept(now: Long): Boolean {
+        return stableCount >= REQUIRED_STABLE_READS && now - lastAcceptedAt > MIN_ACCEPT_INTERVAL_MS
+    }
+
+    fun markAccepted(now: Long): StableScanState {
+        return copy(lastValue = "", stableCount = 0, lastAcceptedAt = now)
+    }
+
+    fun clear(): StableScanState = copy(lastValue = "", stableCount = 0)
+}
+
+private const val REQUIRED_STABLE_READS = 3
+private const val MIN_ACCEPT_INTERVAL_MS = 1200L

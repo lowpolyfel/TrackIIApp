@@ -225,27 +225,26 @@ fun PrimaryGlowButton(
     modifier: Modifier = Modifier
 ) {
     val transition = rememberInfiniteTransition(label = "buttonGlow")
-    val gradientShift by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
+    val pulseAlpha by transition.animateFloat(
+        initialValue = 0.15f,
+        targetValue = 0.45f,
         animationSpec = infiniteRepeatable(
-            animation = tween(4200),
+            animation = tween(2000),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "gradientShift"
+        label = "pulseAlpha"
     )
     val gradient = Brush.linearGradient(
         colors = listOf(TTBlue, TTAccent, TTBlueDark),
         start = androidx.compose.ui.geometry.Offset(0f, 0f),
-        end = androidx.compose.ui.geometry.Offset(400f * gradientShift + 200f, 0f),
-        tileMode = TileMode.Mirror
+        end = androidx.compose.ui.geometry.Offset(400f, 0f)
     )
     Box(modifier = modifier) {
         Box(
             modifier = Modifier
                 .matchParentSize()
                 .clip(RoundedCornerShape(20.dp))
-                .background(TTAccent.copy(alpha = 0.18f))
+                .background(TTAccent.copy(alpha = pulseAlpha))
         )
         Button(
             onClick = onClick,
@@ -272,9 +271,22 @@ fun PrimaryGlowButton(
 
 @Composable
 fun SoftActionButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "softButtonPulse")
+    val scale by transition.animateFloat(
+        initialValue = 0.985f,
+        targetValue = 1.015f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2200),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "softButtonScale"
+    )
     Button(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        },
         colors = ButtonDefaults.buttonColors(containerColor = TTBlueLight),
         shape = RoundedCornerShape(18.dp)
     ) {

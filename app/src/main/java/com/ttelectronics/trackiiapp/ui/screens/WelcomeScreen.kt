@@ -45,6 +45,7 @@ import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
 
 @Composable
 fun WelcomeScreen(onStart: () -> Unit, userName: String) {
+    val displayName = userName.ifBlank { "Usuario" }
     var showHint by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { showHint = true }
     val transition = rememberInfiniteTransition(label = "arrowWave")
@@ -95,7 +96,7 @@ fun WelcomeScreen(onStart: () -> Unit, userName: String) {
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "Bienvenido, $userName",
+                text = "Bienvenido, $displayName",
                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                 textAlign = TextAlign.Center
             )

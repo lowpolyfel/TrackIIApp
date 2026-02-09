@@ -44,7 +44,7 @@ import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
 
 @Composable
-fun WelcomeScreen(onStart: () -> Unit, userName: String) {
+fun WelcomeScreen(onStart: () -> Unit, userName: String = "Usuario") {
     val displayName = userName.ifBlank { "Usuario" }
     var showHint by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { showHint = true }

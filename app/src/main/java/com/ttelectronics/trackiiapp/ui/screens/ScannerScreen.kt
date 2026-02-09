@@ -15,6 +15,11 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,6 +33,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -70,19 +76,24 @@ import com.google.mlkit.vision.common.InputImage
 import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
+import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
 import com.ttelectronics.trackiiapp.ui.theme.TTAccent
 import com.ttelectronics.trackiiapp.ui.theme.TTBlue
 import com.ttelectronics.trackiiapp.ui.theme.TTBlueDark
 import com.ttelectronics.trackiiapp.ui.theme.TTBlueTint
+import com.ttelectronics.trackiiapp.ui.theme.TTGreen
+import com.ttelectronics.trackiiapp.ui.theme.TTGreenTint
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
+import kotlinx.coroutines.delay
 import java.util.concurrent.Executors
 
 @Composable
 fun ScannerScreen(
     taskType: TaskType,
     onBack: () -> Unit,
-    onComplete: (String, String) -> Unit
+    onComplete: (String, String) -> Unit,
+    onHome: () -> Unit
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -109,6 +120,8 @@ fun ScannerScreen(
     var lotNumber by rememberSaveable { mutableStateOf("") }
     var partNumber by rememberSaveable { mutableStateOf("") }
     var hasBarcodeInFrame by remember { mutableStateOf(false) }
+    var showOrderFound by remember { mutableStateOf(false) }
+    var hasAutoNavigated by remember { mutableStateOf(false) }
 
     val lotRegex = remember { Regex("^[0-9]{7}$") }
     val partRegex = remember { Regex("^[A-Za-z].+") }
@@ -123,6 +136,13 @@ fun ScannerScreen(
     val onPartFound by rememberUpdatedState<(String) -> Unit> { value ->
         if (partNumber.isBlank()) {
             partNumber = value
+        }
+    }
+
+    LaunchedEffect(lotNumber, partNumber) {
+        if (lotNumber.isBlank() || partNumber.isBlank()) {
+            showOrderFound = false
+            hasAutoNavigated = false
         }
     }
 
@@ -211,13 +231,25 @@ fun ScannerScreen(
         )
     }
 
+    val canContinue = lotNumber.isNotBlank() && partNumber.isNotBlank()
+    LaunchedEffect(canContinue) {
+        if (canContinue && !hasAutoNavigated) {
+            hasAutoNavigated = true
+            showOrderFound = true
+            delay(1100)
+            onComplete(lotNumber, partNumber)
+        }
+    }
+
     TrackIIBackground(glowOffsetX = 40.dp, glowOffsetY = (-30).dp) {
         Box(modifier = Modifier.fillMaxSize()) {
             if (hasCameraPermission) {
                 Box(
                     modifier = Modifier
-                        .size(width = 320.dp, height = 220.dp)
+                        .fillMaxWidth(0.9f)
+                        .aspectRatio(1.4f)
                         .align(Alignment.Center)
+                        .offset(y = (-48).dp)
                         .clip(RoundedCornerShape(26.dp))
                         .background(Color.Black.copy(alpha = 0.12f))
                 ) {
@@ -225,7 +257,7 @@ fun ScannerScreen(
                         factory = { previewView },
                         modifier = Modifier.fillMaxSize()
                     )
-                    ScannerFrameOverlay(hasBarcodeInFrame = hasBarcodeInFrame)
+                    ScannerFrameOverlay(showFrame = !hasBarcodeInFrame)
                 }
 
                 ScannerOverlay(
@@ -235,16 +267,26 @@ fun ScannerScreen(
                     onReset = {
                         lotNumber = ""
                         partNumber = ""
+                        showOrderFound = false
+                        hasAutoNavigated = false
                     },
                     onBack = onBack,
                     onContinue = {
                         onComplete(lotNumber, partNumber)
                     },
-                    canContinue = lotNumber.isNotBlank() && partNumber.isNotBlank()
+                    canContinue = canContinue
                 )
             } else {
                 PermissionFallback(onRequest = { permissionLauncher.launch(Manifest.permission.CAMERA) })
             }
+
+            OrderFoundOverlay(visible = showOrderFound, highlightSuccess = canContinue)
+            FloatingHomeButton(
+                onClick = onHome,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(20.dp)
+            )
         }
     }
 }
@@ -319,7 +361,60 @@ private fun ScannerOverlay(
 }
 
 @Composable
-private fun ScannerFrameOverlay(hasBarcodeInFrame: Boolean) {
+private fun OrderFoundOverlay(visible: Boolean, highlightSuccess: Boolean) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(200)) + scaleIn(initialScale = 0.9f, animationSpec = tween(260)),
+        exit = fadeOut(tween(200)) + scaleOut(targetScale = 0.9f, animationSpec = tween(200))
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    if (highlightSuccess) TTGreen.copy(alpha = 0.75f) else Color.Black.copy(alpha = 0.38f)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Card(
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(TTGreenTint, Color.White)
+                            )
+                        )
+                        .padding(horizontal = 36.dp, vertical = 28.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.CheckCircle,
+                        contentDescription = null,
+                        tint = TTGreen,
+                        modifier = Modifier.size(72.dp)
+                    )
+                    Text(
+                        text = "Orden encontrada",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = "Continuando automáticamente...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TTTextSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScannerFrameOverlay(showFrame: Boolean) {
     val transition = rememberInfiniteTransition(label = "scanLine")
     val lineOffset by transition.animateFloat(
         initialValue = 0f,
@@ -331,7 +426,7 @@ private fun ScannerFrameOverlay(hasBarcodeInFrame: Boolean) {
         label = "scanLineOffset"
     )
     val frameAlpha by animateFloatAsState(
-        targetValue = if (hasBarcodeInFrame) 1f else 0f,
+        targetValue = if (showFrame) 1f else 0f,
         animationSpec = tween(360),
         label = "frameAlpha"
     )
@@ -413,17 +508,17 @@ private fun StatusRow(label: String, value: String, placeholder: String) {
             modifier = Modifier
                 .size(32.dp)
                 .clip(CircleShape)
-                .background(TTBlueTint),
+                .background(if (value.isBlank()) TTBlueTint else TTGreenTint),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = if (value.isBlank()) Icons.Rounded.DocumentScanner else Icons.Rounded.CheckCircle,
                 contentDescription = null,
-                tint = if (value.isBlank()) TTBlue else TTBlueDark
+                tint = if (value.isBlank()) TTBlue else TTGreen
             )
         }
         Spacer(modifier = Modifier.width(12.dp))
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
@@ -431,8 +526,22 @@ private fun StatusRow(label: String, value: String, placeholder: String) {
             Text(
                 text = if (value.isBlank()) placeholder else value,
                 style = MaterialTheme.typography.bodySmall,
-                color = if (value.isBlank()) TTTextSecondary else TTBlueDark
+                color = if (value.isBlank()) TTTextSecondary else TTGreen
             )
+        }
+        if (value.isNotBlank()) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(TTGreen.copy(alpha = 0.16f))
+                    .padding(horizontal = 10.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = "Detectado",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = TTGreen
+                )
+            }
         }
     }
 }

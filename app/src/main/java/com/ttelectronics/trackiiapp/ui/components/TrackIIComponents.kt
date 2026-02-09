@@ -6,6 +6,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -21,10 +22,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -54,6 +61,7 @@ import com.ttelectronics.trackiiapp.ui.theme.TTBlue
 import com.ttelectronics.trackiiapp.ui.theme.TTBlueDark
 import com.ttelectronics.trackiiapp.ui.theme.TTBlueLight
 import com.ttelectronics.trackiiapp.ui.theme.TTBlueTint
+import com.ttelectronics.trackiiapp.ui.theme.TTRed
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
 
 @Composable
@@ -218,6 +226,63 @@ fun TrackIIReadOnlyField(label: String, value: String, helper: String? = null) {
 }
 
 @Composable
+fun TrackIIDropdownField(
+    label: String,
+    options: List<String>,
+    modifier: Modifier = Modifier,
+    helper: String? = null
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var selected by remember { mutableStateOf("") }
+
+    Column(modifier = modifier) {
+        TextField(
+            value = selected,
+            onValueChange = {},
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = true },
+            readOnly = true,
+            label = { Text(text = label) },
+            placeholder = {
+                if (selected.isBlank() && helper != null) {
+                    Text(text = helper, color = TTTextSecondary)
+                }
+            },
+            trailingIcon = {
+                Icon(
+                    imageVector = Icons.Rounded.ExpandMore,
+                    contentDescription = null
+                )
+            },
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = TTBlueTint,
+                unfocusedContainerColor = TTBlueTint,
+                disabledContainerColor = TTBlueTint,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                disabledIndicatorColor = Color.Transparent
+            ),
+            shape = RoundedCornerShape(18.dp)
+        )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option) },
+                    onClick = {
+                        selected = option
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun PrimaryGlowButton(
     text: String,
     onClick: () -> Unit,
@@ -295,7 +360,29 @@ fun SoftActionButton(text: String, onClick: () -> Unit, modifier: Modifier = Mod
 }
 
 @Composable
-fun TaskCard(title: String, icon: ImageVector, onClick: () -> Unit) {
+fun FloatingHomeButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    FloatingActionButton(
+        onClick = onClick,
+        modifier = modifier.size(56.dp),
+        containerColor = TTRed,
+        contentColor = Color.White
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.Close,
+            contentDescription = "Cancelar y regresar"
+        )
+    }
+}
+
+@Composable
+fun TaskCard(
+    title: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    accentColor: Color = TTBlue,
+    accentDark: Color = TTBlueDark,
+    accentTint: Color = TTBlueTint
+) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -312,14 +399,14 @@ fun TaskCard(title: String, icon: ImageVector, onClick: () -> Unit) {
                 modifier = Modifier
                     .size(58.dp)
                     .clip(CircleShape)
-                    .background(TTBlueTint)
+                    .background(accentTint)
             ) {
                 Box(
                     modifier = Modifier
                         .matchParentSize()
                         .background(
                             Brush.radialGradient(
-                                listOf(TTAccent.copy(alpha = 0.35f), Color.Transparent)
+                                listOf(accentColor.copy(alpha = 0.35f), Color.Transparent)
                             )
                         )
                 )
@@ -328,12 +415,12 @@ fun TaskCard(title: String, icon: ImageVector, onClick: () -> Unit) {
                         .size(48.dp)
                         .align(Alignment.Center),
                     shape = CircleShape,
-                    color = TTBlueTint
+                    color = accentTint
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Brush.linearGradient(listOf(TTBlue, TTBlueDark))),
+                            .background(Brush.linearGradient(listOf(accentColor, accentDark))),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(

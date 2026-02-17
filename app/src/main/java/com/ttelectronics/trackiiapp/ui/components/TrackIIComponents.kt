@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material3.Card
@@ -31,6 +32,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
@@ -61,6 +63,7 @@ import com.ttelectronics.trackiiapp.ui.theme.TTBlue
 import com.ttelectronics.trackiiapp.ui.theme.TTBlueDark
 import com.ttelectronics.trackiiapp.ui.theme.TTBlueLight
 import com.ttelectronics.trackiiapp.ui.theme.TTBlueTint
+import com.ttelectronics.trackiiapp.ui.theme.TTGreen
 import com.ttelectronics.trackiiapp.ui.theme.TTRed
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
 
@@ -372,6 +375,40 @@ fun FloatingHomeButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
             contentDescription = "Cancelar y regresar"
         )
     }
+}
+
+@Composable
+fun TopAccountButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    FloatingActionButton(
+        onClick = onClick,
+        modifier = modifier.size(52.dp),
+        containerColor = TTBlue,
+        contentColor = Color.White
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.AccountCircle,
+            contentDescription = "Ir a login"
+        )
+    }
+}
+
+@Composable
+fun SuccessOverlayDialog(title: String, message: String, show: Boolean) {
+    if (!show) return
+    AlertDialog(
+        onDismissRequest = {},
+        confirmButton = {},
+        title = { Text(text = title, fontWeight = FontWeight.Bold) },
+        text = { Text(text = message) },
+        icon = {
+            Icon(
+                imageVector = Icons.Rounded.CheckCircle,
+                contentDescription = null,
+                tint = TTGreen
+            )
+        },
+        containerColor = Color.White
+    )
 }
 
 @Composable

@@ -2,6 +2,8 @@ package com.ttelectronics.trackiiapp.ui.screens
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.media.AudioAttributes
+import android.media.SoundPool
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -127,6 +129,8 @@ fun ScannerScreen(
     val partRegex = remember { Regex("^[A-Za-z].+") }
     var lotScanState by remember { mutableStateOf(StableScanState()) }
     var partScanState by remember { mutableStateOf(StableScanState()) }
+    var lastDetectedBarcode by remember { mutableStateOf("") }
+    val soundPlayer = rememberScannerSoundPlayer(context)
 
     val onLotFound by rememberUpdatedState<(String) -> Unit> { value ->
         if (lotNumber.isBlank()) {
@@ -173,14 +177,21 @@ fun ScannerScreen(
                     if (rawValues.isEmpty()) {
                         lotScanState = lotScanState.clear()
                         partScanState = partScanState.clear()
+                        lastDetectedBarcode = ""
                     } else {
                         val lotCandidate = rawValues.firstOrNull { lotRegex.matches(it) }
                         val partCandidate = rawValues.firstOrNull { partRegex.matches(it) }
+                        val newBarcode = rawValues.firstOrNull { it != lastDetectedBarcode }
+                        if (newBarcode != null) {
+                            lastDetectedBarcode = newBarcode
+                            soundPlayer.playScanSound()
+                        }
                         if (lotNumber.isBlank() && lotCandidate != null) {
                             lotScanState = lotScanState.record(lotCandidate)
                             if (lotScanState.canAccept(now)) {
                                 onLotFound(lotCandidate)
                                 lotScanState = lotScanState.markAccepted(now)
+                                soundPlayer.playRightSound()
                             }
                         }
                         if (partNumber.isBlank() && partCandidate != null) {
@@ -189,6 +200,7 @@ fun ScannerScreen(
                             if (partScanState.canAccept(now)) {
                                 onPartFound(normalizedPart)
                                 partScanState = partScanState.markAccepted(now)
+                                soundPlayer.playRightSound()
                             }
                         }
                     }
@@ -204,6 +216,7 @@ fun ScannerScreen(
             analysis.clearAnalyzer()
             barcodeScanner.close()
             executor.shutdown()
+            soundPlayer.release()
         }
     }
 
@@ -236,6 +249,7 @@ fun ScannerScreen(
         if (canContinue && !hasAutoNavigated) {
             hasAutoNavigated = true
             showOrderFound = true
+            soundPlayer.playRightSound()
             delay(1100)
             onComplete(lotNumber, partNumber)
         }
@@ -269,6 +283,7 @@ fun ScannerScreen(
                         partNumber = ""
                         showOrderFound = false
                         hasAutoNavigated = false
+                        lastDetectedBarcode = ""
                     },
                     onBack = onBack,
                     onContinue = {
@@ -284,7 +299,7 @@ fun ScannerScreen(
             FloatingHomeButton(
                 onClick = onHome,
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
+                    .align(Alignment.TopEnd)
                     .padding(20.dp)
             )
         }
@@ -631,6 +646,54 @@ private data class StableScanState(
     }
 
     fun clear(): StableScanState = copy(lastValue = "", stableCount = 0)
+}
+
+
+private class ScannerSoundPlayer(context: android.content.Context) {
+    private val appContext = context.applicationContext
+    private val soundPool: SoundPool
+    private val rightSoundId: Int
+    private val scanSoundId: Int
+
+    init {
+        val attributes = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
+        soundPool = SoundPool.Builder()
+            .setAudioAttributes(attributes)
+            .setMaxStreams(2)
+            .build()
+        rightSoundId = loadRaw("right")
+        scanSoundId = loadRaw("scan")
+    }
+
+    private fun loadRaw(name: String): Int {
+        val resId = appContext.resources.getIdentifier(name, "raw", appContext.packageName)
+        if (resId == 0) return 0
+        return soundPool.load(appContext, resId, 1)
+    }
+
+    fun playRightSound() {
+        if (rightSoundId != 0) {
+            soundPool.play(rightSoundId, 1f, 1f, 1, 0, 1f)
+        }
+    }
+
+    fun playScanSound() {
+        if (scanSoundId != 0) {
+            soundPool.play(scanSoundId, 0.85f, 0.85f, 1, 0, 1f)
+        }
+    }
+
+    fun release() {
+        soundPool.release()
+    }
+}
+
+@Composable
+private fun rememberScannerSoundPlayer(context: android.content.Context): ScannerSoundPlayer {
+    return remember(context) { ScannerSoundPlayer(context) }
 }
 
 private const val REQUIRED_STABLE_READS = 3

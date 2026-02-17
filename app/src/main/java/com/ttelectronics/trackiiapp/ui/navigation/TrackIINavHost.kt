@@ -51,7 +51,7 @@ fun TrackIINavHost(
 ) {
     NavHost(
         navController = navController,
-        startDestination = TrackIIRoute.Login,
+        startDestination = TrackIIRoute.Welcome,
         modifier = modifier
     ) {
         val navigateHome = {
@@ -84,7 +84,6 @@ fun TrackIINavHost(
         composable(TrackIIRoute.Welcome) {
             WelcomeScreen(
                 onStart = { navController.navigate(TrackIIRoute.Tasks) },
-                onHome = { navController.navigate(TrackIIRoute.Login) },
                 userName = "Usuario"
             )
         }
@@ -94,7 +93,8 @@ fun TrackIINavHost(
                 onTaskSelected = { taskType ->
                     navController.navigate(TrackIIRoute.scannerRoute(taskType))
                 },
-                onHome = navigateHome
+                onHome = navigateHome,
+                onAccount = { navController.navigate(TrackIIRoute.Login) }
             )
         }
         composable(

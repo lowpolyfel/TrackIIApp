@@ -39,14 +39,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ttelectronics.trackiiapp.R
-import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
 
 @Composable
 fun WelcomeScreen(
     onStart: () -> Unit,
-    onHome: () -> Unit,
     userName: String = "Usuario"
 ) {
     val displayName = userName.ifBlank { "Usuario" }
@@ -135,12 +133,6 @@ fun WelcomeScreen(
                     }
                 }
             }
-            FloatingHomeButton(
-                onClick = onHome,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(20.dp)
-            )
         }
     }
 }

@@ -25,7 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Button
@@ -254,7 +254,7 @@ fun TrackIIDropdownField(
             },
             trailingIcon = {
                 Icon(
-                    imageVector = Icons.Rounded.ExpandMore,
+                    imageVector = Icons.Rounded.KeyboardArrowDown,
                     contentDescription = null
                 )
             },
@@ -289,8 +289,8 @@ fun TrackIIDropdownField(
 fun PrimaryGlowButton(
     text: String,
     onClick: () -> Unit,
-    enabled: Boolean = true,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     val transition = rememberInfiniteTransition(label = "buttonGlow")
     val pulseAlpha by transition.animateFloat(

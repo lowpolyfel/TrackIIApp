@@ -44,7 +44,11 @@ import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
 
 @Composable
-fun WelcomeScreen(onStart: () -> Unit, userName: String = "Usuario") {
+fun WelcomeScreen(
+    onStart: () -> Unit,
+    onHome: () -> Unit,
+    userName: String = "Usuario"
+) {
     val displayName = userName.ifBlank { "Usuario" }
     var showHint by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { showHint = true }
@@ -83,27 +87,8 @@ fun WelcomeScreen(onStart: () -> Unit, userName: String = "Usuario") {
     )
 
     TrackIIBackground(glowOffsetX = (-10).dp, glowOffsetY = (-20).dp) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onStart
-                ),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "Bienvenido, $displayName",
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.size(24.dp))
-            Image(
-                painter = painterResource(id = R.drawable.logo_trackii),
-                contentDescription = "TrackII logo",
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 24.dp)
@@ -116,7 +101,7 @@ fun WelcomeScreen(onStart: () -> Unit, userName: String = "Usuario") {
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "Hola usuario",
+                    text = "Bienvenido, $displayName",
                     style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                     textAlign = TextAlign.Center
                 )
@@ -124,8 +109,7 @@ fun WelcomeScreen(onStart: () -> Unit, userName: String = "Usuario") {
                 Image(
                     painter = painterResource(id = R.drawable.logo_trackii),
                     contentDescription = "TrackII logo",
-                    modifier = Modifier
-                        .size(360.dp),
+                    modifier = Modifier.size(360.dp),
                     contentScale = ContentScale.Fit
                 )
                 Spacer(modifier = Modifier.size(20.dp))
@@ -149,15 +133,6 @@ fun WelcomeScreen(onStart: () -> Unit, userName: String = "Usuario") {
                                 .graphicsLayer { translationY = textOffset.toPx() }
                         )
                     }
-                    Text(
-                        text = "Puedes dar click en cualquier parte de la pantalla",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TTTextSecondary,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .padding(top = 16.dp)
-                            .graphicsLayer { translationY = textOffset.toPx() }
-                    )
                 }
             }
             FloatingHomeButton(

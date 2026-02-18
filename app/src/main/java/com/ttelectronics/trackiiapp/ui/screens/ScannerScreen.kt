@@ -79,6 +79,7 @@ import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
 import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
+import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
 import com.ttelectronics.trackiiapp.ui.components.rememberRawSoundPlayer
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
 import com.ttelectronics.trackiiapp.ui.theme.TTAccent
@@ -132,6 +133,7 @@ fun ScannerScreen(
     val partRegex = remember { Regex("^[A-Za-z].+") }
     var lotScanState by remember { mutableStateOf(StableScanState()) }
     var partScanState by remember { mutableStateOf(StableScanState()) }
+    var playedScanForCodes by remember { mutableStateOf(setOf<String>()) }
     val scanSoundPlayer = rememberRawSoundPlayer("scan")
     val rightSoundPlayer = rememberRawSoundPlayer("right")
 
@@ -150,6 +152,9 @@ fun ScannerScreen(
         if (lotNumber.isBlank() || partNumber.isBlank()) {
             showOrderFound = false
             hasAutoNavigated = false
+            if (lotNumber.isBlank() && partNumber.isBlank()) {
+                playedScanForCodes = emptySet()
+            }
         }
     }
 
@@ -194,7 +199,11 @@ fun ScannerScreen(
                             if (lotScanState.canAccept(now)) {
                                 onLotFound(lotCandidate)
                                 lotScanState = lotScanState.markAccepted(now)
-                                scanSoundPlayer.play()
+                                val completesBoth = partNumber.isNotBlank()
+                                if (!completesBoth && !playedScanForCodes.contains(lotCandidate)) {
+                                    scanSoundPlayer.play()
+                                    playedScanForCodes = playedScanForCodes + lotCandidate
+                                }
                             }
                         }
                         if (partNumber.isBlank() && partCandidate != null) {
@@ -203,7 +212,11 @@ fun ScannerScreen(
                             if (partScanState.canAccept(now)) {
                                 onPartFound(normalizedPart)
                                 partScanState = partScanState.markAccepted(now)
-                                scanSoundPlayer.play()
+                                val completesBoth = lotNumber.isNotBlank()
+                                if (!completesBoth && !playedScanForCodes.contains(normalizedPart)) {
+                                    scanSoundPlayer.play()
+                                    playedScanForCodes = playedScanForCodes + normalizedPart
+                                }
                             }
                         }
                     }
@@ -285,7 +298,7 @@ fun ScannerScreen(
                         partNumber = ""
                         showOrderFound = false
                         hasAutoNavigated = false
-                        lastDetectedBarcode = ""
+                        playedScanForCodes = emptySet()
                     },
                     onBack = onBack,
                     onContinue = {

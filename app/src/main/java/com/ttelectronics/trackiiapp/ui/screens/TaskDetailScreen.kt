@@ -19,9 +19,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Category
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Factory
 import androidx.compose.material.icons.rounded.FormatListNumbered
 import androidx.compose.material.icons.rounded.Inventory2
+import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -286,6 +288,116 @@ private fun InfoTile(title: String, value: String, icon: ImageVector, modifier: 
                 Text(text = title, style = MaterialTheme.typography.labelLarge, color = TTTextSecondary)
             }
             Text(text = value, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.onSurface)
+        }
+    }
+}
+
+@Composable
+private fun ProductFlowDashboard(
+    steps: List<String>,
+    currentStepIndex: Int,
+    modifier: Modifier = Modifier
+) {
+    val safeIndex = currentStepIndex.coerceIn(0, (steps.lastIndex).coerceAtLeast(0))
+    val flow = steps.mapIndexed { index, title ->
+        FlowStep(
+            title = title,
+            isActive = index == safeIndex,
+            isCompleted = index < safeIndex
+        )
+    }
+
+    Column(
+        modifier = modifier
+            .background(
+                Brush.verticalGradient(
+                    listOf(TTBlueTint.copy(alpha = 0.45f), Color.White)
+                ),
+                shape = RoundedCornerShape(20.dp)
+            )
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = "Ruta actual del producto",
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = TTTextSecondary
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Salida: ${flow.firstOrNull()?.title.orEmpty()}",
+                style = MaterialTheme.typography.labelMedium,
+                color = TTTextSecondary
+            )
+            Text(
+                text = "Destino: ${flow.lastOrNull()?.title.orEmpty()}",
+                style = MaterialTheme.typography.labelMedium,
+                color = TTTextSecondary
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            flow.forEachIndexed { index, step ->
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(if (step.isActive) 34.dp else 28.dp)
+                            .background(
+                                color = when {
+                                    step.isCompleted -> TTGreen.copy(alpha = 0.18f)
+                                    step.isActive -> TTBlue.copy(alpha = 0.18f)
+                                    else -> Color.White
+                                },
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = when {
+                                step.isCompleted -> Icons.Rounded.CheckCircle
+                                step.isActive -> Icons.Rounded.RadioButtonUnchecked
+                                else -> Icons.Rounded.RadioButtonUnchecked
+                            },
+                            contentDescription = null,
+                            tint = when {
+                                step.isCompleted -> TTGreen
+                                step.isActive -> TTBlue
+                                else -> TTTextSecondary
+                            },
+                            modifier = Modifier.size(if (step.isActive) 22.dp else 18.dp)
+                        )
+                    }
+                    Text(
+                        text = step.title,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (step.isActive) TTBlue else TTTextSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                }
+                if (index != flow.lastIndex) {
+                    Box(
+                        modifier = Modifier
+                            .weight(0.35f)
+                            .size(height = 3.dp, width = 24.dp)
+                            .background(
+                                color = if (index < safeIndex) TTGreen.copy(alpha = 0.7f) else TTTextSecondary.copy(alpha = 0.3f),
+                                shape = RoundedCornerShape(50)
+                            )
+                    )
+                }
+            }
         }
     }
 }

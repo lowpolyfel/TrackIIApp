@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -51,7 +50,8 @@ fun ScanReviewScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 24.dp, vertical = 28.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
                 Text(
                     text = "Orden encontrada",
@@ -65,7 +65,6 @@ fun ScanReviewScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 6.dp, bottom = 20.dp)
                 )
-                Spacer(modifier = Modifier.weight(1f))
                 Card(
                     shape = RoundedCornerShape(28.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.94f)),
@@ -73,11 +72,7 @@ fun ScanReviewScreen(
                 ) {
                     Column(
                         modifier = Modifier
-                            .background(
-                                Brush.verticalGradient(
-                                    listOf(TTGreenTint, Color.White)
-                                )
-                            )
+                            .background(Brush.verticalGradient(listOf(TTGreenTint, Color.White)))
                             .padding(24.dp),
                         verticalArrangement = Arrangement.spacedBy(18.dp)
                     ) {
@@ -85,8 +80,12 @@ fun ScanReviewScreen(
                         ScanHighlightRow(label = "No. Parte", value = partNumber)
                     }
                 }
-                Spacer(modifier = Modifier.weight(1f))
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 18.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     SoftActionButton(
                         text = "Escanear otra vez",
                         onClick = onRescan,
@@ -98,12 +97,11 @@ fun ScanReviewScreen(
                         modifier = Modifier.weight(1f)
                     )
                 }
-                Spacer(modifier = Modifier.size(16.dp))
             }
             FloatingHomeButton(
                 onClick = onHome,
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
+                    .align(Alignment.BottomEnd)
                     .padding(20.dp)
             )
         }
@@ -126,12 +124,7 @@ private fun ScanHighlightRow(label: String, value: String) {
             Box(
                 modifier = Modifier
                     .size(56.dp)
-                    .background(
-                        brush = Brush.linearGradient(
-                            listOf(TTAccent, TTBlueDark)
-                        ),
-                        shape = RoundedCornerShape(16.dp)
-                    ),
+                    .background(brush = Brush.linearGradient(listOf(TTAccent, TTBlueDark)), shape = RoundedCornerShape(16.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -142,11 +135,7 @@ private fun ScanHighlightRow(label: String, value: String) {
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = TTTextSecondary
-                )
+                Text(text = label, style = MaterialTheme.typography.labelLarge, color = TTTextSecondary)
                 Text(
                     text = value.ifBlank { "Pendiente de escaneo" },
                     style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),

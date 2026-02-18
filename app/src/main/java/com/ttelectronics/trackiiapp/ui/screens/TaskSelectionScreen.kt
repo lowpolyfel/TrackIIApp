@@ -22,10 +22,12 @@ import androidx.compose.ui.unit.dp
 import com.ttelectronics.trackiiapp.ui.components.GlassCard
 import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
 import com.ttelectronics.trackiiapp.ui.components.TopAccountButton
-import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
 import com.ttelectronics.trackiiapp.ui.components.TaskCard
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
+import com.ttelectronics.trackiiapp.ui.theme.TTBlue
+import com.ttelectronics.trackiiapp.ui.theme.TTBlueDark
+import com.ttelectronics.trackiiapp.ui.theme.TTBlueTint
 import com.ttelectronics.trackiiapp.ui.theme.TTGreen
 import com.ttelectronics.trackiiapp.ui.theme.TTGreenDark
 import com.ttelectronics.trackiiapp.ui.theme.TTGreenTint
@@ -39,7 +41,6 @@ import com.ttelectronics.trackiiapp.ui.theme.TTYellowTint
 
 @Composable
 fun TaskSelectionScreen(
-    onBackToLogin: () -> Unit,
     onTaskSelected: (TaskType) -> Unit,
     onHome: () -> Unit,
     onAccount: () -> Unit
@@ -76,6 +77,14 @@ fun TaskSelectionScreen(
                             accentTint = TTGreenTint
                         )
                         TaskCard(
+                            title = "Avanzar producto",
+                            icon = Icons.Rounded.Description,
+                            onClick = { onTaskSelected(TaskType.ProductAdvance) },
+                            accentColor = TTBlue,
+                            accentDark = TTBlueDark,
+                            accentTint = TTBlueTint
+                        )
+                        TaskCard(
                             title = "Cancelar Orden",
                             icon = Icons.Rounded.HighlightOff,
                             onClick = { onTaskSelected(TaskType.CancelOrder) },
@@ -94,11 +103,6 @@ fun TaskSelectionScreen(
                     }
                 }
                 Spacer(modifier = Modifier.weight(1f))
-                SoftActionButton(
-                    text = "Volver al inicio",
-                    onClick = onBackToLogin,
-                    modifier = Modifier.fillMaxWidth()
-                )
             }
             TopAccountButton(
                 onClick = onAccount,
@@ -109,7 +113,7 @@ fun TaskSelectionScreen(
             FloatingHomeButton(
                 onClick = onHome,
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
+                    .align(Alignment.BottomEnd)
                     .padding(20.dp)
             )
         }

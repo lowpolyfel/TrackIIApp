@@ -61,7 +61,7 @@ fun LoginScreen(onLogin: () -> Unit, onRegister: () -> Unit, onHome: () -> Unit)
             FloatingHomeButton(
                 onClick = onHome,
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
+                    .align(Alignment.BottomEnd)
                     .padding(20.dp)
             )
         }

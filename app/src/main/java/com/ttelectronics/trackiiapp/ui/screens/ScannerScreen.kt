@@ -43,6 +43,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -280,15 +282,15 @@ fun ScannerScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 12.dp, vertical = 2.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                        .padding(horizontal = 14.dp, vertical = 2.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     ScannerHeader(taskTitle = taskType.title, onBack = onBack, onHome = onHome)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f)
-                            .clip(RoundedCornerShape(22.dp))
+                            .weight(0.9f)
+                            .clip(RoundedCornerShape(20.dp))
                             .background(Color.Black.copy(alpha = 0.16f))
                     ) {
                         AndroidView(
@@ -307,7 +309,8 @@ fun ScannerScreen(
                             showOrderFound = false
                             hasAutoNavigated = false
                         },
-                        onContinue = { onComplete(lotNumber, partNumber) }
+                        onContinue = { onComplete(lotNumber, partNumber) },
+                        onBack = onBack
                     )
                 }
             } else {
@@ -325,22 +328,47 @@ private fun ScannerHeader(taskTitle: String, onBack: () -> Unit, onHome: () -> U
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                Brush.horizontalGradient(listOf(TTBlueDark.copy(alpha = 0.85f), TTBlue.copy(alpha = 0.8f))),
-                shape = RoundedCornerShape(18.dp)
+                Brush.horizontalGradient(listOf(TTBlueDark.copy(alpha = 0.72f), TTBlue.copy(alpha = 0.68f))),
+                shape = RoundedCornerShape(16.dp)
             )
-            .padding(horizontal = 10.dp, vertical = 8.dp),
+            .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        SoftActionButton(text = "Volver", onClick = onBack, modifier = Modifier.weight(1f))
+        MinimalHeaderButton(text = "Volver", onClick = onBack)
+        Image(
+            painter = painterResource(id = R.drawable.ttlogo),
+            contentDescription = "TT logo",
+            modifier = Modifier
+                .weight(1f)
+                .height(34.dp)
+        )
         Text(
             text = taskTitle,
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
             color = Color.White,
+            modifier = Modifier.weight(1f),
             textAlign = TextAlign.Center,
-            modifier = Modifier.weight(1.3f)
+            maxLines = 1
         )
-        SoftActionButton(text = "Inicio", onClick = onHome, modifier = Modifier.weight(1f))
+        MinimalHeaderButton(text = "Inicio", onClick = onHome)
+    }
+}
+
+@Composable
+private fun MinimalHeaderButton(text: String, onClick: () -> Unit) {
+    OutlinedButton(
+        onClick = onClick,
+        colors = OutlinedButtonDefaults.outlinedButtonColors(
+            containerColor = Color.White.copy(alpha = 0.14f),
+            contentColor = Color.White
+        ),
+        border = null,
+        shape = RoundedCornerShape(12.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+        modifier = Modifier.height(34.dp)
+    ) {
+        Text(text = text, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
     }
 }
 
@@ -350,31 +378,41 @@ private fun ScannerBottomPanel(
     partNumber: String,
     canContinue: Boolean,
     onReset: () -> Unit,
-    onContinue: () -> Unit
+    onContinue: () -> Unit,
+    onBack: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                Brush.verticalGradient(listOf(TTBlueDark.copy(alpha = 0.24f), TTBlue.copy(alpha = 0.15f))),
-                shape = RoundedCornerShape(22.dp)
+                Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.92f), TTBlueTint.copy(alpha = 0.48f))),
+                shape = RoundedCornerShape(20.dp)
             )
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         ScannerInfoCard(lotNumber = lotNumber, partNumber = partNumber)
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SoftActionButton(
-                text = "Reiniciar",
-                onClick = onReset,
-                modifier = Modifier.weight(1f)
-            )
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SoftActionButton(text = "Reiniciar", onClick = onReset, modifier = Modifier.weight(1f))
             PrimaryGlowButton(
                 text = "Continuar",
                 onClick = onContinue,
                 enabled = canContinue,
                 modifier = Modifier.weight(1f)
             )
+        }
+        OutlinedButton(
+            onClick = onBack,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(44.dp),
+            shape = RoundedCornerShape(14.dp),
+            colors = OutlinedButtonDefaults.outlinedButtonColors(
+                containerColor = Color.White.copy(alpha = 0.62f),
+                contentColor = TTBlueDark
+            )
+        ) {
+            Text(text = "Volver a tareas", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
         }
     }
 }

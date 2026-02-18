@@ -293,8 +293,8 @@ fun ScannerScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(0.56f)
-                                .heightIn(max = 290.dp)
+                                .fillMaxWidth(0.54f)
+                                .heightIn(max = 250.dp)
                                 .clip(RoundedCornerShape(18.dp))
                                 .background(Color.Black.copy(alpha = 0.16f))
                         ) {
@@ -310,7 +310,7 @@ fun ScannerScreen(
                     ScannerBottomPanel(
                         lotNumber = lotNumber,
                         partNumber = partNumber,
-                        modifier = Modifier.fillMaxWidth(0.82f)
+                        modifier = Modifier.fillMaxWidth(0.54f)
                     )
                 }
             } else {
@@ -323,24 +323,26 @@ fun ScannerScreen(
 }
 
 @Composable
-private fun ScannerHeader() {
-    Column(
+private fun ScannerHeader(taskTitle: String) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+            .padding(start = 14.dp, top = 8.dp, end = 14.dp, bottom = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.ttlogo),
-            contentDescription = "TT logo",
-            modifier = Modifier.height(26.dp)
-        )
         Text(
-            text = "Track II",
+            text = taskTitle,
             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
             color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center,
+            textAlign = TextAlign.Start,
+            maxLines = 1
+        )
+        Text(
+            text = "TT Electronics",
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.End,
             maxLines = 1
         )
     }
@@ -359,7 +361,7 @@ private fun ScannerBottomPanel(
                 shape = RoundedCornerShape(18.dp)
             )
             .padding(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         ScannerInfoCard(lotNumber = lotNumber, partNumber = partNumber)
     }

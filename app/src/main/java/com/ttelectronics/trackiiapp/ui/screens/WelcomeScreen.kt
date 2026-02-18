@@ -105,7 +105,7 @@ fun WelcomeScreen(
                 )
                 Spacer(modifier = Modifier.size(24.dp))
                 Image(
-                    painter = painterResource(id = R.drawable.logo_texto_a),
+                    painter = painterResource(id = R.drawable.logo_trackii),
                     contentDescription = "TrackII logo",
                     modifier = Modifier.size(360.dp),
                     contentScale = ContentScale.Fit

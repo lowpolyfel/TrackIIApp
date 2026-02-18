@@ -17,14 +17,12 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -64,7 +62,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -231,16 +228,19 @@ fun ScannerScreen(
         }
     }
 
+    val previewView = remember { PreviewView(context) }
+    val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
+
     DisposableEffect(Unit) {
         onDispose {
             analysis.clearAnalyzer()
+            if (cameraProviderFuture.isDone) {
+                cameraProviderFuture.get().unbindAll()
+            }
             barcodeScanner.close()
             executor.shutdown()
         }
     }
-
-    val previewView = remember { PreviewView(context) }
-    val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
 
     LaunchedEffect(hasCameraPermission) {
         if (!hasCameraPermission) return@LaunchedEffect
@@ -277,37 +277,39 @@ fun ScannerScreen(
     TrackIIBackground(glowOffsetX = 40.dp, glowOffsetY = (-30).dp) {
         Box(modifier = Modifier.fillMaxSize()) {
             if (hasCameraPermission) {
-                Box(
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth(0.96f)
-                        .aspectRatio(1.65f)
-                        .align(Alignment.Center)
-                        .offset(y = (-20).dp)
-                        .clip(RoundedCornerShape(26.dp))
-                        .background(Color.Black.copy(alpha = 0.12f))
+                        .fillMaxSize()
+                        .padding(horizontal = 12.dp, vertical = 2.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    AndroidView(
-                        factory = { previewView },
-                        modifier = Modifier.fillMaxSize()
+                    ScannerHeader(taskTitle = taskType.title, onBack = onBack, onHome = onHome)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .clip(RoundedCornerShape(22.dp))
+                            .background(Color.Black.copy(alpha = 0.16f))
+                    ) {
+                        AndroidView(
+                            factory = { previewView },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        ScannerFrameOverlay(showFrame = hasBarcodeInFrame)
+                    }
+                    ScannerBottomPanel(
+                        lotNumber = lotNumber,
+                        partNumber = partNumber,
+                        canContinue = canContinue,
+                        onReset = {
+                            lotNumber = ""
+                            partNumber = ""
+                            showOrderFound = false
+                            hasAutoNavigated = false
+                        },
+                        onContinue = { onComplete(lotNumber, partNumber) }
                     )
                 }
-
-                ScannerOverlay(
-                    taskTitle = taskType.title,
-                    lotNumber = lotNumber,
-                    partNumber = partNumber,
-                    onReset = {
-                        lotNumber = ""
-                        partNumber = ""
-                        showOrderFound = false
-                        hasAutoNavigated = false
-                    },
-                    onBack = onBack,
-                    onContinue = {
-                        onComplete(lotNumber, partNumber)
-                    },
-                    canContinue = canContinue
-                )
             } else {
                 PermissionFallback(onRequest = { permissionLauncher.launch(Manifest.permission.CAMERA) })
             }
@@ -318,73 +320,60 @@ fun ScannerScreen(
 }
 
 @Composable
-private fun ScannerOverlay(
-    taskTitle: String,
+private fun ScannerHeader(taskTitle: String, onBack: () -> Unit, onHome: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                Brush.horizontalGradient(listOf(TTBlueDark.copy(alpha = 0.85f), TTBlue.copy(alpha = 0.8f))),
+                shape = RoundedCornerShape(18.dp)
+            )
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        SoftActionButton(text = "Volver", onClick = onBack, modifier = Modifier.weight(1f))
+        Text(
+            text = taskTitle,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
+            color = Color.White,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.weight(1.3f)
+        )
+        SoftActionButton(text = "Inicio", onClick = onHome, modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun ScannerBottomPanel(
     lotNumber: String,
     partNumber: String,
+    canContinue: Boolean,
     onReset: () -> Unit,
-    onBack: () -> Unit,
-    onContinue: () -> Unit,
-    canContinue: Boolean
+    onContinue: () -> Unit
 ) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.TopCenter)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(TTBlueDark.copy(alpha = 0.22f), Color.Transparent)
-                    )
-                )
-                .padding(horizontal = 24.dp, vertical = 20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.ttlogo),
-                contentDescription = "TT logo",
-                modifier = Modifier
-                    .fillMaxWidth(0.56f)
-                    .height(58.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                Brush.verticalGradient(listOf(TTBlueDark.copy(alpha = 0.24f), TTBlue.copy(alpha = 0.15f))),
+                shape = RoundedCornerShape(22.dp)
             )
-            Text(
-                text = taskTitle,
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
-                color = Color.White
-            )
-        }
-
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color.Transparent, TTBlueDark.copy(alpha = 0.16f))
-                    )
-                )
-                .padding(horizontal = 24.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            ScannerInfoCard(lotNumber = lotNumber, partNumber = partNumber)
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                SoftActionButton(
-                    text = "Reiniciar",
-                    onClick = onReset,
-                    modifier = Modifier.weight(1f)
-                )
-                PrimaryGlowButton(
-                    text = "Continuar",
-                    onClick = onContinue,
-                    enabled = canContinue,
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        ScannerInfoCard(lotNumber = lotNumber, partNumber = partNumber)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             SoftActionButton(
-                text = "Volver",
-                onClick = onBack,
-                modifier = Modifier.fillMaxWidth()
+                text = "Reiniciar",
+                onClick = onReset,
+                modifier = Modifier.weight(1f)
+            )
+            PrimaryGlowButton(
+                text = "Continuar",
+                onClick = onContinue,
+                enabled = canContinue,
+                modifier = Modifier.weight(1f)
             )
         }
     }

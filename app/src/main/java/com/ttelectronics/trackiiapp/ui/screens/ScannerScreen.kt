@@ -2,6 +2,8 @@ package com.ttelectronics.trackiiapp.ui.screens
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.media.AudioAttributes
+import android.media.SoundPool
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -176,9 +178,15 @@ fun ScannerScreen(
                     if (rawValues.isEmpty()) {
                         lotScanState = lotScanState.clear()
                         partScanState = partScanState.clear()
+                        lastDetectedBarcode = ""
                     } else {
                         val lotCandidate = rawValues.firstOrNull { lotRegex.matches(it) }
                         val partCandidate = rawValues.firstOrNull { partRegex.matches(it) }
+                        val newBarcode = rawValues.firstOrNull { it != lastDetectedBarcode }
+                        if (newBarcode != null) {
+                            lastDetectedBarcode = newBarcode
+                            soundPlayer.playScanSound()
+                        }
                         if (lotNumber.isBlank() && lotCandidate != null) {
                             lotScanState = lotScanState.record(lotCandidate)
                             if (lotScanState.canAccept(now)) {
@@ -209,6 +217,7 @@ fun ScannerScreen(
             analysis.clearAnalyzer()
             barcodeScanner.close()
             executor.shutdown()
+            soundPlayer.release()
         }
     }
 
@@ -275,6 +284,7 @@ fun ScannerScreen(
                         partNumber = ""
                         showOrderFound = false
                         hasAutoNavigated = false
+                        lastDetectedBarcode = ""
                     },
                     onBack = onBack,
                     onContinue = {

@@ -4,18 +4,20 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.OptIn
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -26,14 +28,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -73,6 +75,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
+import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
 import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
@@ -89,6 +92,7 @@ import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
 import kotlinx.coroutines.delay
 import java.util.concurrent.Executors
 
+@OptIn(ExperimentalGetImage::class)
 @Composable
 fun ScannerScreen(
     taskType: TaskType,
@@ -123,6 +127,7 @@ fun ScannerScreen(
     var hasBarcodeInFrame by remember { mutableStateOf(false) }
     var showOrderFound by remember { mutableStateOf(false) }
     var hasAutoNavigated by remember { mutableStateOf(false) }
+    var lastDetectedBarcode by rememberSaveable { mutableStateOf("") }
 
     val lotRegex = remember { Regex("^[0-9]{7}$") }
     val partRegex = remember { Regex("^[A-Za-z].+") }
@@ -180,9 +185,15 @@ fun ScannerScreen(
                     if (rawValues.isEmpty()) {
                         lotScanState = lotScanState.clear()
                         partScanState = partScanState.clear()
+                        lastDetectedBarcode = ""
                     } else {
                         val lotCandidate = rawValues.firstOrNull { lotRegex.matches(it) }
                         val partCandidate = rawValues.firstOrNull { partRegex.matches(it) }
+                        val newBarcode = rawValues.firstOrNull { it != lastDetectedBarcode }
+                        if (newBarcode != null) {
+                            lastDetectedBarcode = newBarcode
+                            scanSoundPlayer.play()
+                        }
                         if (lotNumber.isBlank() && lotCandidate != null) {
                             lotScanState = lotScanState.record(lotCandidate)
                             if (lotScanState.canAccept(now)) {

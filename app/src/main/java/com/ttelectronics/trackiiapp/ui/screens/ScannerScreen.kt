@@ -320,7 +320,7 @@ fun ScannerScreen(
             FloatingHomeButton(
                 onClick = onHome,
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
+                    .align(Alignment.BottomEnd)
                     .padding(20.dp)
             )
         }

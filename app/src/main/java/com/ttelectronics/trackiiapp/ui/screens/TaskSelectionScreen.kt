@@ -22,7 +22,6 @@ import androidx.compose.ui.unit.dp
 import com.ttelectronics.trackiiapp.ui.components.GlassCard
 import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
 import com.ttelectronics.trackiiapp.ui.components.TopAccountButton
-import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
 import com.ttelectronics.trackiiapp.ui.components.TaskCard
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
@@ -39,7 +38,6 @@ import com.ttelectronics.trackiiapp.ui.theme.TTYellowTint
 
 @Composable
 fun TaskSelectionScreen(
-    onBackToLogin: () -> Unit,
     onTaskSelected: (TaskType) -> Unit,
     onHome: () -> Unit,
     onAccount: () -> Unit
@@ -68,6 +66,14 @@ fun TaskSelectionScreen(
                 GlassCard {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         TaskCard(
+                            title = "Avanzar producto",
+                            icon = Icons.Rounded.Description,
+                            onClick = { onTaskSelected(TaskType.ProductAdvance) },
+                            accentColor = TTGreen,
+                            accentDark = TTGreenDark,
+                            accentTint = TTGreenTint
+                        )
+                        TaskCard(
                             title = "Seguimiento de hojas viajeras",
                             icon = Icons.Rounded.Description,
                             onClick = { onTaskSelected(TaskType.TravelSheet) },
@@ -94,11 +100,6 @@ fun TaskSelectionScreen(
                     }
                 }
                 Spacer(modifier = Modifier.weight(1f))
-                SoftActionButton(
-                    text = "Volver al inicio",
-                    onClick = onBackToLogin,
-                    modifier = Modifier.fillMaxWidth()
-                )
             }
             TopAccountButton(
                 onClick = onAccount,

@@ -1,8 +1,8 @@
 package com.ttelectronics.trackiiapp.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,12 +10,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Category
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Factory
 import androidx.compose.material.icons.rounded.FormatListNumbered
 import androidx.compose.material.icons.rounded.Inventory2
+import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,15 +38,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
-import com.ttelectronics.trackiiapp.ui.components.rememberRawSoundPlayer
 import com.ttelectronics.trackiiapp.ui.components.GlassCard
 import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
-import com.ttelectronics.trackiiapp.ui.components.TrackIIDropdownField
 import com.ttelectronics.trackiiapp.ui.components.SuccessOverlayDialog
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
+import com.ttelectronics.trackiiapp.ui.components.TrackIIDropdownField
+import com.ttelectronics.trackiiapp.ui.components.rememberRawSoundPlayer
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
 import com.ttelectronics.trackiiapp.ui.theme.TTAccent
+import com.ttelectronics.trackiiapp.ui.theme.TTBlue
 import com.ttelectronics.trackiiapp.ui.theme.TTBlueTint
 import com.ttelectronics.trackiiapp.ui.theme.TTGreen
 import com.ttelectronics.trackiiapp.ui.theme.TTGreenTint
@@ -67,6 +71,21 @@ fun TaskDetailScreen(
         InfoItem("Cantidad de piezas", "Pendiente API", Icons.Rounded.FormatListNumbered)
     )
     val localities = listOf("Localidad A", "Localidad B", "Localidad C")
+    val flowSteps = remember(taskType) {
+        when (taskType) {
+            TaskType.ProductAdvance -> listOf("Recepción", "Inspección", "Ensamble", "Empaque")
+            TaskType.TravelSheet -> listOf("Línea A", "Prueba", "Calidad", "Salida")
+            TaskType.CancelOrder -> listOf("Captura", "Validación", "Autorización", "Cancelada")
+            TaskType.Rework -> listOf("Entrada", "Diagnóstico", "Retrabajo", "Liberación")
+        }
+    }
+    val currentStepIndex = remember(taskType, lotNumber, partNumber) {
+        if (flowSteps.size <= 1) 0
+        else {
+            val seed = (lotNumber + partNumber + taskType.route).hashCode().let { if (it == Int.MIN_VALUE) 0 else kotlin.math.abs(it) }
+            1 + (seed % (flowSteps.size - 1))
+        }
+    }
     var showSuccess by remember { mutableStateOf(false) }
     val rightSoundPlayer = rememberRawSoundPlayer("right")
 
@@ -107,7 +126,13 @@ fun TaskDetailScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         ScanHighlightCard(lotNumber = lotNumber, partNumber = partNumber)
                         InfoGrid(items = infoItems)
+                        ProductFlowDashboard(
+                            steps = flowSteps,
+                            currentStepIndex = currentStepIndex,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                         when (taskType) {
+                            TaskType.ProductAdvance,
                             TaskType.TravelSheet -> Unit
                             TaskType.CancelOrder -> CancelReasonDropdown()
                             TaskType.Rework -> TrackIIDropdownField(
@@ -117,7 +142,11 @@ fun TaskDetailScreen(
                             )
                         }
                         PrimaryGlowButton(
-                            text = if (taskType == TaskType.TravelSheet) "Agregar" else "Guardar",
+                            text = when (taskType) {
+                                TaskType.ProductAdvance -> "Agregar"
+                                TaskType.TravelSheet -> "Visualizar estado"
+                                else -> "Guardar"
+                            },
                             onClick = { showSuccess = true },
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -161,6 +190,7 @@ private fun CancelReasonDropdown() {
 }
 
 private data class InfoItem(val title: String, val value: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
+private data class FlowStep(val title: String, val isActive: Boolean, val isCompleted: Boolean)
 
 @Composable
 private fun InfoGrid(items: List<InfoItem>) {
@@ -223,6 +253,116 @@ private fun InfoTile(
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onSurface
             )
+        }
+    }
+}
+
+@Composable
+private fun ProductFlowDashboard(
+    steps: List<String>,
+    currentStepIndex: Int,
+    modifier: Modifier = Modifier
+) {
+    val safeIndex = currentStepIndex.coerceIn(0, (steps.lastIndex).coerceAtLeast(0))
+    val flow = steps.mapIndexed { index, title ->
+        FlowStep(
+            title = title,
+            isActive = index == safeIndex,
+            isCompleted = index < safeIndex
+        )
+    }
+
+    Column(
+        modifier = modifier
+            .background(
+                Brush.verticalGradient(
+                    listOf(TTBlueTint.copy(alpha = 0.45f), Color.White)
+                ),
+                shape = RoundedCornerShape(20.dp)
+            )
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = "Ruta actual del producto",
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = TTTextSecondary
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Salida: ${flow.firstOrNull()?.title.orEmpty()}",
+                style = MaterialTheme.typography.labelMedium,
+                color = TTTextSecondary
+            )
+            Text(
+                text = "Destino: ${flow.lastOrNull()?.title.orEmpty()}",
+                style = MaterialTheme.typography.labelMedium,
+                color = TTTextSecondary
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            flow.forEachIndexed { index, step ->
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(if (step.isActive) 34.dp else 28.dp)
+                            .background(
+                                color = when {
+                                    step.isCompleted -> TTGreen.copy(alpha = 0.18f)
+                                    step.isActive -> TTBlue.copy(alpha = 0.18f)
+                                    else -> Color.White
+                                },
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = when {
+                                step.isCompleted -> Icons.Rounded.CheckCircle
+                                step.isActive -> Icons.Rounded.RadioButtonUnchecked
+                                else -> Icons.Rounded.RadioButtonUnchecked
+                            },
+                            contentDescription = null,
+                            tint = when {
+                                step.isCompleted -> TTGreen
+                                step.isActive -> TTBlue
+                                else -> TTTextSecondary
+                            },
+                            modifier = Modifier.size(if (step.isActive) 22.dp else 18.dp)
+                        )
+                    }
+                    Text(
+                        text = step.title,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (step.isActive) TTBlue else TTTextSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                }
+                if (index != flow.lastIndex) {
+                    Box(
+                        modifier = Modifier
+                            .weight(0.35f)
+                            .size(height = 3.dp, width = 24.dp)
+                            .background(
+                                color = if (index < safeIndex) TTGreen.copy(alpha = 0.7f) else TTTextSecondary.copy(alpha = 0.3f),
+                                shape = RoundedCornerShape(50)
+                            )
+                    )
+                }
+            }
         }
     }
 }

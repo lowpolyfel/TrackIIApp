@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
+import com.ttelectronics.trackiiapp.ui.components.rememberRawSoundPlayer
 import com.ttelectronics.trackiiapp.ui.components.GlassCard
 import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
@@ -62,6 +63,13 @@ fun RegisterScreen(
         ?: "No disponible"
     val localities = listOf("Localidad A", "Localidad B", "Localidad C")
     var showSuccess by remember { mutableStateOf(false) }
+    val rightSoundPlayer = rememberRawSoundPlayer("right")
+
+    LaunchedEffect(showSuccess) {
+        if (showSuccess) {
+            rightSoundPlayer.play()
+        }
+    }
 
     if (showSuccess) {
         LaunchedEffect(Unit) {

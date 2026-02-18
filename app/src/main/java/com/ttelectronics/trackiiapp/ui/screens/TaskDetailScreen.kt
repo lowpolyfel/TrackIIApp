@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
+import com.ttelectronics.trackiiapp.ui.components.rememberRawSoundPlayer
 import com.ttelectronics.trackiiapp.ui.components.GlassCard
 import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
@@ -67,6 +68,13 @@ fun TaskDetailScreen(
     )
     val localities = listOf("Localidad A", "Localidad B", "Localidad C")
     var showSuccess by remember { mutableStateOf(false) }
+    val rightSoundPlayer = rememberRawSoundPlayer("right")
+
+    LaunchedEffect(showSuccess) {
+        if (showSuccess) {
+            rightSoundPlayer.play()
+        }
+    }
 
     if (showSuccess) {
         LaunchedEffect(Unit) {
@@ -128,7 +136,7 @@ fun TaskDetailScreen(
                     .align(Alignment.TopEnd)
                     .padding(20.dp)
             )
-                        SuccessOverlayDialog(
+            SuccessOverlayDialog(
                 title = "Registro exitoso",
                 message = "Los datos fueron guardados correctamente.",
                 show = showSuccess

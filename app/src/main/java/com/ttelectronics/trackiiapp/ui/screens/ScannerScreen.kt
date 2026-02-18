@@ -79,6 +79,7 @@ import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
+import com.ttelectronics.trackiiapp.ui.components.rememberRawSoundPlayer
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
 import com.ttelectronics.trackiiapp.ui.theme.TTAccent
 import com.ttelectronics.trackiiapp.ui.theme.TTBlue
@@ -129,8 +130,8 @@ fun ScannerScreen(
     val partRegex = remember { Regex("^[A-Za-z].+") }
     var lotScanState by remember { mutableStateOf(StableScanState()) }
     var partScanState by remember { mutableStateOf(StableScanState()) }
-    var lastDetectedBarcode by remember { mutableStateOf("") }
-    val soundPlayer = rememberScannerSoundPlayer(context)
+    val scanSoundPlayer = rememberRawSoundPlayer("scan")
+    val rightSoundPlayer = rememberRawSoundPlayer("right")
 
     val onLotFound by rememberUpdatedState<(String) -> Unit> { value ->
         if (lotNumber.isBlank()) {
@@ -191,7 +192,7 @@ fun ScannerScreen(
                             if (lotScanState.canAccept(now)) {
                                 onLotFound(lotCandidate)
                                 lotScanState = lotScanState.markAccepted(now)
-                                soundPlayer.playRightSound()
+                                scanSoundPlayer.play()
                             }
                         }
                         if (partNumber.isBlank() && partCandidate != null) {
@@ -200,7 +201,7 @@ fun ScannerScreen(
                             if (partScanState.canAccept(now)) {
                                 onPartFound(normalizedPart)
                                 partScanState = partScanState.markAccepted(now)
-                                soundPlayer.playRightSound()
+                                scanSoundPlayer.play()
                             }
                         }
                     }
@@ -249,7 +250,7 @@ fun ScannerScreen(
         if (canContinue && !hasAutoNavigated) {
             hasAutoNavigated = true
             showOrderFound = true
-            soundPlayer.playRightSound()
+            rightSoundPlayer.play()
             delay(1100)
             onComplete(lotNumber, partNumber)
         }
@@ -649,52 +650,6 @@ private data class StableScanState(
 }
 
 
-private class ScannerSoundPlayer(context: android.content.Context) {
-    private val appContext = context.applicationContext
-    private val soundPool: SoundPool
-    private val rightSoundId: Int
-    private val scanSoundId: Int
-
-    init {
-        val attributes = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .build()
-        soundPool = SoundPool.Builder()
-            .setAudioAttributes(attributes)
-            .setMaxStreams(2)
-            .build()
-        rightSoundId = loadRaw("right")
-        scanSoundId = loadRaw("scan")
-    }
-
-    private fun loadRaw(name: String): Int {
-        val resId = appContext.resources.getIdentifier(name, "raw", appContext.packageName)
-        if (resId == 0) return 0
-        return soundPool.load(appContext, resId, 1)
-    }
-
-    fun playRightSound() {
-        if (rightSoundId != 0) {
-            soundPool.play(rightSoundId, 1f, 1f, 1, 0, 1f)
-        }
-    }
-
-    fun playScanSound() {
-        if (scanSoundId != 0) {
-            soundPool.play(scanSoundId, 0.85f, 0.85f, 1, 0, 1f)
-        }
-    }
-
-    fun release() {
-        soundPool.release()
-    }
-}
-
-@Composable
-private fun rememberScannerSoundPlayer(context: android.content.Context): ScannerSoundPlayer {
-    return remember(context) { ScannerSoundPlayer(context) }
-}
 
 private const val REQUIRED_STABLE_READS = 3
 private const val MIN_ACCEPT_INTERVAL_MS = 1200L

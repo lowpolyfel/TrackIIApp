@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -282,22 +283,30 @@ fun ScannerScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 14.dp, vertical = 2.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(horizontal = 14.dp, vertical = 6.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    ScannerHeader(taskTitle = taskType.title, onBack = onBack, onHome = onHome)
+                    ScannerHeader(taskTitle = taskType.title)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(0.9f)
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(Color.Black.copy(alpha = 0.16f))
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
                     ) {
-                        AndroidView(
-                            factory = { previewView },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                        ScannerFrameOverlay(showFrame = hasBarcodeInFrame)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(0.72f)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color.Black.copy(alpha = 0.16f))
+                        ) {
+                            AndroidView(
+                                factory = { previewView },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(0.78f)
+                            )
+                            ScannerFrameOverlay(showFrame = !hasBarcodeInFrame)
+                        }
                     }
                     ScannerBottomPanel(
                         lotNumber = lotNumber,
@@ -323,52 +332,26 @@ fun ScannerScreen(
 }
 
 @Composable
-private fun ScannerHeader(taskTitle: String, onBack: () -> Unit, onHome: () -> Unit) {
-    Row(
+private fun ScannerHeader(taskTitle: String) {
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                Brush.horizontalGradient(listOf(TTBlueDark.copy(alpha = 0.72f), TTBlue.copy(alpha = 0.68f))),
-                shape = RoundedCornerShape(16.dp)
-            )
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(top = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        MinimalHeaderButton(text = "Volver", onClick = onBack)
         Image(
             painter = painterResource(id = R.drawable.ttlogo),
             contentDescription = "TT logo",
-            modifier = Modifier
-                .weight(1f)
-                .height(34.dp)
+            modifier = Modifier.height(30.dp)
         )
         Text(
             text = taskTitle,
             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
-            color = Color.White,
-            modifier = Modifier.weight(1f),
+            color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             maxLines = 1
         )
-        MinimalHeaderButton(text = "Inicio", onClick = onHome)
-    }
-}
-
-@Composable
-private fun MinimalHeaderButton(text: String, onClick: () -> Unit) {
-    OutlinedButton(
-        onClick = onClick,
-        colors = OutlinedButtonDefaults.outlinedButtonColors(
-            containerColor = Color.White.copy(alpha = 0.14f),
-            contentColor = Color.White
-        ),
-        border = null,
-        shape = RoundedCornerShape(12.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-        modifier = Modifier.height(34.dp)
-    ) {
-        Text(text = text, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
     }
 }
 
@@ -385,7 +368,7 @@ private fun ScannerBottomPanel(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.92f), TTBlueTint.copy(alpha = 0.48f))),
+                Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.95f), TTBlueTint.copy(alpha = 0.32f))),
                 shape = RoundedCornerShape(20.dp)
             )
             .padding(10.dp),

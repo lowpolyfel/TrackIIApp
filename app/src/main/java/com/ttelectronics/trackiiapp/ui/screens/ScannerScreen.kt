@@ -17,6 +17,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,6 +28,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -44,8 +46,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -65,6 +65,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -73,14 +74,11 @@ import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import com.ttelectronics.trackiiapp.R
-import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
-import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.components.rememberRawSoundPlayer
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
 import com.ttelectronics.trackiiapp.ui.theme.TTAccent
 import com.ttelectronics.trackiiapp.ui.theme.TTBlue
-import com.ttelectronics.trackiiapp.ui.theme.TTBlueDark
 import com.ttelectronics.trackiiapp.ui.theme.TTBlueTint
 import com.ttelectronics.trackiiapp.ui.theme.TTGreen
 import com.ttelectronics.trackiiapp.ui.theme.TTGreenTint
@@ -277,7 +275,7 @@ fun ScannerScreen(
         }
     }
 
-    TrackIIBackground(glowOffsetX = 40.dp, glowOffsetY = (-30).dp) {
+    TrackIIBackground(glowOffsetX = 0.dp, glowOffsetY = (-180).dp) {
         Box(modifier = Modifier.fillMaxSize()) {
             if (hasCameraPermission) {
                 Column(
@@ -286,7 +284,7 @@ fun ScannerScreen(
                         .padding(horizontal = 14.dp, vertical = 6.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    ScannerHeader(taskTitle = taskType.title)
+                    ScannerHeader()
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -295,31 +293,24 @@ fun ScannerScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(0.72f)
-                                .clip(RoundedCornerShape(20.dp))
+                                .fillMaxWidth(0.56f)
+                                .heightIn(max = 290.dp)
+                                .clip(RoundedCornerShape(18.dp))
                                 .background(Color.Black.copy(alpha = 0.16f))
                         ) {
                             AndroidView(
                                 factory = { previewView },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .aspectRatio(0.78f)
+                                    .aspectRatio(0.84f)
                             )
-                            ScannerFrameOverlay(showFrame = !hasBarcodeInFrame)
+                            ScannerFrameOverlay(showFrame = hasBarcodeInFrame)
                         }
                     }
                     ScannerBottomPanel(
                         lotNumber = lotNumber,
                         partNumber = partNumber,
-                        canContinue = canContinue,
-                        onReset = {
-                            lotNumber = ""
-                            partNumber = ""
-                            showOrderFound = false
-                            hasAutoNavigated = false
-                        },
-                        onContinue = { onComplete(lotNumber, partNumber) },
-                        onBack = onBack
+                        modifier = Modifier.fillMaxWidth(0.82f)
                     )
                 }
             } else {
@@ -332,22 +323,22 @@ fun ScannerScreen(
 }
 
 @Composable
-private fun ScannerHeader(taskTitle: String) {
+private fun ScannerHeader() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 2.dp),
+            .padding(top = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Image(
             painter = painterResource(id = R.drawable.ttlogo),
             contentDescription = "TT logo",
-            modifier = Modifier.height(30.dp)
+            modifier = Modifier.height(26.dp)
         )
         Text(
-            text = taskTitle,
-            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
+            text = "Track II",
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             maxLines = 1
@@ -359,44 +350,18 @@ private fun ScannerHeader(taskTitle: String) {
 private fun ScannerBottomPanel(
     lotNumber: String,
     partNumber: String,
-    canContinue: Boolean,
-    onReset: () -> Unit,
-    onContinue: () -> Unit,
-    onBack: () -> Unit
+    modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .background(
                 Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.95f), TTBlueTint.copy(alpha = 0.32f))),
-                shape = RoundedCornerShape(20.dp)
+                shape = RoundedCornerShape(18.dp)
             )
-            .padding(10.dp),
+            .padding(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         ScannerInfoCard(lotNumber = lotNumber, partNumber = partNumber)
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SoftActionButton(text = "Reiniciar", onClick = onReset, modifier = Modifier.weight(1f))
-            PrimaryGlowButton(
-                text = "Continuar",
-                onClick = onContinue,
-                enabled = canContinue,
-                modifier = Modifier.weight(1f)
-            )
-        }
-        OutlinedButton(
-            onClick = onBack,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(44.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = OutlinedButtonDefaults.outlinedButtonColors(
-                containerColor = Color.White.copy(alpha = 0.62f),
-                contentColor = TTBlueDark
-            )
-        ) {
-            Text(text = "Volver a tareas", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
-        }
     }
 }
 

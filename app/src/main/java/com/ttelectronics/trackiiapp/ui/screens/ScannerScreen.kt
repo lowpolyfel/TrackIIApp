@@ -79,7 +79,6 @@ import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
 import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
-import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
 import com.ttelectronics.trackiiapp.ui.components.rememberRawSoundPlayer
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
 import com.ttelectronics.trackiiapp.ui.theme.TTAccent
@@ -127,13 +126,11 @@ fun ScannerScreen(
     var hasBarcodeInFrame by remember { mutableStateOf(false) }
     var showOrderFound by remember { mutableStateOf(false) }
     var hasAutoNavigated by remember { mutableStateOf(false) }
-    var lastDetectedBarcode by rememberSaveable { mutableStateOf("") }
 
     val lotRegex = remember { Regex("^[0-9]{7}$") }
-    val partRegex = remember { Regex("^[A-Za-z].+") }
+    val partRegex = remember { Regex("^[A-Z](?=.*[0-9])[A-Z0-9._/-]{3,}$") }
     var lotScanState by remember { mutableStateOf(StableScanState()) }
     var partScanState by remember { mutableStateOf(StableScanState()) }
-    var playedScanForCodes by remember { mutableStateOf(setOf<String>()) }
     val scanSoundPlayer = rememberRawSoundPlayer("scan")
     val rightSoundPlayer = rememberRawSoundPlayer("right")
 
@@ -152,9 +149,6 @@ fun ScannerScreen(
         if (lotNumber.isBlank() || partNumber.isBlank()) {
             showOrderFound = false
             hasAutoNavigated = false
-            if (lotNumber.isBlank() && partNumber.isBlank()) {
-                playedScanForCodes = emptySet()
-            }
         }
     }
 
@@ -180,42 +174,55 @@ fun ScannerScreen(
             barcodeScanner.process(inputImage)
                 .addOnSuccessListener(mainExecutor) { barcodes ->
                     val now = System.currentTimeMillis()
-                    val rawValues = barcodes.mapNotNull { it.rawValue?.trim() }.filter { it.isNotEmpty() }
-                    hasBarcodeInFrame = rawValues.isNotEmpty()
-                    if (rawValues.isEmpty()) {
+                    val barcodeCandidates = barcodes.mapNotNull { barcode ->
+                        val rawValue = barcode.rawValue
+                            ?.trim()
+                            ?.uppercase()
+                            ?.replace(" ", "")
+                            ?.takeIf { it.isNotEmpty() }
+                            ?: return@mapNotNull null
+
+                        val box = barcode.boundingBox
+                        val areaRatio = if (box == null || imageProxy.width == 0 || imageProxy.height == 0) {
+                            0f
+                        } else {
+                            (box.width().toFloat() * box.height().toFloat()) / (imageProxy.width * imageProxy.height).toFloat()
+                        }
+                        BarcodeCandidate(value = rawValue, areaRatio = areaRatio)
+                    }
+
+                    hasBarcodeInFrame = barcodeCandidates.isNotEmpty()
+                    if (barcodeCandidates.isEmpty()) {
                         lotScanState = lotScanState.clear()
                         partScanState = partScanState.clear()
-                        lastDetectedBarcode = ""
                     } else {
-                        val lotCandidate = rawValues.firstOrNull { lotRegex.matches(it) }
-                        val partCandidate = rawValues.firstOrNull { partRegex.matches(it) }
-                        val newBarcode = rawValues.firstOrNull { it != lastDetectedBarcode }
-                        if (newBarcode != null) {
-                            lastDetectedBarcode = newBarcode
-                            scanSoundPlayer.play()
-                        }
+                        val lotCandidate = barcodeCandidates
+                            .filter { lotRegex.matches(it.value) }
+                            .maxByOrNull { it.areaRatio }
+                        val partCandidate = barcodeCandidates
+                            .filter { partRegex.matches(it.value) }
+                            .maxByOrNull { it.areaRatio }
+
                         if (lotNumber.isBlank() && lotCandidate != null) {
-                            lotScanState = lotScanState.record(lotCandidate)
-                            if (lotScanState.canAccept(now)) {
-                                onLotFound(lotCandidate)
+                            val requiredReads = requiredStableReads(lotCandidate.areaRatio)
+                            lotScanState = lotScanState.record(lotCandidate.value)
+                            if (lotScanState.canAccept(now, requiredReads)) {
+                                onLotFound(lotCandidate.value)
                                 lotScanState = lotScanState.markAccepted(now)
-                                val completesBoth = partNumber.isNotBlank()
-                                if (!completesBoth && !playedScanForCodes.contains(lotCandidate)) {
+                                if (partNumber.isBlank()) {
                                     scanSoundPlayer.play()
-                                    playedScanForCodes = playedScanForCodes + lotCandidate
                                 }
                             }
                         }
                         if (partNumber.isBlank() && partCandidate != null) {
-                            val normalizedPart = partCandidate.uppercase()
+                            val normalizedPart = partCandidate.value
+                            val requiredReads = requiredStableReads(partCandidate.areaRatio)
                             partScanState = partScanState.record(normalizedPart)
-                            if (partScanState.canAccept(now)) {
+                            if (partScanState.canAccept(now, requiredReads)) {
                                 onPartFound(normalizedPart)
                                 partScanState = partScanState.markAccepted(now)
-                                val completesBoth = lotNumber.isNotBlank()
-                                if (!completesBoth && !playedScanForCodes.contains(normalizedPart)) {
+                                if (lotNumber.isBlank()) {
                                     scanSoundPlayer.play()
-                                    playedScanForCodes = playedScanForCodes + normalizedPart
                                 }
                             }
                         }
@@ -298,7 +305,6 @@ fun ScannerScreen(
                         partNumber = ""
                         showOrderFound = false
                         hasAutoNavigated = false
-                        playedScanForCodes = emptySet()
                     },
                     onBack = onBack,
                     onContinue = {
@@ -314,7 +320,7 @@ fun ScannerScreen(
             FloatingHomeButton(
                 onClick = onHome,
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
+                    .align(Alignment.BottomEnd)
                     .padding(20.dp)
             )
         }
@@ -652,8 +658,8 @@ private data class StableScanState(
         return copy(lastValue = value, stableCount = newCount)
     }
 
-    fun canAccept(now: Long): Boolean {
-        return stableCount >= REQUIRED_STABLE_READS && now - lastAcceptedAt > MIN_ACCEPT_INTERVAL_MS
+    fun canAccept(now: Long, requiredStableReads: Int): Boolean {
+        return stableCount >= requiredStableReads && now - lastAcceptedAt > MIN_ACCEPT_INTERVAL_MS
     }
 
     fun markAccepted(now: Long): StableScanState {
@@ -663,7 +669,21 @@ private data class StableScanState(
     fun clear(): StableScanState = copy(lastValue = "", stableCount = 0)
 }
 
+private data class BarcodeCandidate(
+    val value: String,
+    val areaRatio: Float
+)
+
+private fun requiredStableReads(areaRatio: Float): Int {
+    return when {
+        areaRatio >= HIGH_QUALITY_AREA_RATIO -> 2
+        areaRatio >= MEDIUM_QUALITY_AREA_RATIO -> 3
+        else -> 4
+    }
+}
 
 
-private const val REQUIRED_STABLE_READS = 3
-private const val MIN_ACCEPT_INTERVAL_MS = 1200L
+
+private const val HIGH_QUALITY_AREA_RATIO = 0.06f
+private const val MEDIUM_QUALITY_AREA_RATIO = 0.03f
+private const val MIN_ACCEPT_INTERVAL_MS = 650L

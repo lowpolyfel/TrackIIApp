@@ -89,7 +89,6 @@ fun TrackIINavHost(
         }
         composable(TrackIIRoute.Tasks) {
             TaskSelectionScreen(
-                onBackToLogin = { navController.navigate(TrackIIRoute.Login) },
                 onTaskSelected = { taskType ->
                     navController.navigate(TrackIIRoute.scannerRoute(taskType))
                 },

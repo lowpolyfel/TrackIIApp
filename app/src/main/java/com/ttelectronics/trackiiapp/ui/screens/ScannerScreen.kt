@@ -290,7 +290,6 @@ fun ScannerScreen(
                         factory = { previewView },
                         modifier = Modifier.fillMaxSize()
                     )
-                    ScannerFrameOverlay(showFrame = !hasBarcodeInFrame)
                 }
 
                 ScannerOverlay(
@@ -329,29 +328,30 @@ private fun ScannerOverlay(
     canContinue: Boolean
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopCenter)
                 .background(
                     Brush.verticalGradient(
-                        listOf(TTBlueDark.copy(alpha = 0.18f), Color.Transparent)
+                        listOf(TTBlueDark.copy(alpha = 0.22f), Color.Transparent)
                     )
                 )
-                .padding(horizontal = 24.dp, vertical = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(horizontal = 24.dp, vertical = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Image(
                 painter = painterResource(id = R.drawable.ttlogo),
                 contentDescription = "TT logo",
                 modifier = Modifier
-                    .fillMaxWidth(0.42f)
-                    .height(38.dp)
+                    .fillMaxWidth(0.56f)
+                    .height(58.dp)
             )
             Text(
                 text = taskTitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.9f)
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
+                color = Color.White
             )
         }
 
@@ -504,12 +504,12 @@ private fun ScannerInfoCard(lotNumber: String, partNumber: String) {
                         listOf(Color.White, TTBlueTint.copy(alpha = 0.55f))
                     )
                 )
-                .padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(22.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Text(
                 text = "Escanea el No. Lote (7 dígitos) y No. Parte (inicia con letra).",
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = TTTextSecondary
             )
             StatusRow(
@@ -528,10 +528,17 @@ private fun ScannerInfoCard(lotNumber: String, partNumber: String) {
 
 @Composable
 private fun StatusRow(label: String, value: String, placeholder: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (value.isBlank()) Color.White.copy(alpha = 0.7f) else TTGreen.copy(alpha = 0.14f))
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Box(
             modifier = Modifier
-                .size(32.dp)
+                .size(38.dp)
                 .clip(CircleShape)
                 .background(if (value.isBlank()) TTBlueTint else TTGreenTint),
             contentAlignment = Alignment.Center
@@ -546,11 +553,11 @@ private fun StatusRow(label: String, value: String, placeholder: String) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
             )
             Text(
                 text = if (value.isBlank()) placeholder else value,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = if (value.isBlank()) TTTextSecondary else TTGreen
             )
         }
@@ -608,7 +615,7 @@ private fun PermissionFallback(onRequest: () -> Unit) {
                 )
                 Text(
                     text = "Necesitamos acceso para detectar el No. Lote y No. Parte en tu hoja.",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = TTTextSecondary,
                     textAlign = TextAlign.Center
                 )

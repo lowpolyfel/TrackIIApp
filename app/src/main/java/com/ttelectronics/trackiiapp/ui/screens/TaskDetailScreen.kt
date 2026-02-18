@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -188,7 +189,7 @@ private fun ProductRouteDashboard(status: ProductRouteStatus) {
     val breath = rememberInfiniteTransition(label = "breath")
     val scale = breath.animateFloat(
         initialValue = 1f,
-        targetValue = 1.08f,
+        targetValue = 1.06f,
         animationSpec = infiniteRepeatable(animation = tween(900), repeatMode = RepeatMode.Reverse),
         label = "breathScale"
     ).value
@@ -197,31 +198,40 @@ private fun ProductRouteDashboard(status: ProductRouteStatus) {
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                Brush.verticalGradient(listOf(TTBlueTint.copy(alpha = 0.5f), Color.White)),
+                Brush.verticalGradient(listOf(Color.White, TTBlueTint.copy(alpha = 0.32f))),
                 shape = RoundedCornerShape(20.dp)
             )
             .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
             text = "Ruta actual del producto",
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-            color = TTTextSecondary
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onSurface
         )
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(text = "Salida: ${status.source}", style = MaterialTheme.typography.labelMedium, color = TTTextSecondary)
-            Text(text = "Destino: ${status.destination}", style = MaterialTheme.typography.labelMedium, color = TTTextSecondary)
+            Text(text = "Salida: ${status.source}", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = TTTextSecondary)
+            Text(text = "Destino: ${status.destination}", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = TTTextSecondary)
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            RouteNode(label = "Anterior", value = status.previousStep, isCurrent = false)
-            RouteNode(label = "Actual", value = status.currentStep, isCurrent = true, scale = scale)
-            RouteNode(label = "Siguiente", value = status.nextStep, isCurrent = false)
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.Center)
+                    .padding(horizontal = 38.dp)
+                    .height(2.dp)
+                    .background(TTBlue.copy(alpha = 0.28f), shape = RoundedCornerShape(999.dp))
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                RouteNode(label = "Anterior", value = status.previousStep, isCurrent = false)
+                RouteNode(label = "Actual", value = status.currentStep, isCurrent = true, scale = scale)
+                RouteNode(label = "Siguiente", value = status.nextStep, isCurrent = false)
+            }
         }
     }
 }
@@ -231,10 +241,14 @@ private fun RouteNode(label: String, value: String, isCurrent: Boolean, scale: F
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(
             modifier = Modifier
-                .size(if (isCurrent) 84.dp else 56.dp)
+                .size(if (isCurrent) 84.dp else 58.dp)
                 .scale(if (isCurrent) scale else 1f)
                 .background(
-                    color = if (isCurrent) TTGreen.copy(alpha = 0.24f) else TTBlue.copy(alpha = 0.14f),
+                    brush = if (isCurrent) {
+                        Brush.verticalGradient(listOf(TTGreen.copy(alpha = 0.35f), TTGreenTint.copy(alpha = 0.85f)))
+                    } else {
+                        Brush.verticalGradient(listOf(TTBlue.copy(alpha = 0.24f), TTBlueTint.copy(alpha = 0.7f)))
+                    },
                     shape = CircleShape
                 ),
             contentAlignment = Alignment.Center
@@ -247,7 +261,11 @@ private fun RouteNode(label: String, value: String, isCurrent: Boolean, scale: F
                 modifier = Modifier.padding(horizontal = 8.dp)
             )
         }
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = TTTextSecondary)
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+            color = TTTextSecondary
+        )
     }
 }
 

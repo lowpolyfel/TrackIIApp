@@ -19,9 +19,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Category
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Factory
 import androidx.compose.material.icons.rounded.FormatListNumbered
 import androidx.compose.material.icons.rounded.Inventory2
+import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -291,7 +293,20 @@ private fun InfoTile(title: String, value: String, icon: ImageVector, modifier: 
 }
 
 @Composable
-private fun ScanHighlightCard(lotNumber: String, partNumber: String) {
+private fun ProductFlowDashboard(
+    steps: List<String>,
+    currentStepIndex: Int,
+    modifier: Modifier = Modifier
+) {
+    val safeIndex = currentStepIndex.coerceIn(0, (steps.lastIndex).coerceAtLeast(0))
+    val flow = steps.mapIndexed { index, title ->
+        FlowStep(
+            title = title,
+            isActive = index == safeIndex,
+            isCompleted = index < safeIndex
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()

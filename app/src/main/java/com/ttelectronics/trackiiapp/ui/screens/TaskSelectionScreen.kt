@@ -25,6 +25,9 @@ import com.ttelectronics.trackiiapp.ui.components.TopAccountButton
 import com.ttelectronics.trackiiapp.ui.components.TaskCard
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
+import com.ttelectronics.trackiiapp.ui.theme.TTBlue
+import com.ttelectronics.trackiiapp.ui.theme.TTBlueDark
+import com.ttelectronics.trackiiapp.ui.theme.TTBlueTint
 import com.ttelectronics.trackiiapp.ui.theme.TTGreen
 import com.ttelectronics.trackiiapp.ui.theme.TTGreenDark
 import com.ttelectronics.trackiiapp.ui.theme.TTGreenTint
@@ -82,6 +85,14 @@ fun TaskSelectionScreen(
                             accentTint = TTGreenTint
                         )
                         TaskCard(
+                            title = "Avanzar producto",
+                            icon = Icons.Rounded.Description,
+                            onClick = { onTaskSelected(TaskType.ProductAdvance) },
+                            accentColor = TTBlue,
+                            accentDark = TTBlueDark,
+                            accentTint = TTBlueTint
+                        )
+                        TaskCard(
                             title = "Cancelar Orden",
                             icon = Icons.Rounded.HighlightOff,
                             onClick = { onTaskSelected(TaskType.CancelOrder) },
@@ -110,7 +121,7 @@ fun TaskSelectionScreen(
             FloatingHomeButton(
                 onClick = onHome,
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
+                    .align(Alignment.BottomEnd)
                     .padding(20.dp)
             )
         }

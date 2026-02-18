@@ -11,17 +11,13 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -68,6 +64,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -75,7 +72,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
-import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
+import com.ttelectronics.trackiiapp.R
 import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
@@ -282,10 +279,10 @@ fun ScannerScreen(
             if (hasCameraPermission) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.9f)
-                        .aspectRatio(1.4f)
+                        .fillMaxWidth(0.96f)
+                        .aspectRatio(1.65f)
                         .align(Alignment.Center)
-                        .offset(y = (-48).dp)
+                        .offset(y = (-20).dp)
                         .clip(RoundedCornerShape(26.dp))
                         .background(Color.Black.copy(alpha = 0.12f))
                 ) {
@@ -317,12 +314,6 @@ fun ScannerScreen(
             }
 
             OrderFoundOverlay(visible = showOrderFound, highlightSuccess = canContinue)
-            FloatingHomeButton(
-                onClick = onHome,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(20.dp)
-            )
         }
     }
 }
@@ -347,17 +338,20 @@ private fun ScannerOverlay(
                         listOf(TTBlueDark.copy(alpha = 0.18f), Color.Transparent)
                     )
                 )
-                .padding(horizontal = 24.dp, vertical = 28.dp)
+                .padding(horizontal = 24.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Escaneo inteligente",
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                color = Color.White
+            Image(
+                painter = painterResource(id = R.drawable.ttlogo),
+                contentDescription = "TT logo",
+                modifier = Modifier
+                    .fillMaxWidth(0.42f)
+                    .height(38.dp)
             )
             Text(
                 text = taskTitle,
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.8f)
+                color = Color.White.copy(alpha = 0.9f)
             )
         }
 
@@ -398,11 +392,7 @@ private fun ScannerOverlay(
 
 @Composable
 private fun OrderFoundOverlay(visible: Boolean, highlightSuccess: Boolean) {
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(tween(200)) + scaleIn(initialScale = 0.9f, animationSpec = tween(260)),
-        exit = fadeOut(tween(200)) + scaleOut(targetScale = 0.9f, animationSpec = tween(200))
-    ) {
+    if (!visible) return
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -446,7 +436,6 @@ private fun OrderFoundOverlay(visible: Boolean, highlightSuccess: Boolean) {
                 }
             }
         }
-    }
 }
 
 @Composable

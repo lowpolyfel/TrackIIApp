@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ttelectronics.trackiiapp.ui.components.GlassCard
 import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
+import com.ttelectronics.trackiiapp.ui.components.TopAccountButton
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
 import com.ttelectronics.trackiiapp.ui.components.TaskCard
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
@@ -40,14 +41,15 @@ import com.ttelectronics.trackiiapp.ui.theme.TTYellowTint
 fun TaskSelectionScreen(
     onBackToLogin: () -> Unit,
     onTaskSelected: (TaskType) -> Unit,
-    onHome: () -> Unit
+    onHome: () -> Unit,
+    onAccount: () -> Unit
 ) {
     TrackIIBackground(glowOffsetX = 40.dp, glowOffsetY = 80.dp) {
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 24.dp, vertical = 32.dp),
+                    .padding(horizontal = 24.dp, vertical = 88.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Spacer(modifier = Modifier.weight(1f))
@@ -98,10 +100,16 @@ fun TaskSelectionScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
+            TopAccountButton(
+                onClick = onAccount,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(20.dp)
+            )
             FloatingHomeButton(
                 onClick = onHome,
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
+                    .align(Alignment.TopEnd)
                     .padding(20.dp)
             )
         }

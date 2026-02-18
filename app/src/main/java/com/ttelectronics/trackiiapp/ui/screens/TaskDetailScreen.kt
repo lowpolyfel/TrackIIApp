@@ -21,6 +21,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -30,10 +35,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
+import com.ttelectronics.trackiiapp.ui.components.rememberRawSoundPlayer
 import com.ttelectronics.trackiiapp.ui.components.GlassCard
 import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
 import com.ttelectronics.trackiiapp.ui.components.TrackIIDropdownField
+import com.ttelectronics.trackiiapp.ui.components.SuccessOverlayDialog
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
 import com.ttelectronics.trackiiapp.ui.theme.TTAccent
@@ -41,6 +48,7 @@ import com.ttelectronics.trackiiapp.ui.theme.TTBlueTint
 import com.ttelectronics.trackiiapp.ui.theme.TTGreen
 import com.ttelectronics.trackiiapp.ui.theme.TTGreenTint
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
+import kotlinx.coroutines.delay
 
 @Composable
 fun TaskDetailScreen(
@@ -59,6 +67,21 @@ fun TaskDetailScreen(
         InfoItem("Cantidad de piezas", "Pendiente API", Icons.Rounded.FormatListNumbered)
     )
     val localities = listOf("Localidad A", "Localidad B", "Localidad C")
+    var showSuccess by remember { mutableStateOf(false) }
+    val rightSoundPlayer = rememberRawSoundPlayer("right")
+
+    LaunchedEffect(showSuccess) {
+        if (showSuccess) {
+            rightSoundPlayer.play()
+        }
+    }
+
+    if (showSuccess) {
+        LaunchedEffect(Unit) {
+            delay(1400)
+            onComplete()
+        }
+    }
 
     TrackIIBackground(glowOffsetX = 24.dp, glowOffsetY = 120.dp) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -95,7 +118,7 @@ fun TaskDetailScreen(
                         }
                         PrimaryGlowButton(
                             text = if (taskType == TaskType.TravelSheet) "Agregar" else "Guardar",
-                            onClick = onComplete,
+                            onClick = { showSuccess = true },
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -110,8 +133,13 @@ fun TaskDetailScreen(
             FloatingHomeButton(
                 onClick = onHome,
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
+                    .align(Alignment.TopEnd)
                     .padding(20.dp)
+            )
+            SuccessOverlayDialog(
+                title = "Registro exitoso",
+                message = "Los datos fueron guardados correctamente.",
+                show = showSuccess
             )
         }
     }

@@ -30,7 +30,7 @@ fun LoginScreen(onLogin: () -> Unit, onRegister: () -> Unit, onHome: () -> Unit)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 24.dp),
+                    .padding(horizontal = 24.dp, vertical = 88.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
@@ -61,7 +61,7 @@ fun LoginScreen(onLogin: () -> Unit, onRegister: () -> Unit, onHome: () -> Unit)
             FloatingHomeButton(
                 onClick = onHome,
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
+                    .align(Alignment.TopEnd)
                     .padding(20.dp)
             )
         }

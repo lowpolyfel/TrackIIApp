@@ -69,14 +69,6 @@ fun TaskSelectionScreen(
                 GlassCard {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         TaskCard(
-                            title = "Avanzar producto",
-                            icon = Icons.Rounded.Description,
-                            onClick = { onTaskSelected(TaskType.ProductAdvance) },
-                            accentColor = TTGreen,
-                            accentDark = TTGreenDark,
-                            accentTint = TTGreenTint
-                        )
-                        TaskCard(
                             title = "Seguimiento de hojas viajeras",
                             icon = Icons.Rounded.Description,
                             onClick = { onTaskSelected(TaskType.TravelSheet) },

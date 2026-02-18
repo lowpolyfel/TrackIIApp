@@ -23,8 +23,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -45,6 +45,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -231,16 +233,19 @@ fun ScannerScreen(
         }
     }
 
+    val previewView = remember { PreviewView(context) }
+    val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
+
     DisposableEffect(Unit) {
         onDispose {
             analysis.clearAnalyzer()
+            if (cameraProviderFuture.isDone) {
+                cameraProviderFuture.get().unbindAll()
+            }
             barcodeScanner.close()
             executor.shutdown()
         }
     }
-
-    val previewView = remember { PreviewView(context) }
-    val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
 
     LaunchedEffect(hasCameraPermission) {
         if (!hasCameraPermission) return@LaunchedEffect
@@ -277,37 +282,48 @@ fun ScannerScreen(
     TrackIIBackground(glowOffsetX = 40.dp, glowOffsetY = (-30).dp) {
         Box(modifier = Modifier.fillMaxSize()) {
             if (hasCameraPermission) {
-                Box(
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth(0.96f)
-                        .aspectRatio(1.65f)
-                        .align(Alignment.Center)
-                        .offset(y = (-20).dp)
-                        .clip(RoundedCornerShape(26.dp))
-                        .background(Color.Black.copy(alpha = 0.12f))
+                        .fillMaxSize()
+                        .padding(horizontal = 14.dp, vertical = 6.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    AndroidView(
-                        factory = { previewView },
-                        modifier = Modifier.fillMaxSize()
+                    ScannerHeader(taskTitle = taskType.title)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(0.72f)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color.Black.copy(alpha = 0.16f))
+                        ) {
+                            AndroidView(
+                                factory = { previewView },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(0.78f)
+                            )
+                            ScannerFrameOverlay(showFrame = !hasBarcodeInFrame)
+                        }
+                    }
+                    ScannerBottomPanel(
+                        lotNumber = lotNumber,
+                        partNumber = partNumber,
+                        canContinue = canContinue,
+                        onReset = {
+                            lotNumber = ""
+                            partNumber = ""
+                            showOrderFound = false
+                            hasAutoNavigated = false
+                        },
+                        onContinue = { onComplete(lotNumber, partNumber) },
+                        onBack = onBack
                     )
                 }
-
-                ScannerOverlay(
-                    taskTitle = taskType.title,
-                    lotNumber = lotNumber,
-                    partNumber = partNumber,
-                    onReset = {
-                        lotNumber = ""
-                        partNumber = ""
-                        showOrderFound = false
-                        hasAutoNavigated = false
-                    },
-                    onBack = onBack,
-                    onContinue = {
-                        onComplete(lotNumber, partNumber)
-                    },
-                    canContinue = canContinue
-                )
             } else {
                 PermissionFallback(onRequest = { permissionLauncher.launch(Manifest.permission.CAMERA) })
             }
@@ -318,74 +334,70 @@ fun ScannerScreen(
 }
 
 @Composable
-private fun ScannerOverlay(
-    taskTitle: String,
+private fun ScannerHeader(taskTitle: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.ttlogo),
+            contentDescription = "TT logo",
+            modifier = Modifier.height(30.dp)
+        )
+        Text(
+            text = taskTitle,
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun ScannerBottomPanel(
     lotNumber: String,
     partNumber: String,
+    canContinue: Boolean,
     onReset: () -> Unit,
-    onBack: () -> Unit,
     onContinue: () -> Unit,
-    canContinue: Boolean
+    onBack: () -> Unit
 ) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.TopCenter)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(TTBlueDark.copy(alpha = 0.22f), Color.Transparent)
-                    )
-                )
-                .padding(horizontal = 24.dp, vertical = 20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.ttlogo),
-                contentDescription = "TT logo",
-                modifier = Modifier
-                    .fillMaxWidth(0.56f)
-                    .height(58.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.95f), TTBlueTint.copy(alpha = 0.32f))),
+                shape = RoundedCornerShape(20.dp)
             )
-            Text(
-                text = taskTitle,
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
-                color = Color.White
+            .padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        ScannerInfoCard(lotNumber = lotNumber, partNumber = partNumber)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SoftActionButton(text = "Reiniciar", onClick = onReset, modifier = Modifier.weight(1f))
+            PrimaryGlowButton(
+                text = "Continuar",
+                onClick = onContinue,
+                enabled = canContinue,
+                modifier = Modifier.weight(1f)
             )
         }
-
-        Column(
+        OutlinedButton(
+            onClick = onBack,
             modifier = Modifier
-                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color.Transparent, TTBlueDark.copy(alpha = 0.16f))
-                    )
-                )
-                .padding(horizontal = 24.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            ScannerInfoCard(lotNumber = lotNumber, partNumber = partNumber)
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                SoftActionButton(
-                    text = "Reiniciar",
-                    onClick = onReset,
-                    modifier = Modifier.weight(1f)
-                )
-                PrimaryGlowButton(
-                    text = "Continuar",
-                    onClick = onContinue,
-                    enabled = canContinue,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-            SoftActionButton(
-                text = "Volver",
-                onClick = onBack,
-                modifier = Modifier.fillMaxWidth()
+                .height(44.dp),
+            shape = RoundedCornerShape(14.dp),
+            colors = OutlinedButtonDefaults.outlinedButtonColors(
+                containerColor = Color.White.copy(alpha = 0.62f),
+                contentColor = TTBlueDark
             )
+        ) {
+            Text(text = "Volver a tareas", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
         }
     }
 }

@@ -33,7 +33,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -294,10 +293,11 @@ fun ScannerScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(0.74f)
+                                .fillMaxWidth(0.82f)
                                 .aspectRatio(1f)
-                                .border(width = 3.dp, color = Color.Black, shape = RoundedCornerShape(2.dp))
-                                .background(Color.Black.copy(alpha = 0.08f))
+                                .clip(RoundedCornerShape(28.dp))
+                                .border(width = 2.dp, color = TTBlue.copy(alpha = 0.85f), shape = RoundedCornerShape(28.dp))
+                                .background(Color.Black.copy(alpha = 0.24f))
                         ) {
                             AndroidView(
                                 factory = { previewView },
@@ -344,11 +344,18 @@ fun ScannerScreen(
 }
 
 @Composable
-private fun ScannerShell(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+private fun ScannerShell(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Column(
         modifier = modifier
-            .border(4.dp, Color.Black, RoundedCornerShape(4.dp))
-            .padding(14.dp)
+            .clip(RoundedCornerShape(32.dp))
+            .border(2.dp, TTBlue.copy(alpha = 0.35f), RoundedCornerShape(32.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color.White.copy(alpha = 0.88f), TTBlueTint.copy(alpha = 0.42f))
+                )
+            )
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         content()
     }
@@ -357,22 +364,22 @@ private fun ScannerShell(modifier: Modifier = Modifier, content: @Composable Col
 @Composable
 private fun ScannerHeader(taskTitle: String) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 10.dp),
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .width(132.dp)
-                .height(40.dp)
-                .border(3.dp, TTBlue, RoundedCornerShape(2.dp))
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+                .width(150.dp)
+                .height(50.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color.White.copy(alpha = 0.92f))
+                .border(2.dp, TTBlue.copy(alpha = 0.7f), RoundedCornerShape(16.dp))
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             contentAlignment = Alignment.CenterStart
         ) {
             Image(
-                painter = painterResource(id = R.drawable.tt_logo),
+                painter = painterResource(id = R.drawable.ttlogo),
                 contentDescription = "TT Logo",
                 modifier = Modifier.fillMaxWidth(),
                 contentScale = ContentScale.Fit
@@ -381,15 +388,18 @@ private fun ScannerHeader(taskTitle: String) {
 
         Box(
             modifier = Modifier
-                .width(112.dp)
-                .height(40.dp)
-                .border(3.dp, Color.Black, RoundedCornerShape(2.dp)),
+                .width(148.dp)
+                .height(50.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(TTBlueTint.copy(alpha = 0.65f))
+                .border(1.dp, TTBlue.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                .padding(horizontal = 10.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = taskTitle,
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                color = Color.Black,
+                color = TTBlue,
                 textAlign = TextAlign.Center,
                 maxLines = 2
             )
@@ -405,8 +415,14 @@ private fun ScannerBottomPanel(
 ) {
     Column(
         modifier = modifier
-            .border(3.dp, Color.Black, RoundedCornerShape(2.dp))
-            .padding(12.dp),
+            .clip(RoundedCornerShape(24.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color.White.copy(alpha = 0.92f), TTBlueTint.copy(alpha = 0.5f))
+                )
+            )
+            .border(1.dp, TTBlue.copy(alpha = 0.35f), RoundedCornerShape(24.dp))
+            .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         ScannerInfoCard(lotNumber = lotNumber, partNumber = partNumber)
@@ -528,21 +544,21 @@ private fun ScannerInfoCard(lotNumber: String, partNumber: String) {
 private fun StatusRow(label: String, value: String, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
-            .height(72.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .border(3.dp, Color.Black, RoundedCornerShape(16.dp))
-            .background(Color.White)
+            .height(76.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(if (value.isBlank()) Color.White.copy(alpha = 0.72f) else TTGreenTint.copy(alpha = 0.4f))
+            .border(1.dp, TTBlue.copy(alpha = 0.4f), RoundedCornerShape(20.dp))
             .padding(horizontal = 8.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = label.lowercase(),
+            text = label,
             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-            color = TTGreen
+            color = TTBlue
         )
         Text(
-            text = value.ifBlank { "pendiente" },
+            text = value.ifBlank { "Pendiente" },
             style = MaterialTheme.typography.labelSmall,
             color = if (value.isBlank()) TTTextSecondary else TTGreen,
             maxLines = 1
@@ -559,19 +575,25 @@ private fun IconButtonBox(
 ) {
     Button(
         onClick = onClick,
-        modifier = Modifier
-            .size(44.dp)
-            .border(2.dp, borderColor, CutCornerShape(2.dp)),
-        shape = CutCornerShape(2.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+        modifier = Modifier.size(48.dp),
+        shape = RoundedCornerShape(14.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.9f)),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = tint)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .border(1.dp, borderColor.copy(alpha = 0.55f), RoundedCornerShape(14.dp))
+                .background(TTBlueTint.copy(alpha = 0.22f), RoundedCornerShape(14.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(imageVector = icon, contentDescription = null, tint = tint)
+        }
     }
 }
 
 private fun Modifier.borderGlow(): Modifier {
-    return this.border(2.dp, Color.White.copy(alpha = 0.7f), RoundedCornerShape(22.dp))
+    return this.border(2.dp, TTBlue.copy(alpha = 0.7f), RoundedCornerShape(22.dp))
 }
 
 @Composable

@@ -344,7 +344,7 @@ fun ScannerScreen(
 }
 
 @Composable
-private fun ScannerShell(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+private fun ScannerShell(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(32.dp))

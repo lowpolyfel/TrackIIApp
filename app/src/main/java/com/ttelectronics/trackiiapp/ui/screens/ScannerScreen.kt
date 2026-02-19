@@ -19,26 +19,25 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.CenterFocusStrong
 import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.DocumentScanner
 import androidx.compose.material.icons.rounded.ShieldMoon
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -63,6 +62,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
@@ -278,13 +278,12 @@ fun ScannerScreen(
     TrackIIBackground(glowOffsetX = 0.dp, glowOffsetY = (-180).dp) {
         Box(modifier = Modifier.fillMaxSize()) {
             if (hasCameraPermission) {
-                Column(
+                ScannerShell(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 14.dp, vertical = 6.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(horizontal = 22.dp, vertical = 18.dp)
                 ) {
-                    ScannerHeader()
+                    ScannerHeader(taskTitle = taskType.title)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -293,16 +292,15 @@ fun ScannerScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(0.54f)
-                                .heightIn(max = 250.dp)
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(Color.Black.copy(alpha = 0.16f))
+                                .fillMaxWidth(0.82f)
+                                .aspectRatio(1f)
+                                .clip(RoundedCornerShape(28.dp))
+                                .border(width = 2.dp, color = TTBlue.copy(alpha = 0.85f), shape = RoundedCornerShape(28.dp))
+                                .background(Color.Black.copy(alpha = 0.24f))
                         ) {
                             AndroidView(
                                 factory = { previewView },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .aspectRatio(0.84f)
+                                modifier = Modifier.fillMaxSize()
                             )
                             ScannerFrameOverlay(showFrame = hasBarcodeInFrame)
                         }
@@ -310,8 +308,30 @@ fun ScannerScreen(
                     ScannerBottomPanel(
                         lotNumber = lotNumber,
                         partNumber = partNumber,
-                        modifier = Modifier.fillMaxWidth(0.54f)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp)
                     )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 18.dp, end = 18.dp, bottom = 6.dp, top = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButtonBox(
+                            onClick = onBack,
+                            icon = Icons.AutoMirrored.Rounded.ArrowBack,
+                            tint = TTGreen,
+                            borderColor = TTGreen
+                        )
+                        IconButtonBox(
+                            onClick = onHome,
+                            icon = Icons.Rounded.Close,
+                            tint = Color(0xFFD4172C),
+                            borderColor = Color(0xFFD4172C)
+                        )
+                    }
                 }
             } else {
                 PermissionFallback(onRequest = { permissionLauncher.launch(Manifest.permission.CAMERA) })
@@ -323,28 +343,66 @@ fun ScannerScreen(
 }
 
 @Composable
-private fun ScannerHeader(taskTitle: String = "Escaneo de Orden") {
+private fun ScannerShell(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(32.dp))
+            .border(2.dp, TTBlue.copy(alpha = 0.35f), RoundedCornerShape(32.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color.White.copy(alpha = 0.88f), TTBlueTint.copy(alpha = 0.42f))
+                )
+            )
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        content()
+    }
+}
+
+@Composable
+private fun ScannerHeader(taskTitle: String) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 14.dp, top = 8.dp, end = 14.dp, bottom = 4.dp),
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = taskTitle,
-            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Start,
-            maxLines = 1
-        )
-        Text(
-            text = "TT Electronics",
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.End,
-            maxLines = 1
-        )
+        Box(
+            modifier = Modifier
+                .width(150.dp)
+                .height(50.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color.White.copy(alpha = 0.92f))
+                .border(2.dp, TTBlue.copy(alpha = 0.7f), RoundedCornerShape(16.dp))
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.ttlogo),
+                contentDescription = "TT Logo",
+                modifier = Modifier.fillMaxWidth(),
+                contentScale = ContentScale.Fit
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .width(148.dp)
+                .height(50.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(TTBlueTint.copy(alpha = 0.65f))
+                .border(1.dp, TTBlue.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                .padding(horizontal = 10.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = taskTitle,
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = TTBlue,
+                textAlign = TextAlign.Center,
+                maxLines = 2
+            )
+        }
     }
 }
 
@@ -356,11 +414,14 @@ private fun ScannerBottomPanel(
 ) {
     Column(
         modifier = modifier
+            .clip(RoundedCornerShape(24.dp))
             .background(
-                Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.95f), TTBlueTint.copy(alpha = 0.32f))),
-                shape = RoundedCornerShape(18.dp)
+                Brush.verticalGradient(
+                    listOf(Color.White.copy(alpha = 0.92f), TTBlueTint.copy(alpha = 0.5f))
+                )
             )
-            .padding(8.dp),
+            .border(1.dp, TTBlue.copy(alpha = 0.35f), RoundedCornerShape(24.dp))
+            .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         ScannerInfoCard(lotNumber = lotNumber, partNumber = partNumber)
@@ -469,90 +530,69 @@ private fun ScannerFrameOverlay(showFrame: Boolean) {
 
 @Composable
 private fun ScannerInfoCard(lotNumber: String, partNumber: String) {
-    Card(
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f))
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color.White, TTBlueTint.copy(alpha = 0.55f))
-                    )
-                )
-                .padding(22.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Text(
-                text = "Escanea el No. Lote (7 dígitos) y No. Parte (inicia con letra).",
-                style = MaterialTheme.typography.bodyMedium,
-                color = TTTextSecondary
-            )
-            StatusRow(
-                label = "No. Lote",
-                value = lotNumber,
-                placeholder = "Esperando código de 7 dígitos"
-            )
-            StatusRow(
-                label = "No. Parte",
-                value = partNumber,
-                placeholder = "Esperando código con letra inicial"
-            )
-        }
+        StatusRow(label = "No. Parte", value = partNumber, modifier = Modifier.weight(1f))
+        StatusRow(label = "No. Lote", value = lotNumber, modifier = Modifier.weight(1f))
     }
 }
 
 @Composable
-private fun StatusRow(label: String, value: String, placeholder: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(if (value.isBlank()) Color.White.copy(alpha = 0.7f) else TTGreen.copy(alpha = 0.14f))
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+private fun StatusRow(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .height(76.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(if (value.isBlank()) Color.White.copy(alpha = 0.72f) else TTGreenTint.copy(alpha = 0.4f))
+            .border(1.dp, TTBlue.copy(alpha = 0.4f), RoundedCornerShape(20.dp))
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+            color = TTBlue
+        )
+        Text(
+            text = value.ifBlank { "Pendiente" },
+            style = MaterialTheme.typography.labelSmall,
+            color = if (value.isBlank()) TTTextSecondary else TTGreen,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun IconButtonBox(
+    onClick: () -> Unit,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    tint: Color,
+    borderColor: Color
+) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier.size(48.dp),
+        shape = RoundedCornerShape(14.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.9f)),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(38.dp)
-                .clip(CircleShape)
-                .background(if (value.isBlank()) TTBlueTint else TTGreenTint),
+                .fillMaxSize()
+                .border(1.dp, borderColor.copy(alpha = 0.55f), RoundedCornerShape(14.dp))
+                .background(TTBlueTint.copy(alpha = 0.22f), RoundedCornerShape(14.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = if (value.isBlank()) Icons.Rounded.DocumentScanner else Icons.Rounded.CheckCircle,
-                contentDescription = null,
-                tint = if (value.isBlank()) TTBlue else TTGreen
-            )
-        }
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-            )
-            Text(
-                text = if (value.isBlank()) placeholder else value,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (value.isBlank()) TTTextSecondary else TTGreen
-            )
-        }
-        if (value.isNotBlank()) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(TTGreen.copy(alpha = 0.16f))
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = "Detectado",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = TTGreen
-                )
-            }
+            Icon(imageVector = icon, contentDescription = null, tint = tint)
         }
     }
+}
+
+private fun Modifier.borderGlow(): Modifier {
+    return this.border(2.dp, TTBlue.copy(alpha = 0.7f), RoundedCornerShape(22.dp))
 }
 
 @Composable
@@ -605,18 +645,4 @@ private fun PermissionFallback(onRequest: () -> Unit) {
             }
         }
     }
-}
-
-private fun Modifier.borderGlow(): Modifier {
-    return this
-        .graphicsLayer {
-            shadowElevation = 24f
-            shape = RoundedCornerShape(28.dp)
-            clip = true
-        }
-        .background(
-            Brush.linearGradient(
-                listOf(Color.White.copy(alpha = 0.5f), TTAccent.copy(alpha = 0.4f))
-            )
-        )
 }

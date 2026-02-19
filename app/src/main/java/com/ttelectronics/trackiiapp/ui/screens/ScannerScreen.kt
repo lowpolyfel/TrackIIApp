@@ -19,26 +19,27 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CenterFocusStrong
 import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.DocumentScanner
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ShieldMoon
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -82,6 +83,7 @@ import com.ttelectronics.trackiiapp.ui.theme.TTBlue
 import com.ttelectronics.trackiiapp.ui.theme.TTBlueTint
 import com.ttelectronics.trackiiapp.ui.theme.TTGreen
 import com.ttelectronics.trackiiapp.ui.theme.TTGreenTint
+import com.ttelectronics.trackiiapp.ui.theme.TTRed
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
 import kotlinx.coroutines.delay
 import java.util.concurrent.Executors
@@ -281,37 +283,40 @@ fun ScannerScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 14.dp, vertical = 6.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(18.dp)
+                        .border(width = 3.dp, color = Color.Black, shape = RoundedCornerShape(0.dp))
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    ScannerHeader()
+                    ScannerHeader(taskTitle = taskType.title)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f),
+                            .weight(1f)
+                            .wrapContentHeight(),
                         contentAlignment = Alignment.Center
                     ) {
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(0.54f)
-                                .heightIn(max = 250.dp)
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(Color.Black.copy(alpha = 0.16f))
+                                .fillMaxWidth(0.72f)
+                                .aspectRatio(1f)
+                                .border(4.dp, Color.Black)
+                                .background(Color.Black.copy(alpha = 0.12f))
                         ) {
                             AndroidView(
                                 factory = { previewView },
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .aspectRatio(0.84f)
+                                    .matchParentSize()
                             )
-                            ScannerFrameOverlay(showFrame = hasBarcodeInFrame)
+                            ScannerFrameOverlay(showAnimation = !hasBarcodeInFrame)
                         }
                     }
                     ScannerBottomPanel(
                         lotNumber = lotNumber,
                         partNumber = partNumber,
-                        modifier = Modifier.fillMaxWidth(0.54f)
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
                     )
+                    ScannerFooterActions(onBack = onBack, onHome = onHome)
                 }
             } else {
                 PermissionFallback(onRequest = { permissionLauncher.launch(Manifest.permission.CAMERA) })
@@ -327,24 +332,76 @@ private fun ScannerHeader(taskTitle: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 14.dp, top = 8.dp, end = 14.dp, bottom = 4.dp),
+            .padding(horizontal = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = taskTitle,
-            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Start,
-            maxLines = 1
+        Box(
+            modifier = Modifier
+                .width(132.dp)
+                .height(42.dp)
+                .border(3.dp, TTBlue)
+                .background(Color.White),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.tt_logo),
+                contentDescription = null,
+                modifier = Modifier
+                    .padding(horizontal = 10.dp)
+                    .fillMaxWidth()
+            )
+        }
+        Box(
+            modifier = Modifier
+                .width(102.dp)
+                .height(42.dp)
+                .border(3.dp, Color.Black)
+                .background(Color.White)
+                .padding(horizontal = 8.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Text(
+                text = taskTitle,
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Start,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
+private fun ScannerFooterActions(onBack: () -> Unit, onHome: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.ArrowBack,
+            contentDescription = "Volver",
+            tint = TTGreen,
+            modifier = Modifier
+                .size(44.dp)
+                .clickable(onClick = onBack)
         )
-        Text(
-            text = "TT Electronics",
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.End,
-            maxLines = 1
-        )
+        Box(
+            modifier = Modifier
+                .size(50.dp)
+                .border(3.dp, TTRed)
+                .clickable(onClick = onHome),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Close,
+                contentDescription = "Inicio",
+                tint = TTRed
+            )
+        }
     }
 }
 
@@ -354,16 +411,47 @@ private fun ScannerBottomPanel(
     partNumber: String,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    Row(
         modifier = modifier
-            .background(
-                Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.95f), TTBlueTint.copy(alpha = 0.32f))),
-                shape = RoundedCornerShape(18.dp)
-            )
-            .padding(8.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+            .fillMaxWidth(0.9f)
+            .border(4.dp, Color.Black)
+            .padding(horizontal = 14.dp, vertical = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        ScannerInfoCard(lotNumber = lotNumber, partNumber = partNumber)
+        StatusPill(
+            label = "no.parte",
+            value = partNumber,
+            modifier = Modifier.weight(1f)
+        )
+        StatusPill(
+            label = "no. lote",
+            value = lotNumber,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun StatusPill(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .height(72.dp)
+            .border(4.dp, Color.Black, RoundedCornerShape(18.dp))
+            .background(
+                color = if (value.isBlank()) Color.White else TTGreenTint,
+                shape = RoundedCornerShape(18.dp)
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = if (value.isBlank()) label else value,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            color = if (value.isBlank()) TTGreen else Color.Black
+        )
     }
 }
 
@@ -416,7 +504,7 @@ private fun OrderFoundOverlay(visible: Boolean, highlightSuccess: Boolean) {
 }
 
 @Composable
-private fun ScannerFrameOverlay(showFrame: Boolean) {
+private fun ScannerFrameOverlay(showAnimation: Boolean) {
     val transition = rememberInfiniteTransition(label = "scanLine")
     val lineOffset by transition.animateFloat(
         initialValue = 0f,
@@ -428,7 +516,7 @@ private fun ScannerFrameOverlay(showFrame: Boolean) {
         label = "scanLineOffset"
     )
     val frameAlpha by animateFloatAsState(
-        targetValue = if (showFrame) 1f else 0f,
+        targetValue = if (showAnimation) 1f else 0f,
         animationSpec = tween(360),
         label = "frameAlpha"
     )
@@ -463,94 +551,6 @@ private fun ScannerFrameOverlay(showFrame: Boolean) {
                     .align(Alignment.Center)
                     .size(48.dp)
             )
-        }
-    }
-}
-
-@Composable
-private fun ScannerInfoCard(lotNumber: String, partNumber: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f))
-    ) {
-        Column(
-            modifier = Modifier
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color.White, TTBlueTint.copy(alpha = 0.55f))
-                    )
-                )
-                .padding(22.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Text(
-                text = "Escanea el No. Lote (7 dígitos) y No. Parte (inicia con letra).",
-                style = MaterialTheme.typography.bodyMedium,
-                color = TTTextSecondary
-            )
-            StatusRow(
-                label = "No. Lote",
-                value = lotNumber,
-                placeholder = "Esperando código de 7 dígitos"
-            )
-            StatusRow(
-                label = "No. Parte",
-                value = partNumber,
-                placeholder = "Esperando código con letra inicial"
-            )
-        }
-    }
-}
-
-@Composable
-private fun StatusRow(label: String, value: String, placeholder: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(if (value.isBlank()) Color.White.copy(alpha = 0.7f) else TTGreen.copy(alpha = 0.14f))
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(38.dp)
-                .clip(CircleShape)
-                .background(if (value.isBlank()) TTBlueTint else TTGreenTint),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = if (value.isBlank()) Icons.Rounded.DocumentScanner else Icons.Rounded.CheckCircle,
-                contentDescription = null,
-                tint = if (value.isBlank()) TTBlue else TTGreen
-            )
-        }
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-            )
-            Text(
-                text = if (value.isBlank()) placeholder else value,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (value.isBlank()) TTTextSecondary else TTGreen
-            )
-        }
-        if (value.isNotBlank()) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(TTGreen.copy(alpha = 0.16f))
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = "Detectado",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = TTGreen
-                )
-            }
         }
     }
 }
@@ -620,43 +620,3 @@ private fun Modifier.borderGlow(): Modifier {
             )
         )
 }
-
-private data class StableScanState(
-    val lastValue: String = "",
-    val stableCount: Int = 0,
-    val lastAcceptedAt: Long = 0L
-) {
-    fun record(value: String): StableScanState {
-        val newCount = if (value == lastValue) stableCount + 1 else 1
-        return copy(lastValue = value, stableCount = newCount)
-    }
-
-    fun canAccept(now: Long, requiredStableReads: Int): Boolean {
-        return stableCount >= requiredStableReads && now - lastAcceptedAt > MIN_ACCEPT_INTERVAL_MS
-    }
-
-    fun markAccepted(now: Long): StableScanState {
-        return copy(lastValue = "", stableCount = 0, lastAcceptedAt = now)
-    }
-
-    fun clear(): StableScanState = copy(lastValue = "", stableCount = 0)
-}
-
-private data class BarcodeCandidate(
-    val value: String,
-    val areaRatio: Float
-)
-
-private fun requiredStableReads(areaRatio: Float): Int {
-    return when {
-        areaRatio >= HIGH_QUALITY_AREA_RATIO -> 2
-        areaRatio >= MEDIUM_QUALITY_AREA_RATIO -> 3
-        else -> 4
-    }
-}
-
-
-
-private const val HIGH_QUALITY_AREA_RATIO = 0.06f
-private const val MEDIUM_QUALITY_AREA_RATIO = 0.03f
-private const val MIN_ACCEPT_INTERVAL_MS = 650L

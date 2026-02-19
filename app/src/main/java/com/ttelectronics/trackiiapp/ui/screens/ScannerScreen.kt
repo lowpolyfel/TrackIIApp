@@ -23,6 +23,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -343,7 +344,7 @@ fun ScannerScreen(
 }
 
 @Composable
-private fun ScannerShell(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+private fun ScannerShell(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier = modifier
             .border(4.dp, Color.Black, RoundedCornerShape(4.dp))

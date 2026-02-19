@@ -370,8 +370,8 @@ private fun ScannerHeader(taskTitle: String) {
     ) {
         Box(
             modifier = Modifier
-                .width(150.dp)
-                .height(50.dp)
+                .width(152.dp)
+                .height(52.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(Color.White.copy(alpha = 0.92f))
                 .border(2.dp, TTBlue.copy(alpha = 0.7f), RoundedCornerShape(16.dp))
@@ -379,7 +379,7 @@ private fun ScannerHeader(taskTitle: String) {
             contentAlignment = Alignment.CenterStart
         ) {
             Image(
-                painter = painterResource(id = R.drawable.ttlogo),
+                painter = painterResource(id = R.drawable.tt_logo),
                 contentDescription = "TT Logo",
                 modifier = Modifier.fillMaxWidth(),
                 contentScale = ContentScale.Fit
@@ -388,8 +388,8 @@ private fun ScannerHeader(taskTitle: String) {
 
         Box(
             modifier = Modifier
-                .width(148.dp)
-                .height(50.dp)
+                .width(150.dp)
+                .height(52.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(TTBlueTint.copy(alpha = 0.65f))
                 .border(1.dp, TTBlue.copy(alpha = 0.4f), RoundedCornerShape(16.dp))

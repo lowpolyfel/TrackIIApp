@@ -13,18 +13,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Category
-import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Factory
 import androidx.compose.material.icons.rounded.FormatListNumbered
 import androidx.compose.material.icons.rounded.Inventory2
-import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -105,6 +102,7 @@ fun TaskDetailScreen(
                         when (taskType) {
                             TaskType.ProductAdvance,
                             TaskType.TravelSheet -> Unit
+
                             TaskType.CancelOrder -> CancelReasonDropdown()
                             TaskType.Rework -> TrackIIDropdownField(
                                 label = "Localidad de retrabajo",
@@ -189,7 +187,7 @@ private fun ProductRouteDashboard(status: ProductRouteStatus) {
     val breath = rememberInfiniteTransition(label = "breath")
     val scale = breath.animateFloat(
         initialValue = 1f,
-        targetValue = 1.06f,
+        targetValue = 1.08f,
         animationSpec = infiniteRepeatable(animation = tween(900), repeatMode = RepeatMode.Reverse),
         label = "breathScale"
     ).value
@@ -198,40 +196,39 @@ private fun ProductRouteDashboard(status: ProductRouteStatus) {
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                Brush.verticalGradient(listOf(Color.White, TTBlueTint.copy(alpha = 0.32f))),
+                Brush.verticalGradient(listOf(TTBlueTint.copy(alpha = 0.5f), Color.White)),
                 shape = RoundedCornerShape(20.dp)
             )
             .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
             text = "Ruta actual del producto",
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurface
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = TTTextSecondary
         )
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(text = "Salida: ${status.source}", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = TTTextSecondary)
-            Text(text = "Destino: ${status.destination}", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = TTTextSecondary)
+            Text(
+                text = "Salida: ${status.source}",
+                style = MaterialTheme.typography.labelMedium,
+                color = TTTextSecondary
+            )
+            Text(
+                text = "Destino: ${status.destination}",
+                style = MaterialTheme.typography.labelMedium,
+                color = TTTextSecondary
+            )
         }
 
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.Center)
-                    .padding(horizontal = 38.dp)
-                    .height(2.dp)
-                    .background(TTBlue.copy(alpha = 0.28f), shape = RoundedCornerShape(999.dp))
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                RouteNode(label = "Anterior", value = status.previousStep, isCurrent = false)
-                RouteNode(label = "Actual", value = status.currentStep, isCurrent = true, scale = scale)
-                RouteNode(label = "Siguiente", value = status.nextStep, isCurrent = false)
-            }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            RouteNode(label = "Anterior", value = status.previousStep, isCurrent = false)
+            RouteNode(label = "Actual", value = status.currentStep, isCurrent = true, scale = scale)
+            RouteNode(label = "Siguiente", value = status.nextStep, isCurrent = false)
         }
     }
 }
@@ -241,14 +238,10 @@ private fun RouteNode(label: String, value: String, isCurrent: Boolean, scale: F
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(
             modifier = Modifier
-                .size(if (isCurrent) 84.dp else 58.dp)
+                .size(if (isCurrent) 84.dp else 56.dp)
                 .scale(if (isCurrent) scale else 1f)
                 .background(
-                    brush = if (isCurrent) {
-                        Brush.verticalGradient(listOf(TTGreen.copy(alpha = 0.35f), TTGreenTint.copy(alpha = 0.85f)))
-                    } else {
-                        Brush.verticalGradient(listOf(TTBlue.copy(alpha = 0.24f), TTBlueTint.copy(alpha = 0.7f)))
-                    },
+                    color = if (isCurrent) TTGreen.copy(alpha = 0.24f) else TTBlue.copy(alpha = 0.14f),
                     shape = CircleShape
                 ),
             contentAlignment = Alignment.Center
@@ -261,11 +254,7 @@ private fun RouteNode(label: String, value: String, isCurrent: Boolean, scale: F
                 modifier = Modifier.padding(horizontal = 8.dp)
             )
         }
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-            color = TTTextSecondary
-        )
+        Text(text = label, style = MaterialTheme.typography.labelSmall, color = TTTextSecondary)
     }
 }
 
@@ -301,38 +290,48 @@ private fun InfoTile(title: String, value: String, icon: ImageVector, modifier: 
                 .padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(imageVector = icon, contentDescription = null, tint = TTGreen, modifier = Modifier.size(18.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = TTGreen,
+                    modifier = Modifier.size(18.dp)
+                )
                 Text(text = title, style = MaterialTheme.typography.labelLarge, color = TTTextSecondary)
             }
-            Text(text = value, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.onSurface)
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }
 
 @Composable
-private fun ProductFlowDashboard(
-    steps: List<String>,
-    currentStepIndex: Int,
+private fun ScanHighlightCard(
+    lotNumber: String,
+    partNumber: String,
     modifier: Modifier = Modifier
 ) {
-    val safeIndex = currentStepIndex.coerceIn(0, (steps.lastIndex).coerceAtLeast(0))
-    val flow = steps.mapIndexed { index, title ->
-        FlowStep(
-            title = title,
-            isActive = index == safeIndex,
-            isCompleted = index < safeIndex
-        )
-    }
-
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .background(Brush.horizontalGradient(listOf(TTAccent.copy(alpha = 0.3f), TTBlueTint.copy(alpha = 0.6f))), shape = RoundedCornerShape(22.dp))
+            .background(
+                Brush.horizontalGradient(listOf(TTAccent.copy(alpha = 0.3f), TTBlueTint.copy(alpha = 0.6f))),
+                shape = RoundedCornerShape(22.dp)
+            )
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(text = "Datos escaneados", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold), color = TTTextSecondary)
+        Text(
+            text = "Datos escaneados",
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = TTTextSecondary
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             ScanValueBlock(label = "No. Lote", value = lotNumber, modifier = Modifier.weight(1f))
             ScanValueBlock(label = "No. Parte", value = partNumber, modifier = Modifier.weight(1f))
@@ -342,7 +341,11 @@ private fun ProductFlowDashboard(
 
 @Composable
 private fun ScanValueBlock(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(modifier = modifier.background(Color.White, shape = RoundedCornerShape(18.dp)).padding(12.dp)) {
+    Column(
+        modifier = modifier
+            .background(Color.White, shape = RoundedCornerShape(18.dp))
+            .padding(12.dp)
+    ) {
         Text(text = label, style = MaterialTheme.typography.labelLarge, color = TTTextSecondary)
         Text(
             text = value.ifBlank { "Pendiente" },

@@ -1,13 +1,15 @@
 package com.ttelectronics.trackiiapp.ui.navigation
 
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
-import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.ttelectronics.trackiiapp.core.ServiceLocator
 import com.ttelectronics.trackiiapp.ui.screens.LoginScreen
 import com.ttelectronics.trackiiapp.ui.screens.RegisterScreen
 import com.ttelectronics.trackiiapp.ui.screens.RegisterTokenScreen
@@ -49,9 +51,13 @@ fun TrackIINavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController()
 ) {
+    val context = LocalContext.current
+    val authRepository = ServiceLocator.authRepository(context)
+    val session = authRepository.sessionSnapshot()
+
     NavHost(
         navController = navController,
-        startDestination = TrackIIRoute.Welcome,
+        startDestination = if (session.isLoggedIn) TrackIIRoute.Welcome else TrackIIRoute.Login,
         modifier = modifier
     ) {
         val navigateHome = {
@@ -62,7 +68,11 @@ fun TrackIINavHost(
         }
         composable(TrackIIRoute.Login) {
             LoginScreen(
-                onLogin = { navController.navigate(TrackIIRoute.Welcome) },
+                onLogin = {
+                    navController.navigate(TrackIIRoute.Welcome) {
+                        popUpTo(TrackIIRoute.Login) { inclusive = true }
+                    }
+                },
                 onRegister = { navController.navigate(TrackIIRoute.RegisterToken) },
                 onHome = navigateHome
             )
@@ -80,24 +90,29 @@ fun TrackIINavHost(
         ) { backStackEntry ->
             RegisterScreen(
                 tokenCode = backStackEntry.arguments?.getString("token").orEmpty(),
-                onCreateAccount = { navController.navigate(TrackIIRoute.Welcome) },
+                onCreateAccount = { navController.popBackStack(TrackIIRoute.Login, inclusive = false) },
                 onBackToLogin = { navController.popBackStack(TrackIIRoute.Login, inclusive = false) },
                 onHome = navigateHome
             )
         }
         composable(TrackIIRoute.Welcome) {
+            val current = authRepository.sessionSnapshot()
             WelcomeScreen(
                 onStart = { navController.navigate(TrackIIRoute.Tasks) },
-                userName = "Usuario"
+                userName = current.username
             )
         }
         composable(TrackIIRoute.Tasks) {
+            val current = authRepository.sessionSnapshot()
             TaskSelectionScreen(
                 onTaskSelected = { taskType ->
                     navController.navigate(TrackIIRoute.scannerRoute(taskType))
                 },
                 onHome = navigateHome,
-                onAccount = { navController.navigate(TrackIIRoute.Login) }
+                onAccount = { navController.navigate(TrackIIRoute.Login) },
+                username = current.username,
+                locationName = current.locationName,
+                deviceName = current.deviceName
             )
         }
         composable(

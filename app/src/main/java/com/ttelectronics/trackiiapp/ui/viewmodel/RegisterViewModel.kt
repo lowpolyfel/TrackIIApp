@@ -21,7 +21,7 @@ data class RegisterUiState(
     val username: String = "",
     val password: String = "",
     val locations: List<LocationDto> = emptyList(),
-    val selectedLocationId: UInt? = null,
+    val selectedLocationId: Int? = null,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val successMessage: String? = null
@@ -36,7 +36,7 @@ class RegisterViewModel(private val authRepository: AuthRepository) : ViewModel(
     fun onDeviceNameChange(value: String) = _uiState.update { it.copy(deviceName = value, errorMessage = null) }
     fun onUsernameChange(value: String) = _uiState.update { it.copy(username = value, errorMessage = null) }
     fun onPasswordChange(value: String) = _uiState.update { it.copy(password = value, errorMessage = null) }
-    fun onLocationChange(locationId: UInt) = _uiState.update { it.copy(selectedLocationId = locationId, errorMessage = null) }
+    fun onLocationChange(locationId: Int) = _uiState.update { it.copy(selectedLocationId = locationId, errorMessage = null) }
 
     fun preloadDeviceUid(androidId: String?) {
         if (_uiState.value.deviceUid.isBlank()) {

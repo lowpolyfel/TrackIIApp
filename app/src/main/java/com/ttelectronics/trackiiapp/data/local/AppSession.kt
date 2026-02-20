@@ -8,11 +8,11 @@ class AppSession(context: Context) {
 
     var isLoggedIn: Boolean = false
         private set
-    var userId: UInt = 0u
+    var userId: Int = 0
         private set
-    var deviceId: UInt = 0u
+    var deviceId: Int = 0
         private set
-    var locationId: UInt = 0u
+    var locationId: Int = 0
         private set
     var username: String = "Sin usuario"
         private set
@@ -26,11 +26,11 @@ class AppSession(context: Context) {
     }
 
     fun setLoggedIn(
-        userId: UInt,
+        userId: Int,
         username: String,
-        deviceId: UInt,
+        deviceId: Int,
         deviceName: String?,
-        locationId: UInt,
+        locationId: Int,
         locationName: String?
     ) {
         isLoggedIn = true
@@ -45,9 +45,9 @@ class AppSession(context: Context) {
 
     fun clear() {
         isLoggedIn = false
-        userId = 0u
-        deviceId = 0u
-        locationId = 0u
+        userId = 0
+        deviceId = 0
+        locationId = 0
         username = "Sin usuario"
         deviceName = "Dispositivo"
         locationName = "Sin localidad"
@@ -57,9 +57,9 @@ class AppSession(context: Context) {
     private fun loadFromPreferences() {
         if (!prefs.getBoolean(LOGGED_IN_KEY, false)) return
         isLoggedIn = true
-        userId = prefs.getInt(USER_ID_KEY, 0).toUInt()
-        deviceId = prefs.getInt(DEVICE_ID_KEY, 0).toUInt()
-        locationId = prefs.getInt(LOCATION_ID_KEY, 0).toUInt()
+        userId = prefs.getInt(USER_ID_KEY, 0)
+        deviceId = prefs.getInt(DEVICE_ID_KEY, 0)
+        locationId = prefs.getInt(LOCATION_ID_KEY, 0)
         username = prefs.getString(USERNAME_KEY, username) ?: username
         deviceName = prefs.getString(DEVICE_NAME_KEY, deviceName) ?: deviceName
         locationName = prefs.getString(LOCATION_NAME_KEY, locationName) ?: locationName
@@ -68,9 +68,9 @@ class AppSession(context: Context) {
     private fun saveToPreferences() {
         prefs.edit {
             putBoolean(LOGGED_IN_KEY, isLoggedIn)
-            putInt(USER_ID_KEY, userId.toInt())
-            putInt(DEVICE_ID_KEY, deviceId.toInt())
-            putInt(LOCATION_ID_KEY, locationId.toInt())
+            putInt(USER_ID_KEY, userId)
+            putInt(DEVICE_ID_KEY, deviceId)
+            putInt(LOCATION_ID_KEY, locationId)
             putString(USERNAME_KEY, username)
             putString(DEVICE_NAME_KEY, deviceName)
             putString(LOCATION_NAME_KEY, locationName)

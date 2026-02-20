@@ -11,15 +11,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ttelectronics.trackiiapp.core.ServiceLocator
 import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
 import com.ttelectronics.trackiiapp.ui.components.GlassCard
 import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
@@ -28,6 +30,8 @@ import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.components.TrackIITextField
 import com.ttelectronics.trackiiapp.ui.theme.TTRed
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
+import com.ttelectronics.trackiiapp.ui.viewmodel.RegisterTokenViewModel
+import com.ttelectronics.trackiiapp.ui.viewmodel.RegisterTokenViewModelFactory
 
 @Composable
 fun RegisterTokenScreen(
@@ -35,8 +39,15 @@ fun RegisterTokenScreen(
     onBack: () -> Unit,
     onHome: () -> Unit
 ) {
-    var tokenCode by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+    val vm: RegisterTokenViewModel = viewModel(
+        factory = RegisterTokenViewModelFactory(ServiceLocator.authRepository(context))
+    )
+    val uiState by vm.uiState.collectAsState()
+
+    LaunchedEffect(uiState.isValid) {
+        if (uiState.isValid) onContinue(uiState.tokenCode.trim())
+    }
 
     TrackIIBackground(glowOffsetX = (-20).dp, glowOffsetY = 40.dp) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -63,24 +74,16 @@ fun RegisterTokenScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         TrackIITextField(
                             label = "Token de acceso",
-                            value = tokenCode,
-                            onValueChange = {
-                                tokenCode = it
-                                errorMessage = null
-                            }
+                            value = uiState.tokenCode,
+                            onValueChange = vm::onTokenChange
                         )
-                        errorMessage?.let {
+                        uiState.errorMessage?.let {
                             Text(text = it, color = TTRed, style = MaterialTheme.typography.bodySmall)
                         }
                         PrimaryGlowButton(
-                            text = "Continuar",
-                            onClick = {
-                                if (tokenCode.isBlank()) {
-                                    errorMessage = "TokenCode es obligatorio"
-                                } else {
-                                    onContinue(tokenCode.trim())
-                                }
-                            },
+                            text = if (uiState.isLoading) "Validando..." else "Continuar",
+                            onClick = vm::validateToken,
+                            enabled = !uiState.isLoading,
                             modifier = Modifier.fillMaxWidth()
                         )
                         SoftActionButton(

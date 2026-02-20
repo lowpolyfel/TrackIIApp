@@ -176,16 +176,28 @@ fun GlassCard(content: @Composable () -> Unit) {
 }
 
 @Composable
-fun TrackIITextField(label: String, isPassword: Boolean = false) {
-    var value by remember { mutableStateOf("") }
+fun TrackIITextField(
+    label: String,
+    isPassword: Boolean = false,
+    value: String = "",
+    onValueChange: ((String) -> Unit)? = null
+) {
+    var localValue by remember { mutableStateOf("") }
+    val fieldValue = onValueChange?.let { value } ?: localValue
     val transformation = if (isPassword) {
         androidx.compose.ui.text.input.PasswordVisualTransformation()
     } else {
         androidx.compose.ui.text.input.VisualTransformation.None
     }
     TextField(
-        value = value,
-        onValueChange = { value = it },
+        value = fieldValue,
+        onValueChange = {
+            if (onValueChange != null) {
+                onValueChange(it)
+            } else {
+                localValue = it
+            }
+        },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         label = { Text(text = label) },
@@ -233,10 +245,13 @@ fun TrackIIDropdownField(
     label: String,
     options: List<String>,
     modifier: Modifier = Modifier,
-    helper: String? = null
+    helper: String? = null,
+    selectedOption: String = "",
+    onOptionSelected: ((String) -> Unit)? = null
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var selected by remember { mutableStateOf("") }
+    var localSelected by remember { mutableStateOf("") }
+    val selected = onOptionSelected?.let { selectedOption } ?: localSelected
 
     Column(modifier = modifier) {
         TextField(
@@ -276,7 +291,11 @@ fun TrackIIDropdownField(
                 DropdownMenuItem(
                     text = { Text(option) },
                     onClick = {
-                        selected = option
+                        if (onOptionSelected != null) {
+                            onOptionSelected(option)
+                        } else {
+                            localSelected = option
+                        }
                         expanded = false
                     }
                 )

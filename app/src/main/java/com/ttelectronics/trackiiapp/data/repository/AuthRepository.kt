@@ -8,6 +8,7 @@ import com.ttelectronics.trackiiapp.data.models.auth.LoginResponse
 import com.ttelectronics.trackiiapp.data.models.auth.RegisterRequest
 import com.ttelectronics.trackiiapp.data.models.auth.RegisterResponse
 import com.ttelectronics.trackiiapp.data.network.AuthApiService
+import retrofit2.HttpException
 
 data class SessionSnapshot(
     val isLoggedIn: Boolean,
@@ -30,19 +31,23 @@ class AuthRepository(
         val normalized = tokenCode.trim()
         if (normalized.isBlank()) return false
 
-        val queryAttempt = runCatching { api.validateTokenQuery(normalized) }.getOrNull()
-        if (queryAttempt?.isSuccessful == true) {
-            val body = queryAttempt.body()
+        val queryResponse = api.validateTokenQuery(normalized)
+        if (queryResponse.isSuccessful) {
+            val body = queryResponse.body()
             return body?.valid ?: body?.isValid ?: true
         }
 
-        val pathAttempt = runCatching { api.validateTokenPath(normalized) }.getOrNull()
-        if (pathAttempt?.isSuccessful == true) {
-            val body = pathAttempt.body()
+        if (queryResponse.code() != 404 && queryResponse.code() != 405) {
+            throw HttpException(queryResponse)
+        }
+
+        val pathResponse = api.validateTokenPath(normalized)
+        if (pathResponse.isSuccessful) {
+            val body = pathResponse.body()
             return body?.valid ?: body?.isValid ?: true
         }
 
-        return false
+        throw HttpException(pathResponse)
     }
 
     suspend fun login(username: String, password: String): LoginResponse {

@@ -21,7 +21,7 @@ import com.ttelectronics.trackiiapp.ui.screens.WelcomeScreen
 object TrackIIRoute {
     const val Login = "login"
     const val RegisterToken = "register-token"
-    const val Register = "register"
+    const val Register = "register?token={token}"
     const val Welcome = "welcome"
     const val Tasks = "tasks"
     const val Scanner = "scanner/{task}"
@@ -69,13 +69,17 @@ fun TrackIINavHost(
         }
         composable(TrackIIRoute.RegisterToken) {
             RegisterTokenScreen(
-                onContinue = { navController.navigate(TrackIIRoute.Register) },
+                onContinue = { token -> navController.navigate("register?token=${Uri.encode(token)}") },
                 onBack = { navController.popBackStack(TrackIIRoute.Login, inclusive = false) },
                 onHome = navigateHome
             )
         }
-        composable(TrackIIRoute.Register) {
+        composable(
+            route = TrackIIRoute.Register,
+            arguments = listOf(navArgument("token") { defaultValue = "" })
+        ) { backStackEntry ->
             RegisterScreen(
+                tokenCode = backStackEntry.arguments?.getString("token").orEmpty(),
                 onCreateAccount = { navController.navigate(TrackIIRoute.Welcome) },
                 onBackToLogin = { navController.popBackStack(TrackIIRoute.Login, inclusive = false) },
                 onHome = navigateHome

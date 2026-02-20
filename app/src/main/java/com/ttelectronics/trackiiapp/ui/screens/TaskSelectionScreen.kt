@@ -3,6 +3,7 @@ package com.ttelectronics.trackiiapp.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,10 +20,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.ttelectronics.trackiiapp.ui.components.GlassCard
 import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
-import com.ttelectronics.trackiiapp.ui.components.TopAccountButton
+import com.ttelectronics.trackiiapp.ui.components.GlassCard
 import com.ttelectronics.trackiiapp.ui.components.TaskCard
+import com.ttelectronics.trackiiapp.ui.components.TopAccountButton
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
 import com.ttelectronics.trackiiapp.ui.theme.TTBlue
@@ -43,7 +44,10 @@ import com.ttelectronics.trackiiapp.ui.theme.TTYellowTint
 fun TaskSelectionScreen(
     onTaskSelected: (TaskType) -> Unit,
     onHome: () -> Unit,
-    onAccount: () -> Unit
+    onAccount: () -> Unit,
+    username: String,
+    locationName: String,
+    deviceName: String
 ) {
     TrackIIBackground(glowOffsetX = 40.dp, glowOffsetY = 80.dp) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -64,18 +68,31 @@ fun TaskSelectionScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = TTTextSecondary,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 6.dp, bottom = 22.dp)
+                    modifier = Modifier.padding(top = 6.dp, bottom = 12.dp)
                 )
+
+                GlassCard {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Sesión activa", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Usuario", color = TTTextSecondary)
+                            Text(username)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Localidad", color = TTTextSecondary)
+                            Text(locationName)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Dispositivo", color = TTTextSecondary)
+                            Text(deviceName)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.padding(vertical = 6.dp))
+
                 GlassCard {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        TaskCard(
-                            title = "Avanzar producto",
-                            icon = Icons.Rounded.Description,
-                            onClick = { onTaskSelected(TaskType.ProductAdvance) },
-                            accentColor = TTGreen,
-                            accentDark = TTGreenDark,
-                            accentTint = TTGreenTint
-                        )
                         TaskCard(
                             title = "Seguimiento de hojas viajeras",
                             icon = Icons.Rounded.Description,

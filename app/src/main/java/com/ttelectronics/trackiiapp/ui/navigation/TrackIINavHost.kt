@@ -1,13 +1,15 @@
 package com.ttelectronics.trackiiapp.ui.navigation
 
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
-import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.ttelectronics.trackiiapp.core.ServiceLocator
 import com.ttelectronics.trackiiapp.ui.screens.LoginScreen
 import com.ttelectronics.trackiiapp.ui.screens.RegisterScreen
 import com.ttelectronics.trackiiapp.ui.screens.RegisterTokenScreen
@@ -21,18 +23,18 @@ import com.ttelectronics.trackiiapp.ui.screens.WelcomeScreen
 object TrackIIRoute {
     const val Login = "login"
     const val RegisterToken = "register-token"
-    const val Register = "register"
+    const val Register = "register?token={token}"
     const val Welcome = "welcome"
     const val Tasks = "tasks"
     const val Scanner = "scanner/{task}"
-    const val ScanReview = "scan-review/{task}?lot={lot}&part={part}"
+    const val ScanReview = "scan-review/{task}?lot={lot}&part={part}&ok={ok}&error={error}"
     const val Task = "task/{task}?lot={lot}&part={part}"
     const val ReworkRelease = "rework-release?lot={lot}&part={part}"
 
     fun scannerRoute(task: TaskType) = "scanner/${task.route}"
 
-    fun scanReviewRoute(task: TaskType, lot: String, part: String): String {
-        return "scan-review/${task.route}?lot=${Uri.encode(lot)}&part=${Uri.encode(part)}"
+    fun scanReviewRoute(task: TaskType, lot: String, part: String, ok: Boolean, error: String = ""): String {
+        return "scan-review/${task.route}?lot=${Uri.encode(lot)}&part=${Uri.encode(part)}&ok=$ok&error=${Uri.encode(error)}"
     }
 
     fun taskRoute(task: TaskType, lot: String, part: String): String {
@@ -49,9 +51,13 @@ fun TrackIINavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController()
 ) {
+    val context = LocalContext.current
+    val authRepository = ServiceLocator.authRepository(context)
+    val session = authRepository.sessionSnapshot()
+
     NavHost(
         navController = navController,
-        startDestination = TrackIIRoute.Welcome,
+        startDestination = if (session.isLoggedIn) TrackIIRoute.Welcome else TrackIIRoute.Login,
         modifier = modifier
     ) {
         val navigateHome = {
@@ -62,38 +68,51 @@ fun TrackIINavHost(
         }
         composable(TrackIIRoute.Login) {
             LoginScreen(
-                onLogin = { navController.navigate(TrackIIRoute.Welcome) },
+                onLogin = {
+                    navController.navigate(TrackIIRoute.Welcome) {
+                        popUpTo(TrackIIRoute.Login) { inclusive = true }
+                    }
+                },
                 onRegister = { navController.navigate(TrackIIRoute.RegisterToken) },
                 onHome = navigateHome
             )
         }
         composable(TrackIIRoute.RegisterToken) {
             RegisterTokenScreen(
-                onContinue = { navController.navigate(TrackIIRoute.Register) },
+                onContinue = { token -> navController.navigate("register?token=${Uri.encode(token)}") },
                 onBack = { navController.popBackStack(TrackIIRoute.Login, inclusive = false) },
                 onHome = navigateHome
             )
         }
-        composable(TrackIIRoute.Register) {
+        composable(
+            route = TrackIIRoute.Register,
+            arguments = listOf(navArgument("token") { defaultValue = "" })
+        ) { backStackEntry ->
             RegisterScreen(
-                onCreateAccount = { navController.navigate(TrackIIRoute.Welcome) },
+                tokenCode = backStackEntry.arguments?.getString("token").orEmpty(),
+                onCreateAccount = { navController.popBackStack(TrackIIRoute.Login, inclusive = false) },
                 onBackToLogin = { navController.popBackStack(TrackIIRoute.Login, inclusive = false) },
                 onHome = navigateHome
             )
         }
         composable(TrackIIRoute.Welcome) {
+            val current = authRepository.sessionSnapshot()
             WelcomeScreen(
                 onStart = { navController.navigate(TrackIIRoute.Tasks) },
-                userName = "Usuario"
+                userName = current.username
             )
         }
         composable(TrackIIRoute.Tasks) {
+            val current = authRepository.sessionSnapshot()
             TaskSelectionScreen(
                 onTaskSelected = { taskType ->
                     navController.navigate(TrackIIRoute.scannerRoute(taskType))
                 },
                 onHome = navigateHome,
-                onAccount = { navController.navigate(TrackIIRoute.Login) }
+                onAccount = { navController.navigate(TrackIIRoute.Login) },
+                username = current.username,
+                locationName = current.locationName,
+                deviceName = current.deviceName
             )
         }
         composable(
@@ -104,8 +123,8 @@ fun TrackIINavHost(
             ScannerScreen(
                 taskType = taskType,
                 onBack = { navController.popBackStack() },
-                onComplete = { lot, part ->
-                    navController.navigate(TrackIIRoute.scanReviewRoute(taskType, lot, part))
+                onComplete = { lot, part, found, error ->
+                    navController.navigate(TrackIIRoute.scanReviewRoute(taskType, lot, part, found, error))
                 },
                 onHome = navigateHome
             )
@@ -115,15 +134,21 @@ fun TrackIINavHost(
             arguments = listOf(
                 navArgument("task") { nullable = false },
                 navArgument("lot") { defaultValue = "" },
-                navArgument("part") { defaultValue = "" }
+                navArgument("part") { defaultValue = "" },
+                navArgument("ok") { defaultValue = true },
+                navArgument("error") { defaultValue = "" }
             )
         ) { backStackEntry ->
             val taskType = TaskType.fromRoute(backStackEntry.arguments?.getString("task"))
             val lot = backStackEntry.arguments?.getString("lot").orEmpty()
             val part = backStackEntry.arguments?.getString("part").orEmpty()
+            val ok = backStackEntry.arguments?.getBoolean("ok") ?: true
+            val error = backStackEntry.arguments?.getString("error").orEmpty()
             ScanReviewScreen(
                 lotNumber = lot,
                 partNumber = part,
+                orderFound = ok,
+                errorMessage = error,
                 onConfirm = {
                     if (taskType == TaskType.Rework) {
                         navController.navigate(TrackIIRoute.reworkReleaseRoute(lot, part))
@@ -143,7 +168,9 @@ fun TrackIINavHost(
             route = TrackIIRoute.ReworkRelease,
             arguments = listOf(
                 navArgument("lot") { defaultValue = "" },
-                navArgument("part") { defaultValue = "" }
+                navArgument("part") { defaultValue = "" },
+                navArgument("ok") { defaultValue = true },
+                navArgument("error") { defaultValue = "" }
             )
         ) { backStackEntry ->
             val lot = backStackEntry.arguments?.getString("lot").orEmpty()
@@ -161,7 +188,9 @@ fun TrackIINavHost(
             arguments = listOf(
                 navArgument("task") { nullable = false },
                 navArgument("lot") { defaultValue = "" },
-                navArgument("part") { defaultValue = "" }
+                navArgument("part") { defaultValue = "" },
+                navArgument("ok") { defaultValue = true },
+                navArgument("error") { defaultValue = "" }
             )
         ) { backStackEntry ->
             val taskType = TaskType.fromRoute(backStackEntry.arguments?.getString("task"))

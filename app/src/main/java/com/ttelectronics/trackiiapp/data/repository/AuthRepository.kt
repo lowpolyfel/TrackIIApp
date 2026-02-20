@@ -1,0 +1,83 @@
+package com.ttelectronics.trackiiapp.data.repository
+
+import com.ttelectronics.trackiiapp.data.local.AppSession
+import com.ttelectronics.trackiiapp.data.local.SecureTokenStore
+import com.ttelectronics.trackiiapp.data.models.auth.LocationDto
+import com.ttelectronics.trackiiapp.data.models.auth.LoginRequest
+import com.ttelectronics.trackiiapp.data.models.auth.LoginResponse
+import com.ttelectronics.trackiiapp.data.models.auth.RegisterRequest
+import com.ttelectronics.trackiiapp.data.models.auth.RegisterResponse
+import com.ttelectronics.trackiiapp.data.network.AuthApiService
+import retrofit2.HttpException
+
+data class SessionSnapshot(
+    val isLoggedIn: Boolean,
+    val username: String,
+    val locationName: String,
+    val deviceName: String,
+    val userId: Int,
+    val locationId: Int,
+    val deviceId: Int
+)
+
+class AuthRepository(
+    private val api: AuthApiService,
+    private val tokenStore: SecureTokenStore,
+    private val appSession: AppSession
+) {
+    suspend fun getLocations(): List<LocationDto> = api.getLocations().filter { it.active }
+
+    suspend fun validateToken(tokenCode: String): Boolean {
+        val normalized = tokenCode.trim()
+        if (normalized.isBlank()) return false
+
+        val queryResponse = api.validateTokenQuery(normalized)
+        if (queryResponse.isSuccessful) {
+            val body = queryResponse.body()
+            return body?.valid ?: body?.isValid ?: true
+        }
+
+        if (queryResponse.code() != 404 && queryResponse.code() != 405) {
+            throw HttpException(queryResponse)
+        }
+
+        val pathResponse = api.validateTokenPath(normalized)
+        if (pathResponse.isSuccessful) {
+            val body = pathResponse.body()
+            return body?.valid ?: body?.isValid ?: true
+        }
+
+        throw HttpException(pathResponse)
+    }
+
+    suspend fun login(username: String, password: String, deviceUid: String): LoginResponse {
+        val payload = api.login(LoginRequest(username = username, password = password, deviceUid = deviceUid))
+        if (payload.accessToken.isNotBlank()) tokenStore.saveAccessToken(payload.accessToken)
+        appSession.setLoggedIn(
+            userId = payload.userId,
+            username = payload.username,
+            deviceId = payload.deviceId,
+            deviceName = payload.deviceName,
+            locationId = payload.locationId,
+            locationName = payload.locationName
+        )
+        return payload
+    }
+
+    suspend fun register(request: RegisterRequest): RegisterResponse = api.register(request)
+
+    fun sessionSnapshot(): SessionSnapshot = SessionSnapshot(
+        isLoggedIn = appSession.isLoggedIn,
+        username = appSession.username,
+        locationName = appSession.locationName,
+        deviceName = appSession.deviceName,
+        userId = appSession.userId,
+        locationId = appSession.locationId,
+        deviceId = appSession.deviceId
+    )
+
+    fun logout() {
+        tokenStore.clear()
+        appSession.clear()
+    }
+}

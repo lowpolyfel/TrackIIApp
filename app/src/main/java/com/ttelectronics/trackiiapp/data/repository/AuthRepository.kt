@@ -50,8 +50,8 @@ class AuthRepository(
         throw HttpException(pathResponse)
     }
 
-    suspend fun login(username: String, password: String): LoginResponse {
-        val payload = api.login(LoginRequest(username = username, password = password))
+    suspend fun login(username: String, password: String, deviceUid: String): LoginResponse {
+        val payload = api.login(LoginRequest(username = username, password = password, deviceUid = deviceUid))
         if (payload.accessToken.isNotBlank()) tokenStore.saveAccessToken(payload.accessToken)
         appSession.setLoggedIn(
             userId = payload.userId,

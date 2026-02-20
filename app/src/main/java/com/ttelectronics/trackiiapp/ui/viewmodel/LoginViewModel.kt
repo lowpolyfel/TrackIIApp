@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 data class LoginUiState(
     val username: String = "",
     val password: String = "",
+    val deviceUid: String = "",
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val isSuccess: Boolean = false
@@ -25,6 +26,7 @@ class LoginViewModel(private val authRepository: AuthRepository) : ViewModel() {
 
     fun onUsernameChange(value: String) = _uiState.update { it.copy(username = value, errorMessage = null) }
     fun onPasswordChange(value: String) = _uiState.update { it.copy(password = value, errorMessage = null) }
+    fun setDeviceUid(value: String) = _uiState.update { it.copy(deviceUid = value) }
 
     fun login() {
         val state = _uiState.value
@@ -32,12 +34,18 @@ class LoginViewModel(private val authRepository: AuthRepository) : ViewModel() {
             _uiState.update { it.copy(errorMessage = "Usuario y contraseña son obligatorios.") }
             return
         }
+        if (state.deviceUid.isBlank()) {
+            _uiState.update { it.copy(errorMessage = "Device UID es requerido.") }
+            return
+        }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            runCatching { authRepository.login(state.username.trim(), state.password) }
+            runCatching { authRepository.login(state.username.trim(), state.password, state.deviceUid) }
                 .onSuccess { _uiState.update { it.copy(isLoading = false, isSuccess = true) } }
-                .onFailure { ex -> _uiState.update { it.copy(isLoading = false, errorMessage = ApiErrorParser.readableError(ex)) } }
+                .onFailure { ex ->
+                    _uiState.update { it.copy(isLoading = false, errorMessage = ApiErrorParser.readableError(ex)) }
+                }
         }
     }
 }

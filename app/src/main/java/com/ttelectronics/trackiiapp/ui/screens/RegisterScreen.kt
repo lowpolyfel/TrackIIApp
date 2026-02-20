@@ -1,11 +1,6 @@
 package com.ttelectronics.trackiiapp.ui.screens
 
 import android.provider.Settings
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,7 +17,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -50,13 +44,6 @@ fun RegisterScreen(
     onBackToLogin: () -> Unit,
     onHome: () -> Unit
 ) {
-    val transition = rememberInfiniteTransition(label = "cardFloat")
-    val cardLift by transition.animateFloat(
-        initialValue = -4f,
-        targetValue = 4f,
-        animationSpec = infiniteRepeatable(animation = tween(2400), repeatMode = RepeatMode.Reverse),
-        label = "cardLift"
-    )
     val context = LocalContext.current
     val androidId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
         ?: "No disponible"
@@ -101,8 +88,7 @@ fun RegisterScreen(
                 )
                 GlassCard {
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
-                        modifier = Modifier.graphicsLayer { translationY = cardLift }
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         TrackIIReadOnlyField(label = "Android ID", value = uiState.deviceUid, helper = "Detectando Android ID")
                         TrackIITextField(

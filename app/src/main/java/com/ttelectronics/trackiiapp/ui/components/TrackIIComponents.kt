@@ -33,6 +33,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenu
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
@@ -241,6 +245,7 @@ fun TrackIIReadOnlyField(label: String, value: String, helper: String? = null) {
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TrackIIDropdownField(
     label: String,
@@ -254,13 +259,17 @@ fun TrackIIDropdownField(
     var localSelected by remember { mutableStateOf("") }
     val selected = onOptionSelected?.let { selectedOption } ?: localSelected
 
-    Column(modifier = modifier) {
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = modifier
+    ) {
         TextField(
             value = selected,
             onValueChange = {},
             modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = true },
+                .menuAnchor()
+                .fillMaxWidth(),
             readOnly = true,
             label = { Text(text = label) },
             placeholder = {
@@ -269,10 +278,7 @@ fun TrackIIDropdownField(
                 }
             },
             trailingIcon = {
-                Icon(
-                    imageVector = Icons.Rounded.KeyboardArrowDown,
-                    contentDescription = null
-                )
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
             },
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = TTBlueTint,
@@ -284,7 +290,7 @@ fun TrackIIDropdownField(
             ),
             shape = RoundedCornerShape(18.dp)
         )
-        DropdownMenu(
+        ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {

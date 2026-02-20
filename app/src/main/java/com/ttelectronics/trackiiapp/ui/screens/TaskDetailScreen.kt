@@ -163,6 +163,12 @@ private data class ProductRouteStatus(
     val destination: String
 )
 
+private data class FlowStep(
+    val title: String,
+    val isActive: Boolean,
+    val isCompleted: Boolean
+)
+
 private fun mockRouteStatusFromScan(taskType: TaskType, lot: String, part: String): ProductRouteStatus {
     val steps = when (taskType) {
         TaskType.ProductAdvance -> listOf("Recepción", "Inspección", "Ensamble", "Empaque")
@@ -299,7 +305,7 @@ private fun ProductFlowDashboard(
     modifier: Modifier = Modifier
 ) {
     val safeIndex = currentStepIndex.coerceIn(0, (steps.lastIndex).coerceAtLeast(0))
-    val flow = steps.mapIndexed { index, title ->
+    val flow: List<FlowStep> = steps.mapIndexed { index: Int, title: String ->
         FlowStep(
             title = title,
             isActive = index == safeIndex,
@@ -345,7 +351,7 @@ private fun ProductFlowDashboard(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            flow.forEachIndexed { index, step ->
+            flow.forEachIndexed { index: Int, step: FlowStep ->
                 Column(
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally,

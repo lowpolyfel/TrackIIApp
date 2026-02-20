@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Error
 import androidx.compose.material.icons.rounded.QrCode
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -34,12 +35,15 @@ import com.ttelectronics.trackiiapp.ui.theme.TTAccent
 import com.ttelectronics.trackiiapp.ui.theme.TTBlueDark
 import com.ttelectronics.trackiiapp.ui.theme.TTGreen
 import com.ttelectronics.trackiiapp.ui.theme.TTGreenTint
+import com.ttelectronics.trackiiapp.ui.theme.TTRed
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
 
 @Composable
 fun ScanReviewScreen(
     lotNumber: String,
     partNumber: String,
+    orderFound: Boolean,
+    errorMessage: String,
     onConfirm: () -> Unit,
     onRescan: () -> Unit,
     onHome: () -> Unit
@@ -54,14 +58,19 @@ fun ScanReviewScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "Orden encontrada",
+                    text = if (orderFound) "Orden encontrada" else "Orden no encontrada",
                     style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    color = if (orderFound) MaterialTheme.colorScheme.onSurface else TTRed
                 )
                 Text(
-                    text = "Confirma los datos antes de continuar.",
+                    text = if (orderFound) {
+                        "Confirma los datos antes de continuar."
+                    } else {
+                        errorMessage.ifBlank { "No se encontró la orden para la parte escaneada." }
+                    },
                     style = MaterialTheme.typography.bodyMedium,
-                    color = TTTextSecondary,
+                    color = if (orderFound) TTTextSecondary else TTRed,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 6.dp, bottom = 20.dp)
                 )
@@ -72,12 +81,16 @@ fun ScanReviewScreen(
                 ) {
                     Column(
                         modifier = Modifier
-                            .background(Brush.verticalGradient(listOf(TTGreenTint, Color.White)))
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(if (orderFound) TTGreenTint else Color(0xFFFFE6E6), Color.White)
+                                )
+                            )
                             .padding(24.dp),
                         verticalArrangement = Arrangement.spacedBy(18.dp)
                     ) {
-                        ScanHighlightRow(label = "No. Lote", value = lotNumber)
-                        ScanHighlightRow(label = "No. Parte", value = partNumber)
+                        ScanHighlightRow(label = "No. Lote", value = lotNumber, orderFound = orderFound)
+                        ScanHighlightRow(label = "No. Parte", value = partNumber, orderFound = orderFound)
                     }
                 }
                 Row(
@@ -87,15 +100,17 @@ fun ScanReviewScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     SoftActionButton(
-                        text = "Escanear otra vez",
+                        text = "Escanear nuevamente",
                         onClick = onRescan,
                         modifier = Modifier.weight(1f)
                     )
-                    PrimaryGlowButton(
-                        text = "Confirmar",
-                        onClick = onConfirm,
-                        modifier = Modifier.weight(1f)
-                    )
+                    if (orderFound) {
+                        PrimaryGlowButton(
+                            text = "Confirmar",
+                            onClick = onConfirm,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
             FloatingHomeButton(
@@ -109,7 +124,7 @@ fun ScanReviewScreen(
 }
 
 @Composable
-private fun ScanHighlightRow(label: String, value: String) {
+private fun ScanHighlightRow(label: String, value: String, orderFound: Boolean) {
     Card(
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)
@@ -143,9 +158,9 @@ private fun ScanHighlightRow(label: String, value: String) {
                 )
             }
             Icon(
-                imageVector = Icons.Rounded.CheckCircle,
+                imageVector = if (orderFound) Icons.Rounded.CheckCircle else Icons.Rounded.Error,
                 contentDescription = null,
-                tint = if (value.isBlank()) TTTextSecondary else TTGreen
+                tint = if (orderFound) TTGreen else TTRed
             )
         }
     }

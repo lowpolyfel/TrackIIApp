@@ -3,6 +3,7 @@ package com.ttelectronics.trackiiapp.data.network
 import com.google.gson.GsonBuilder
 import com.ttelectronics.trackiiapp.core.config.AppConfig
 import com.ttelectronics.trackiiapp.data.local.SecureTokenStore
+import com.ttelectronics.trackiiapp.data.network.ScannerApiService
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -38,4 +39,5 @@ class ApiClient(tokenStore: SecureTokenStore) {
         .build()
 
     val authApiService: AuthApiService = retrofit.create(AuthApiService::class.java)
+    val scannerApiService: ScannerApiService = retrofit.create(ScannerApiService::class.java)
 }

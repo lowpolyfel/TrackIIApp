@@ -47,6 +47,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -64,12 +65,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import com.ttelectronics.trackiiapp.core.ServiceLocator
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import com.ttelectronics.trackiiapp.R
@@ -85,7 +88,8 @@ import com.ttelectronics.trackiiapp.ui.theme.TTBlueTint
 import com.ttelectronics.trackiiapp.ui.theme.TTGreen
 import com.ttelectronics.trackiiapp.ui.theme.TTGreenTint
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
-import kotlinx.coroutines.delay
+import com.ttelectronics.trackiiapp.ui.viewmodel.ScannerViewModel
+import com.ttelectronics.trackiiapp.ui.viewmodel.ScannerViewModelFactory
 import java.util.concurrent.Executors
 
 @OptIn(ExperimentalGetImage::class)
@@ -93,7 +97,7 @@ import java.util.concurrent.Executors
 fun ScannerScreen(
     taskType: TaskType,
     onBack: () -> Unit,
-    onComplete: (String, String) -> Unit,
+    onComplete: (String, String, Boolean, String) -> Unit,
     onHome: () -> Unit
 ) {
     val context = LocalContext.current
@@ -122,7 +126,6 @@ fun ScannerScreen(
     var partNumber by rememberSaveable { mutableStateOf("") }
     var hasBarcodeInFrame by remember { mutableStateOf(false) }
     var showOrderFound by remember { mutableStateOf(false) }
-    var hasAutoNavigated by remember { mutableStateOf(false) }
 
     val lotRegex = remember { Regex("^[0-9]{7}$") }
     val partRegex = remember { Regex("^[A-Z](?=.*[0-9])[A-Z0-9._/-]{3,}$") }
@@ -130,6 +133,12 @@ fun ScannerScreen(
     var partScanState by remember { mutableStateOf(StableScanState()) }
     val scanSoundPlayer = rememberRawSoundPlayer("scan")
     val rightSoundPlayer = rememberRawSoundPlayer("right")
+    val wrongSoundPlayer = rememberRawSoundPlayer("wrong")
+
+    val scannerViewModel: ScannerViewModel = viewModel(
+        factory = ScannerViewModelFactory(ServiceLocator.scannerRepository(context))
+    )
+    val scannerUiState by scannerViewModel.uiState.collectAsState()
 
     val onLotFound by rememberUpdatedState<(String) -> Unit> { value ->
         if (lotNumber.isBlank()) {
@@ -145,7 +154,6 @@ fun ScannerScreen(
     LaunchedEffect(lotNumber, partNumber) {
         if (lotNumber.isBlank() || partNumber.isBlank()) {
             showOrderFound = false
-            hasAutoNavigated = false
         }
     }
 
@@ -264,13 +272,23 @@ fun ScannerScreen(
     }
 
     val canContinue = lotNumber.isNotBlank() && partNumber.isNotBlank()
-    LaunchedEffect(canContinue) {
-        if (canContinue && !hasAutoNavigated) {
-            hasAutoNavigated = true
-            showOrderFound = true
-            rightSoundPlayer.play()
-            delay(1100)
-            onComplete(lotNumber, partNumber)
+
+    LaunchedEffect(scannerUiState.shouldNavigate) {
+        if (scannerUiState.shouldNavigate) {
+            if (scannerUiState.isProductFound) {
+                showOrderFound = true
+                rightSoundPlayer.play()
+                onComplete(lotNumber, partNumber, true, "")
+            } else {
+                wrongSoundPlayer.play()
+                onComplete(
+                    lotNumber,
+                    partNumber,
+                    false,
+                    scannerUiState.validationError ?: "No se encontró la orden para esta parte."
+                )
+            }
+            scannerViewModel.consumeNavigation()
         }
     }
 
@@ -301,13 +319,12 @@ fun ScannerScreen(
                         lotNumber = ""
                         partNumber = ""
                         showOrderFound = false
-                        hasAutoNavigated = false
-                    },
+                                },
                     onBack = onBack,
                     onContinue = {
-                        onComplete(lotNumber, partNumber)
+                        scannerViewModel.validatePart(partNumber)
                     },
-                    canContinue = canContinue
+                    canContinue = canContinue && !scannerUiState.isValidating
                 )
             } else {
                 PermissionFallback(onRequest = { permissionLauncher.launch(Manifest.permission.CAMERA) })

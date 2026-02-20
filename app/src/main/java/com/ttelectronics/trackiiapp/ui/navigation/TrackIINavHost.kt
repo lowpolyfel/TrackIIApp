@@ -27,14 +27,14 @@ object TrackIIRoute {
     const val Welcome = "welcome"
     const val Tasks = "tasks"
     const val Scanner = "scanner/{task}"
-    const val ScanReview = "scan-review/{task}?lot={lot}&part={part}"
+    const val ScanReview = "scan-review/{task}?lot={lot}&part={part}&ok={ok}&error={error}"
     const val Task = "task/{task}?lot={lot}&part={part}"
     const val ReworkRelease = "rework-release?lot={lot}&part={part}"
 
     fun scannerRoute(task: TaskType) = "scanner/${task.route}"
 
-    fun scanReviewRoute(task: TaskType, lot: String, part: String): String {
-        return "scan-review/${task.route}?lot=${Uri.encode(lot)}&part=${Uri.encode(part)}"
+    fun scanReviewRoute(task: TaskType, lot: String, part: String, ok: Boolean, error: String = ""): String {
+        return "scan-review/${task.route}?lot=${Uri.encode(lot)}&part=${Uri.encode(part)}&ok=$ok&error=${Uri.encode(error)}"
     }
 
     fun taskRoute(task: TaskType, lot: String, part: String): String {
@@ -123,8 +123,8 @@ fun TrackIINavHost(
             ScannerScreen(
                 taskType = taskType,
                 onBack = { navController.popBackStack() },
-                onComplete = { lot, part ->
-                    navController.navigate(TrackIIRoute.scanReviewRoute(taskType, lot, part))
+                onComplete = { lot, part, found, error ->
+                    navController.navigate(TrackIIRoute.scanReviewRoute(taskType, lot, part, found, error))
                 },
                 onHome = navigateHome
             )
@@ -134,15 +134,21 @@ fun TrackIINavHost(
             arguments = listOf(
                 navArgument("task") { nullable = false },
                 navArgument("lot") { defaultValue = "" },
-                navArgument("part") { defaultValue = "" }
+                navArgument("part") { defaultValue = "" },
+                navArgument("ok") { defaultValue = true },
+                navArgument("error") { defaultValue = "" }
             )
         ) { backStackEntry ->
             val taskType = TaskType.fromRoute(backStackEntry.arguments?.getString("task"))
             val lot = backStackEntry.arguments?.getString("lot").orEmpty()
             val part = backStackEntry.arguments?.getString("part").orEmpty()
+            val ok = backStackEntry.arguments?.getBoolean("ok") ?: true
+            val error = backStackEntry.arguments?.getString("error").orEmpty()
             ScanReviewScreen(
                 lotNumber = lot,
                 partNumber = part,
+                orderFound = ok,
+                errorMessage = error,
                 onConfirm = {
                     if (taskType == TaskType.Rework) {
                         navController.navigate(TrackIIRoute.reworkReleaseRoute(lot, part))
@@ -162,7 +168,9 @@ fun TrackIINavHost(
             route = TrackIIRoute.ReworkRelease,
             arguments = listOf(
                 navArgument("lot") { defaultValue = "" },
-                navArgument("part") { defaultValue = "" }
+                navArgument("part") { defaultValue = "" },
+                navArgument("ok") { defaultValue = true },
+                navArgument("error") { defaultValue = "" }
             )
         ) { backStackEntry ->
             val lot = backStackEntry.arguments?.getString("lot").orEmpty()
@@ -180,7 +188,9 @@ fun TrackIINavHost(
             arguments = listOf(
                 navArgument("task") { nullable = false },
                 navArgument("lot") { defaultValue = "" },
-                navArgument("part") { defaultValue = "" }
+                navArgument("part") { defaultValue = "" },
+                navArgument("ok") { defaultValue = true },
+                navArgument("error") { defaultValue = "" }
             )
         ) { backStackEntry ->
             val taskType = TaskType.fromRoute(backStackEntry.arguments?.getString("task"))

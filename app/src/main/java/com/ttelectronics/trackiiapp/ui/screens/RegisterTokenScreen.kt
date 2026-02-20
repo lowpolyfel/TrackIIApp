@@ -11,6 +11,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -22,14 +26,18 @@ import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.components.TrackIITextField
+import com.ttelectronics.trackiiapp.ui.theme.TTRed
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
 
 @Composable
 fun RegisterTokenScreen(
-    onContinue: () -> Unit,
+    onContinue: (String) -> Unit,
     onBack: () -> Unit,
     onHome: () -> Unit
 ) {
+    var tokenCode by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
     TrackIIBackground(glowOffsetX = (-20).dp, glowOffsetY = 40.dp) {
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
@@ -53,10 +61,26 @@ fun RegisterTokenScreen(
                 )
                 GlassCard {
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        TrackIITextField(label = "Token de acceso")
+                        TrackIITextField(
+                            label = "Token de acceso",
+                            value = tokenCode,
+                            onValueChange = {
+                                tokenCode = it
+                                errorMessage = null
+                            }
+                        )
+                        errorMessage?.let {
+                            Text(text = it, color = TTRed, style = MaterialTheme.typography.bodySmall)
+                        }
                         PrimaryGlowButton(
                             text = "Continuar",
-                            onClick = onContinue,
+                            onClick = {
+                                if (tokenCode.isBlank()) {
+                                    errorMessage = "TokenCode es obligatorio"
+                                } else {
+                                    onContinue(tokenCode.trim())
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth()
                         )
                         SoftActionButton(

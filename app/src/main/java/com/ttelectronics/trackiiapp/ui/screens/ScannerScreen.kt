@@ -159,7 +159,7 @@ fun ScannerScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.96f)
-                        .aspectRatio(1.65f)
+                        .aspectRatio(2.05f)
                         .align(Alignment.Center)
                         .offset(y = (-20).dp)
                         .background(Color.Black.copy(alpha = 0.12f), RoundedCornerShape(26.dp))

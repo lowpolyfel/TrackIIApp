@@ -108,6 +108,8 @@ fun TaskDetailScreen(
         InfoItem("No. de ruta", ctx?.routeNumber ?: part?.routeNumber ?: "Pendiente API", Icons.Rounded.Route)
     )
 
+    val localities = listOf("Localidad A", "Localidad B", "Localidad C")
+
     TrackIIBackground(glowOffsetX = 24.dp, glowOffsetY = 120.dp) {
         Box(modifier = Modifier.fillMaxSize()) {
             Column(

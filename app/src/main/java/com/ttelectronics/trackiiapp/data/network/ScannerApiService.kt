@@ -3,6 +3,10 @@ package com.ttelectronics.trackiiapp.data.network
 import com.ttelectronics.trackiiapp.data.models.scanner.PartLookupResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.RegisterScanRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.RegisterScanResponse
+import com.ttelectronics.trackiiapp.data.models.scanner.ReworkRequest
+import com.ttelectronics.trackiiapp.data.models.scanner.ReworkResponse
+import com.ttelectronics.trackiiapp.data.models.scanner.ScrapRequest
+import com.ttelectronics.trackiiapp.data.models.scanner.ScrapResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.WorkOrderContextResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -22,4 +26,10 @@ interface ScannerApiService {
 
     @POST("api/scanner/register")
     suspend fun registerScan(@Body request: RegisterScanRequest): RegisterScanResponse
+
+    @POST("api/scanner/scrap")
+    suspend fun scrap(@Body request: ScrapRequest): ScrapResponse
+
+    @POST("api/scanner/rework")
+    suspend fun rework(@Body request: ReworkRequest): ReworkResponse
 }

@@ -1,6 +1,9 @@
 package com.ttelectronics.trackiiapp.data.models.scanner
 
 import com.google.gson.annotations.SerializedName
+import com.ttelectronics.trackiiapp.data.models.enums.ScanType
+import com.ttelectronics.trackiiapp.data.models.enums.WipStatus
+import com.ttelectronics.trackiiapp.data.models.enums.WorkOrderStatus
 
 data class PartLookupResponse(
     @SerializedName(value = "found", alternate = ["exists", "isFound", "Found"]) val found: Boolean? = null,
@@ -14,24 +17,54 @@ data class PartLookupResponse(
 )
 
 data class WorkOrderContextResponse(
-    @SerializedName(value = "workOrderNumber", alternate = ["woNumber", "workOrder"]) val workOrderNumber: String? = null,
-    @SerializedName(value = "routeNumber", alternate = ["routeId", "route"]) val routeNumber: String? = null,
-    @SerializedName(value = "currentRoute", alternate = ["currentStep", "currentLocation"]) val currentRoute: String? = null,
-    @SerializedName(value = "nextRoute", alternate = ["nextStep", "nextLocation"]) val nextRoute: String? = null,
-    @SerializedName(value = "expectedFirstStep", alternate = ["firstStep", "step1"]) val expectedFirstStep: String? = null,
-    @SerializedName(value = "hasWipItem", alternate = ["started", "inProgress"]) val hasWipItem: Boolean? = null,
-    @SerializedName(value = "previousQty", alternate = ["prevQty", "qtyPrevious"]) val previousQty: Int? = null
+    @SerializedName("success") val success: Boolean? = null,
+    @SerializedName("message") val message: String? = null,
+    @SerializedName("workOrderId") val workOrderId: Int? = null,
+    @SerializedName("status") val status: WorkOrderStatus? = null,
+    @SerializedName("routeId") val routeId: Int? = null,
+    @SerializedName("currentStepId") val currentStepId: Int? = null,
+    @SerializedName("nextStepId") val nextStepId: Int? = null,
+    @SerializedName("nextLocationName") val nextLocationName: String? = null,
+    @SerializedName("isFirstStep") val isFirstStep: Boolean? = null,
+    @SerializedName("canProceed") val canProceed: Boolean? = null,
+    @SerializedName("wipStatus") val wipStatus: WipStatus? = null
 )
 
 data class RegisterScanRequest(
     @SerializedName("workOrderNumber") val workOrderNumber: String,
     @SerializedName("partNumber") val partNumber: String,
     @SerializedName("deviceId") val deviceId: Int,
-    @SerializedName("scanType") val scanType: String = "ENTRY",
+    @SerializedName("scanType") val scanType: ScanType = ScanType.ENTRY,
     @SerializedName("qtyIn") val qtyIn: Int? = null
 )
 
 data class RegisterScanResponse(
+    @SerializedName("success") val success: Boolean? = null,
+    @SerializedName("message") val message: String? = null
+)
+
+data class ScrapRequest(
+    @SerializedName("workOrderNumber") val workOrderNumber: String,
+    @SerializedName("partNumber") val partNumber: String,
+    @SerializedName("deviceId") val deviceId: Int,
+    @SerializedName("qty") val qty: Int,
+    @SerializedName("reason") val reason: String
+)
+
+data class ScrapResponse(
+    @SerializedName("success") val success: Boolean? = null,
+    @SerializedName("message") val message: String? = null
+)
+
+data class ReworkRequest(
+    @SerializedName("workOrderNumber") val workOrderNumber: String,
+    @SerializedName("partNumber") val partNumber: String,
+    @SerializedName("deviceId") val deviceId: Int,
+    @SerializedName("location") val location: String,
+    @SerializedName("reason") val reason: String? = null
+)
+
+data class ReworkResponse(
     @SerializedName("success") val success: Boolean? = null,
     @SerializedName("message") val message: String? = null
 )

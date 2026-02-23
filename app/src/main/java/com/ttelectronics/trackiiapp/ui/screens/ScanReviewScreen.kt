@@ -72,7 +72,7 @@ fun ScanReviewScreen(
 
     val partInfo = uiState.partInfo
     val workContext = uiState.contextInfo
-    val noStartedOrder = (workContext?.hasWipItem == false)
+    val noStartedOrder = (workContext?.isFirstStep == true)
 
     TrackIIBackground(glowOffsetX = 10.dp, glowOffsetY = (-10).dp) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -110,14 +110,14 @@ fun ScanReviewScreen(
                             InfoLine("Área", partInfo?.area ?: "Cargando...", Icons.Rounded.Factory)
                             InfoLine("Familia", partInfo?.family ?: "Cargando...", Icons.Rounded.Category)
                             InfoLine("Subfamilia", partInfo?.subfamily ?: "Cargando...", Icons.Rounded.Inventory2)
-                            InfoLine("No. de ruta", workContext?.routeNumber ?: partInfo?.routeNumber ?: "Cargando...", Icons.Rounded.Route)
+                            InfoLine("No. de ruta", workContext?.routeId?.toString() ?: partInfo?.routeNumber ?: "Cargando...", Icons.Rounded.Route)
                             if (noStartedOrder) {
                                 InfoLine("Ruta actual", "Orden no empezada", Icons.Rounded.Route)
-                                InfoLine("Ruta esperada", workContext?.expectedFirstStep ?: "Paso 1", Icons.Rounded.Route)
-                                InfoLine("Siguiente", workContext?.nextRoute ?: (workContext?.expectedFirstStep ?: "Paso 1"), Icons.Rounded.Route)
+                                InfoLine("Ruta esperada", workContext?.currentStepId?.toString() ?: "Paso 1", Icons.Rounded.Route)
+                                InfoLine("Siguiente", workContext?.nextStepId?.toString() ?: "Paso 1", Icons.Rounded.Route)
                             } else {
-                                InfoLine("Ruta actual", workContext?.currentRoute ?: partInfo?.currentRoute ?: "Cargando...", Icons.Rounded.Route)
-                                InfoLine("Siguiente", workContext?.nextRoute ?: "Cargando...", Icons.Rounded.Route)
+                                InfoLine("Ruta actual", workContext?.currentStepId?.toString() ?: partInfo?.currentRoute ?: "Cargando...", Icons.Rounded.Route)
+                                InfoLine("Siguiente", workContext?.nextLocationName ?: "Cargando...", Icons.Rounded.Route)
                             }
                         }
                         uiState.errorMessage?.let { Text(it, color = TTRed, style = MaterialTheme.typography.bodySmall) }

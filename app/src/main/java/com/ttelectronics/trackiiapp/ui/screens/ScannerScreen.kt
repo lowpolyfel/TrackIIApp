@@ -342,6 +342,16 @@ private fun ScannerFrameOverlay(showFrame: Boolean) {
         Box(modifier = Modifier.matchParentSize().graphicsLayer { alpha = frameAlpha }.clip(RoundedCornerShape(26.dp)).borderGlow()) {
             Box(modifier = Modifier.fillMaxWidth().height(3.dp).offset(y = (lineOffset * 240f).dp).background(TTGreen.copy(alpha = 0.85f)).blur(2.dp))
             CornerMarkers(modifier = Modifier.matchParentSize())
+            if (showFrame) {
+                Icon(
+                    imageVector = Icons.Rounded.DocumentScanner,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.85f),
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(92.dp)
+                )
+            }
             ScannerHint(modifier = Modifier.align(Alignment.BottomCenter))
         }
     }

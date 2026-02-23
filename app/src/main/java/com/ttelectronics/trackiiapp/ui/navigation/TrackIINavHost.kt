@@ -122,7 +122,12 @@ fun TrackIINavHost(
             val taskType = TaskType.fromRoute(backStackEntry.arguments?.getString("task"))
             ScannerScreen(
                 taskType = taskType,
-                onBack = { navController.popBackStack() },
+                onBack = {
+                    navController.navigate(TrackIIRoute.Tasks) {
+                        popUpTo(TrackIIRoute.Tasks) { inclusive = false }
+                        launchSingleTop = true
+                    }
+                },
                 onComplete = { lot, part, found, error ->
                     navController.navigate(TrackIIRoute.scanReviewRoute(taskType, lot, part, found, error))
                 },
@@ -200,7 +205,12 @@ fun TrackIINavHost(
                 taskType = taskType,
                 lotNumber = lot,
                 partNumber = part,
-                onBack = { navController.popBackStack() },
+                onBack = {
+                    navController.navigate(TrackIIRoute.Tasks) {
+                        popUpTo(TrackIIRoute.Tasks) { inclusive = false }
+                        launchSingleTop = true
+                    }
+                },
                 onComplete = navigateHome,
                 onHome = navigateHome
             )

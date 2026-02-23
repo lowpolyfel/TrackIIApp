@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ttelectronics.trackiiapp.core.ServiceLocator
 import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
 import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
@@ -47,7 +48,6 @@ import com.ttelectronics.trackiiapp.ui.theme.TTGreen
 import com.ttelectronics.trackiiapp.ui.theme.TTGreenTint
 import com.ttelectronics.trackiiapp.ui.theme.TTRed
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
-import com.ttelectronics.trackiiapp.core.ServiceLocator
 import com.ttelectronics.trackiiapp.ui.viewmodel.ScanReviewViewModel
 import com.ttelectronics.trackiiapp.ui.viewmodel.ScanReviewViewModelFactory
 
@@ -64,12 +64,15 @@ fun ScanReviewScreen(
     val context = LocalContext.current
     val vm: ScanReviewViewModel = viewModel(factory = ScanReviewViewModelFactory(ServiceLocator.scannerRepository(context)))
     val uiState by vm.uiState.collectAsState()
+    val session = ServiceLocator.authRepository(context).sessionSnapshot()
 
-    LaunchedEffect(partNumber, orderFound) {
-        if (orderFound) vm.loadPartInfo(partNumber)
+    LaunchedEffect(partNumber, lotNumber, orderFound) {
+        if (orderFound) vm.loadData(partNumber, lotNumber, session.deviceId)
     }
 
     val partInfo = uiState.partInfo
+    val workContext = uiState.contextInfo
+    val noStartedOrder = (workContext?.hasWipItem == false)
 
     TrackIIBackground(glowOffsetX = 10.dp, glowOffsetY = (-10).dp) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -85,7 +88,11 @@ fun ScanReviewScreen(
                     color = if (orderFound) MaterialTheme.colorScheme.onSurface else TTRed
                 )
                 Text(
-                    text = if (orderFound) "Confirma los datos antes de continuar." else errorMessage.ifBlank { "No se encontró la orden para la parte escaneada." },
+                    text = when {
+                        !orderFound -> errorMessage.ifBlank { "No se encontró la orden para la parte escaneada." }
+                        noStartedOrder -> "Orden sin comenzar"
+                        else -> "Confirma los datos antes de continuar."
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (orderFound) TTTextSecondary else TTRed,
                     textAlign = TextAlign.Center,
@@ -103,9 +110,17 @@ fun ScanReviewScreen(
                             InfoLine("Área", partInfo?.area ?: "Cargando...", Icons.Rounded.Factory)
                             InfoLine("Familia", partInfo?.family ?: "Cargando...", Icons.Rounded.Category)
                             InfoLine("Subfamilia", partInfo?.subfamily ?: "Cargando...", Icons.Rounded.Inventory2)
-                            InfoLine("No. de ruta", partInfo?.routeNumber ?: "Cargando...", Icons.Rounded.Route)
-                            InfoLine("Ruta actual", partInfo?.currentRoute ?: "Cargando...", Icons.Rounded.Route)
+                            InfoLine("No. de ruta", workContext?.routeNumber ?: partInfo?.routeNumber ?: "Cargando...", Icons.Rounded.Route)
+                            if (noStartedOrder) {
+                                InfoLine("Ruta actual", "Orden no empezada", Icons.Rounded.Route)
+                                InfoLine("Ruta esperada", workContext?.expectedFirstStep ?: "Paso 1", Icons.Rounded.Route)
+                                InfoLine("Siguiente", workContext?.nextRoute ?: (workContext?.expectedFirstStep ?: "Paso 1"), Icons.Rounded.Route)
+                            } else {
+                                InfoLine("Ruta actual", workContext?.currentRoute ?: partInfo?.currentRoute ?: "Cargando...", Icons.Rounded.Route)
+                                InfoLine("Siguiente", workContext?.nextRoute ?: "Cargando...", Icons.Rounded.Route)
+                            }
                         }
+                        uiState.errorMessage?.let { Text(it, color = TTRed, style = MaterialTheme.typography.bodySmall) }
                     }
                 }
 

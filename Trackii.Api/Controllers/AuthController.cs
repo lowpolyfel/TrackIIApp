@@ -162,4 +162,26 @@ public sealed class AuthController : ControllerBase
             device.LocationId,
             device.Location.Name));
     }
+
+    [HttpGet("validate-token")]
+    public async Task<IActionResult> ValidateToken([FromQuery] string tokenCode, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(tokenCode))
+        {
+            return BadRequest("Token es requerido.");
+        }
+
+        // Buscamos si el token existe en la base de datos
+        var tokenExists = await _dbContext.Tokens
+            .AnyAsync(token => token.Code == tokenCode, cancellationToken);
+
+        if (!tokenExists)
+        {
+            return NotFound("Token inválido.");
+        }
+
+        // Si el token existe, devolvemos un 200 OK con un objeto indicando éxito.
+        // Esto empatará con el TokenValidationResponse de tu Kotlin.
+        return Ok(new { isValid = true });
+    }
 }

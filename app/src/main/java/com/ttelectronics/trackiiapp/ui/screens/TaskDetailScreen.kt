@@ -19,40 +19,55 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Category
-import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Factory
-import androidx.compose.material.icons.rounded.FormatListNumbered
 import androidx.compose.material.icons.rounded.Inventory2
-import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ttelectronics.trackiiapp.core.ServiceLocator
 import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
 import com.ttelectronics.trackiiapp.ui.components.GlassCard
 import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.components.TrackIIDropdownField
+import com.ttelectronics.trackiiapp.ui.components.TrackIITextField
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
-import com.ttelectronics.trackiiapp.ui.theme.TTAccent
 import com.ttelectronics.trackiiapp.ui.theme.TTBlue
 import com.ttelectronics.trackiiapp.ui.theme.TTBlueTint
 import com.ttelectronics.trackiiapp.ui.theme.TTGreen
 import com.ttelectronics.trackiiapp.ui.theme.TTGreenTint
+import com.ttelectronics.trackiiapp.ui.theme.TTRed
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
+import com.ttelectronics.trackiiapp.ui.viewmodel.TaskDetailViewModel
+import com.ttelectronics.trackiiapp.ui.viewmodel.TaskDetailViewModelFactory
+
+data class InfoItem(val title: String, val value: String, val icon: ImageVector)
+
+data class ProductRouteStatus(
+    val previousStep: String,
+    val currentStep: String,
+    val nextStep: String,
+    val source: String,
+    val destination: String,
+    val started: Boolean
+)
 
 @Composable
 fun TaskDetailScreen(
@@ -63,162 +78,134 @@ fun TaskDetailScreen(
     onComplete: () -> Unit,
     onHome: () -> Unit
 ) {
-    val infoItems = listOf(
-        InfoItem("Área", "Pendiente API", Icons.Rounded.Factory),
-        InfoItem("Familia", "Pendiente API", Icons.Rounded.Category),
-        InfoItem("Subfamilia", "Pendiente API", Icons.Rounded.Inventory2),
-        InfoItem("No. de ruta", "Pendiente API", Icons.Rounded.Route),
-        InfoItem("Cantidad de piezas", "Pendiente API", Icons.Rounded.FormatListNumbered)
-    )
-    val localities = listOf("Localidad A", "Localidad B", "Localidad C")
-    val routeStatus = remember(taskType, lotNumber, partNumber) {
-        mockRouteStatusFromScan(taskType = taskType, lot = lotNumber, part = partNumber)
+    val context = LocalContext.current
+    val auth = ServiceLocator.authRepository(context).sessionSnapshot()
+    val vm: TaskDetailViewModel = viewModel(factory = TaskDetailViewModelFactory(ServiceLocator.scannerRepository(context)))
+    val uiState by vm.uiState.collectAsState()
+
+    LaunchedEffect(partNumber, lotNumber, auth.deviceId) {
+        vm.loadData(partNumber, lotNumber, auth.deviceId)
     }
+    LaunchedEffect(uiState.saveSuccess) {
+        if (uiState.saveSuccess) onComplete()
+    }
+
+    val part = uiState.partInfo
+    val ctx = uiState.contextInfo
+    val routeStatus = ProductRouteStatus(
+        previousStep = ctx?.expectedFirstStep ?: "Paso 1",
+        currentStep = ctx?.currentRoute ?: "Orden no empezada",
+        nextStep = ctx?.nextRoute ?: "Paso 1",
+        source = ctx?.routeNumber ?: (part?.routeNumber ?: "N/A"),
+        destination = ctx?.routeNumber ?: (part?.routeNumber ?: "N/A"),
+        started = ctx?.hasWipItem == true
+    )
+
+    val infoItems = listOf(
+        InfoItem("Área", part?.area ?: "Pendiente API", Icons.Rounded.Factory),
+        InfoItem("Familia", part?.family ?: "Pendiente API", Icons.Rounded.Category),
+        InfoItem("Subfamilia", part?.subfamily ?: "Pendiente API", Icons.Rounded.Inventory2),
+        InfoItem("No. de ruta", ctx?.routeNumber ?: part?.routeNumber ?: "Pendiente API", Icons.Rounded.Route)
+    )
 
     TrackIIBackground(glowOffsetX = 24.dp, glowOffsetY = 120.dp) {
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 24.dp, vertical = 32.dp),
+                modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = taskType.title,
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = "Información capturada desde el escaneo.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TTTextSecondary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 6.dp, bottom = 22.dp)
-                )
+                Text(text = taskType.title, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold), textAlign = TextAlign.Center)
+                Text(text = "Información capturada desde API.", style = MaterialTheme.typography.bodyMedium, color = TTTextSecondary, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp, bottom = 22.dp))
+
+                uiState.errorMessage?.let { Text(it, color = TTRed, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 8.dp)) }
+
                 GlassCard {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        ScanHighlightCard(lotNumber = lotNumber, partNumber = partNumber)
+                        ScanHeader(lotNumber = lotNumber, partNumber = partNumber)
                         InfoGrid(items = infoItems)
                         ProductRouteDashboard(status = routeStatus)
 
                         when (taskType) {
-                            TaskType.ProductAdvance,
-                            TaskType.TravelSheet -> Unit
-                            TaskType.CancelOrder -> CancelReasonDropdown()
+                            TaskType.ProductAdvance -> {
+                                TrackIITextField(
+                                    label = "Piezas",
+                                    value = uiState.qtyInput,
+                                    onValueChange = vm::onQtyChange
+                                )
+                                Text(
+                                    text = "No mayor a piezas del paso anterior si aplica.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TTTextSecondary
+                                )
+                            }
+                            TaskType.CancelOrder -> TrackIIDropdownField(
+                                label = "Motivo de cancelación",
+                                options = listOf("Error de calidad", "Material incorrecto", "Orden duplicada"),
+                                helper = "Selecciona un motivo"
+                            )
                             TaskType.Rework -> TrackIIDropdownField(
                                 label = "Localidad de retrabajo",
-                                options = localities,
+                                options = listOf("Localidad A", "Localidad B", "Localidad C"),
                                 helper = "Opciones desde API"
                             )
+                            TaskType.TravelSheet -> Unit
                         }
+
                         PrimaryGlowButton(
-                            text = when (taskType) {
-                                TaskType.TravelSheet -> "Visualizar estado"
-                                TaskType.ProductAdvance -> "Agregar"
-                                else -> "Guardar"
-                            },
-                            onClick = onComplete,
-                            modifier = Modifier.fillMaxWidth()
+                            text = if (uiState.isLoading) "Guardando..." else "Guardar",
+                            onClick = { vm.saveScan(taskType, lotNumber, partNumber, auth.deviceId, auth.deviceName) },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !uiState.isLoading
                         )
+                        SoftActionButton(text = "Volver", onClick = onBack, modifier = Modifier.fillMaxWidth())
                     }
                 }
-                Spacer(modifier = Modifier.weight(1f))
-                SoftActionButton(
-                    text = "Volver",
-                    onClick = onBack,
-                    modifier = Modifier.fillMaxWidth()
-                )
             }
-            FloatingHomeButton(
-                onClick = onHome,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(20.dp)
-            )
+            FloatingHomeButton(onClick = onHome, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp))
         }
     }
 }
 
 @Composable
-private fun CancelReasonDropdown() {
-    val reasons = listOf(
-        "Motivo genérico",
-        "Daño en material",
-        "Falta de especificación",
-        "Orden duplicada"
-    )
-    TrackIIDropdownField(
-        label = "Motivo de cancelación",
-        options = reasons,
-        helper = "Opciones desde API"
-    )
-}
-
-private data class InfoItem(val title: String, val value: String, val icon: ImageVector)
-private data class ProductRouteStatus(
-    val previousStep: String,
-    val currentStep: String,
-    val nextStep: String,
-    val source: String,
-    val destination: String
-)
-
-private fun mockRouteStatusFromScan(taskType: TaskType, lot: String, part: String): ProductRouteStatus {
-    val steps = when (taskType) {
-        TaskType.ProductAdvance -> listOf("Recepción", "Inspección", "Ensamble", "Empaque")
-        TaskType.TravelSheet -> listOf("Inicio", "Proceso", "Final")
-        TaskType.CancelOrder -> listOf("Captura", "Validación", "Cancelada")
-        TaskType.Rework -> listOf("Entrada", "Retrabajo", "Liberación")
+private fun ScanHeader(lotNumber: String, partNumber: String) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text("Lote: $lotNumber", color = TTTextSecondary)
+        Text("Parte: $partNumber", color = TTTextSecondary)
     }
-    val idxSeed = kotlin.math.abs((lot + part + taskType.route).hashCode()) % steps.size
-    val currentIndex = idxSeed.coerceIn(0, steps.lastIndex)
-    val prev = if (currentIndex > 0) steps[currentIndex - 1] else "Sin anterior"
-    val next = if (currentIndex < steps.lastIndex) steps[currentIndex + 1] else "Sin siguiente"
-    return ProductRouteStatus(
-        previousStep = prev,
-        currentStep = steps[currentIndex],
-        nextStep = next,
-        source = steps.first(),
-        destination = steps.last()
-    )
 }
 
 @Composable
 private fun ProductRouteDashboard(status: ProductRouteStatus) {
+    if (!status.started) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Brush.verticalGradient(listOf(TTBlueTint.copy(alpha = 0.5f), Color.White)), shape = RoundedCornerShape(20.dp))
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("Ruta actual del producto", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold), color = TTTextSecondary)
+            Text("Orden no empezada", color = TTTextSecondary)
+            Text("Ruta esperada: ${status.previousStep}")
+            Text("Siguiente: ${status.nextStep}")
+        }
+        return
+    }
+
     val breath = rememberInfiniteTransition(label = "breath")
-    val scale = breath.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.08f,
-        animationSpec = infiniteRepeatable(animation = tween(900), repeatMode = RepeatMode.Reverse),
-        label = "breathScale"
-    ).value
+    val scale = breath.animateFloat(initialValue = 1f, targetValue = 1.08f, animationSpec = infiniteRepeatable(animation = tween(900), repeatMode = RepeatMode.Reverse), label = "breathScale").value
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                Brush.verticalGradient(listOf(TTBlueTint.copy(alpha = 0.5f), Color.White)),
-                shape = RoundedCornerShape(20.dp)
-            )
-            .padding(16.dp),
+        modifier = Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(TTBlueTint.copy(alpha = 0.5f), Color.White)), shape = RoundedCornerShape(20.dp)).padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(
-            text = "Ruta actual del producto",
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-            color = TTTextSecondary
-        )
+        Text("Ruta actual del producto", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold), color = TTTextSecondary)
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(text = "Salida: ${status.source}", style = MaterialTheme.typography.labelMedium, color = TTTextSecondary)
-            Text(text = "Destino: ${status.destination}", style = MaterialTheme.typography.labelMedium, color = TTTextSecondary)
+            Text("Salida: ${status.source}", style = MaterialTheme.typography.labelMedium, color = TTTextSecondary)
+            Text("Destino: ${status.destination}", style = MaterialTheme.typography.labelMedium, color = TTTextSecondary)
         }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
             RouteNode(label = "Anterior", value = status.previousStep, isCurrent = false)
             RouteNode(label = "Actual", value = status.currentStep, isCurrent = true, scale = scale)
             RouteNode(label = "Siguiente", value = status.nextStep, isCurrent = false)
@@ -230,22 +217,10 @@ private fun ProductRouteDashboard(status: ProductRouteStatus) {
 private fun RouteNode(label: String, value: String, isCurrent: Boolean, scale: Float = 1f) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(
-            modifier = Modifier
-                .size(if (isCurrent) 84.dp else 56.dp)
-                .scale(if (isCurrent) scale else 1f)
-                .background(
-                    color = if (isCurrent) TTGreen.copy(alpha = 0.24f) else TTBlue.copy(alpha = 0.14f),
-                    shape = CircleShape
-                ),
+            modifier = Modifier.size(if (isCurrent) 84.dp else 56.dp).scale(if (isCurrent) scale else 1f).background(color = if (isCurrent) TTGreen.copy(alpha = 0.24f) else TTBlue.copy(alpha = 0.14f), shape = CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                color = if (isCurrent) TTGreen else TTBlue,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 8.dp)
-            )
+            Text(text = value, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = if (isCurrent) TTGreen else TTBlue, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 8.dp))
         }
         Text(text = label, style = MaterialTheme.typography.labelSmall, color = TTTextSecondary)
     }
@@ -257,12 +232,7 @@ private fun InfoGrid(items: List<InfoItem>) {
         items.chunked(2).forEach { rowItems ->
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 rowItems.forEach { item ->
-                    InfoTile(
-                        title = item.title,
-                        value = item.value,
-                        icon = item.icon,
-                        modifier = Modifier.weight(1f)
-                    )
+                    InfoTile(title = item.title, value = item.value, icon = item.icon, modifier = Modifier.weight(1f))
                 }
                 if (rowItems.size == 1) Spacer(modifier = Modifier.weight(1f))
             }
@@ -272,161 +242,13 @@ private fun InfoGrid(items: List<InfoItem>) {
 
 @Composable
 private fun InfoTile(title: String, value: String, icon: ImageVector, modifier: Modifier = Modifier) {
-    androidx.compose.material3.Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = Color.White)
-    ) {
-        Column(
-            modifier = Modifier
-                .background(Brush.linearGradient(listOf(TTGreenTint, Color.White)))
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
+    androidx.compose.material3.Card(modifier = modifier, shape = RoundedCornerShape(20.dp), colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = Color.White)) {
+        Column(modifier = Modifier.background(Brush.linearGradient(listOf(TTGreenTint, Color.White))).padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(imageVector = icon, contentDescription = null, tint = TTGreen, modifier = Modifier.size(18.dp))
                 Text(text = title, style = MaterialTheme.typography.labelLarge, color = TTTextSecondary)
             }
             Text(text = value, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.onSurface)
         }
-    }
-}
-
-@Composable
-private fun ProductFlowDashboard(
-    steps: List<String>,
-    currentStepIndex: Int,
-    modifier: Modifier = Modifier
-) {
-    val safeIndex = currentStepIndex.coerceIn(0, (steps.lastIndex).coerceAtLeast(0))
-    val flow = steps.mapIndexed { index, title ->
-        FlowStep(
-            title = title,
-            isActive = index == safeIndex,
-            isCompleted = index < safeIndex
-        )
-    }
-
-    Column(
-        modifier = modifier
-            .background(
-                Brush.verticalGradient(
-                    listOf(TTBlueTint.copy(alpha = 0.45f), Color.White)
-                ),
-                shape = RoundedCornerShape(20.dp)
-            )
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(
-            text = "Ruta actual del producto",
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-            color = TTTextSecondary
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Salida: ${flow.firstOrNull()?.title.orEmpty()}",
-                style = MaterialTheme.typography.labelMedium,
-                color = TTTextSecondary
-            )
-            Text(
-                text = "Destino: ${flow.lastOrNull()?.title.orEmpty()}",
-                style = MaterialTheme.typography.labelMedium,
-                color = TTTextSecondary
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            flow.forEachIndexed { index, step ->
-                Column(
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(if (step.isActive) 34.dp else 28.dp)
-                            .background(
-                                color = when {
-                                    step.isCompleted -> TTGreen.copy(alpha = 0.18f)
-                                    step.isActive -> TTBlue.copy(alpha = 0.18f)
-                                    else -> Color.White
-                                },
-                                shape = CircleShape
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = when {
-                                step.isCompleted -> Icons.Rounded.CheckCircle
-                                step.isActive -> Icons.Rounded.RadioButtonUnchecked
-                                else -> Icons.Rounded.RadioButtonUnchecked
-                            },
-                            contentDescription = null,
-                            tint = when {
-                                step.isCompleted -> TTGreen
-                                step.isActive -> TTBlue
-                                else -> TTTextSecondary
-                            },
-                            modifier = Modifier.size(if (step.isActive) 22.dp else 18.dp)
-                        )
-                    }
-                    Text(
-                        text = step.title,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (step.isActive) TTBlue else TTTextSecondary,
-                        textAlign = TextAlign.Center
-                    )
-                }
-                if (index != flow.lastIndex) {
-                    Box(
-                        modifier = Modifier
-                            .weight(0.35f)
-                            .size(height = 3.dp, width = 24.dp)
-                            .background(
-                                color = if (index < safeIndex) TTGreen.copy(alpha = 0.7f) else TTTextSecondary.copy(alpha = 0.3f),
-                                shape = RoundedCornerShape(50)
-                            )
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ScanHighlightCard(lotNumber: String, partNumber: String) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Brush.horizontalGradient(listOf(TTAccent.copy(alpha = 0.3f), TTBlueTint.copy(alpha = 0.6f))), shape = RoundedCornerShape(22.dp))
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(text = "Datos escaneados", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold), color = TTTextSecondary)
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ScanValueBlock(label = "No. Lote", value = lotNumber, modifier = Modifier.weight(1f))
-            ScanValueBlock(label = "No. Parte", value = partNumber, modifier = Modifier.weight(1f))
-        }
-    }
-}
-
-@Composable
-private fun ScanValueBlock(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(modifier = modifier.background(Color.White, shape = RoundedCornerShape(18.dp)).padding(12.dp)) {
-        Text(text = label, style = MaterialTheme.typography.labelLarge, color = TTTextSecondary)
-        Text(
-            text = value.ifBlank { "Pendiente" },
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 20.sp),
-            color = MaterialTheme.colorScheme.onSurface
-        )
     }
 }

@@ -1,11 +1,6 @@
 package com.ttelectronics.trackiiapp.ui.screens
 
 import android.provider.Settings
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,19 +13,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ttelectronics.trackiiapp.core.ServiceLocator
 import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
-import com.ttelectronics.trackiiapp.ui.components.rememberRawSoundPlayer
 import com.ttelectronics.trackiiapp.ui.components.GlassCard
 import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
@@ -39,43 +32,37 @@ import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.components.TrackIIDropdownField
 import com.ttelectronics.trackiiapp.ui.components.TrackIIReadOnlyField
 import com.ttelectronics.trackiiapp.ui.components.TrackIITextField
+import com.ttelectronics.trackiiapp.ui.theme.TTRed
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
-import kotlinx.coroutines.delay
+import com.ttelectronics.trackiiapp.ui.viewmodel.RegisterViewModel
+import com.ttelectronics.trackiiapp.ui.viewmodel.RegisterViewModelFactory
 
 @Composable
 fun RegisterScreen(
+    tokenCode: String,
     onCreateAccount: () -> Unit,
     onBackToLogin: () -> Unit,
     onHome: () -> Unit
 ) {
-    val transition = rememberInfiniteTransition(label = "cardFloat")
-    val cardLift by transition.animateFloat(
-        initialValue = -4f,
-        targetValue = 4f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2400),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "cardLift"
-    )
     val context = LocalContext.current
     val androidId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
         ?: "No disponible"
-    val localities = listOf("Localidad A", "Localidad B", "Localidad C")
-    var showSuccess by remember { mutableStateOf(false) }
-    val rightSoundPlayer = rememberRawSoundPlayer("right")
+    val vm: RegisterViewModel = viewModel(factory = RegisterViewModelFactory(ServiceLocator.authRepository(context)))
+    val uiState by vm.uiState.collectAsState()
 
-    LaunchedEffect(showSuccess) {
-        if (showSuccess) {
-            rightSoundPlayer.play()
-        }
+    LaunchedEffect(tokenCode) {
+        vm.setToken(tokenCode)
+        vm.preloadDeviceUid(androidId)
+        vm.loadLocations()
     }
 
-    if (showSuccess) {
-        LaunchedEffect(Unit) {
-            delay(1400)
-            onCreateAccount()
-        }
+    uiState.successMessage?.let {
+        SuccessOverlayDialog(
+            title = "Registro completado",
+            message = it,
+            show = true
+        )
+        LaunchedEffect(it) { onCreateAccount() }
     }
 
     TrackIIBackground(glowOffsetX = (-40).dp, glowOffsetY = 30.dp) {
@@ -101,25 +88,42 @@ fun RegisterScreen(
                 )
                 GlassCard {
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
-                        modifier = Modifier.graphicsLayer { translationY = cardLift }
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        TrackIIReadOnlyField(
-                            label = "Android ID",
-                            value = androidId,
-                            helper = "Detectando Android ID"
+                        TrackIIReadOnlyField(label = "Android ID", value = uiState.deviceUid, helper = "Detectando Android ID")
+                        TrackIITextField(
+                            label = "Nombre de la tableta",
+                            value = uiState.deviceName,
+                            onValueChange = vm::onDeviceNameChange
                         )
-                        TrackIITextField(label = "Nombre de la tableta")
-                        TrackIITextField(label = "Usuario")
-                        TrackIITextField(label = "Contraseña", isPassword = true)
+                        TrackIITextField(label = "Usuario", value = uiState.username, onValueChange = vm::onUsernameChange)
+                        TrackIITextField(
+                            label = "Contraseña",
+                            isPassword = true,
+                            value = uiState.password,
+                            onValueChange = vm::onPasswordChange
+                        )
+
+                        val options = uiState.locations.map { it.name }
+                        val selected = uiState.locations.firstOrNull { it.id == uiState.selectedLocationId }?.name.orEmpty()
                         TrackIIDropdownField(
                             label = "Localidad",
-                            options = localities,
-                            helper = "Opciones desde API"
+                            options = options,
+                            helper = if (uiState.isLoading) "Cargando localidades..." else "Opciones desde API",
+                            selectedOption = selected,
+                            onOptionSelected = { name ->
+                                uiState.locations.firstOrNull { it.name == name }?.id?.let(vm::onLocationChange)
+                            }
                         )
+
+                        uiState.errorMessage?.let {
+                            Text(text = it, color = TTRed, style = MaterialTheme.typography.bodySmall)
+                        }
+
                         PrimaryGlowButton(
-                            text = "Registrar",
-                            onClick = { showSuccess = true },
+                            text = if (uiState.isLoading) "Registrando..." else "Registrar",
+                            onClick = vm::register,
+                            enabled = !uiState.isLoading,
                             modifier = Modifier.fillMaxWidth()
                         )
                         SoftActionButton(
@@ -133,14 +137,7 @@ fun RegisterScreen(
             }
             FloatingHomeButton(
                 onClick = onHome,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(20.dp)
-            )
-            SuccessOverlayDialog(
-                title = "Registro completado",
-                message = "La configuración se guardó correctamente.",
-                show = showSuccess
+                modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp)
             )
         }
     }

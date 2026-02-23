@@ -32,6 +32,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenu
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
@@ -176,16 +180,28 @@ fun GlassCard(content: @Composable () -> Unit) {
 }
 
 @Composable
-fun TrackIITextField(label: String, isPassword: Boolean = false) {
-    var value by remember { mutableStateOf("") }
+fun TrackIITextField(
+    label: String,
+    isPassword: Boolean = false,
+    value: String = "",
+    onValueChange: ((String) -> Unit)? = null
+) {
+    var localValue by remember { mutableStateOf("") }
+    val fieldValue = onValueChange?.let { value } ?: localValue
     val transformation = if (isPassword) {
         androidx.compose.ui.text.input.PasswordVisualTransformation()
     } else {
         androidx.compose.ui.text.input.VisualTransformation.None
     }
     TextField(
-        value = value,
-        onValueChange = { value = it },
+        value = fieldValue,
+        onValueChange = {
+            if (onValueChange != null) {
+                onValueChange(it)
+            } else {
+                localValue = it
+            }
+        },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         label = { Text(text = label) },
@@ -228,23 +244,31 @@ fun TrackIIReadOnlyField(label: String, value: String, helper: String? = null) {
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TrackIIDropdownField(
     label: String,
     options: List<String>,
     modifier: Modifier = Modifier,
-    helper: String? = null
+    helper: String? = null,
+    selectedOption: String = "",
+    onOptionSelected: ((String) -> Unit)? = null
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var selected by remember { mutableStateOf("") }
+    var localSelected by remember { mutableStateOf("") }
+    val selected = onOptionSelected?.let { selectedOption } ?: localSelected
 
-    Column(modifier = modifier) {
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = modifier
+    ) {
         TextField(
             value = selected,
             onValueChange = {},
             modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = true },
+                .menuAnchor()
+                .fillMaxWidth(),
             readOnly = true,
             label = { Text(text = label) },
             placeholder = {
@@ -253,10 +277,7 @@ fun TrackIIDropdownField(
                 }
             },
             trailingIcon = {
-                Icon(
-                    imageVector = Icons.Rounded.KeyboardArrowDown,
-                    contentDescription = null
-                )
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
             },
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = TTBlueTint,
@@ -268,7 +289,7 @@ fun TrackIIDropdownField(
             ),
             shape = RoundedCornerShape(18.dp)
         )
-        DropdownMenu(
+        ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
@@ -276,7 +297,11 @@ fun TrackIIDropdownField(
                 DropdownMenuItem(
                     text = { Text(option) },
                     onClick = {
-                        selected = option
+                        if (onOptionSelected != null) {
+                            onOptionSelected(option)
+                        } else {
+                            localSelected = option
+                        }
                         expanded = false
                     }
                 )

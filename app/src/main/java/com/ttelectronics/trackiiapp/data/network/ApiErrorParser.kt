@@ -2,6 +2,8 @@ package com.ttelectronics.trackiiapp.data.network
 
 import org.json.JSONObject
 import retrofit2.HttpException
+import java.io.IOException
+import java.net.SocketTimeoutException
 
 data class ApiErrorDetails(
     val statusCode: Int? = null,
@@ -10,33 +12,41 @@ data class ApiErrorDetails(
 )
 
 object ApiErrorParser {
-    fun toDetails(exception: Throwable): ApiErrorDetails {
-        val httpException = exception as? HttpException
-            ?: return ApiErrorDetails(message = exception.message ?: "Error desconocido")
+    fun parse(exception: Exception): String? {
+        return when (exception) {
+            is HttpException -> {
+                val errorBody = exception.response()?.errorBody()?.string()
+                try {
+                    val jsonObject = JSONObject(errorBody ?: "")
+                    jsonObject.optString("message").ifBlank {
+                        jsonObject.optString("detail").ifBlank { "Error del servidor: ${exception.code()}" }
+                    }
+                } catch (_: Exception) {
+                    "Error del servidor: ${exception.code()}"
+                }
+            }
 
-        val statusCode = httpException.code()
-        val body = httpException.response()?.errorBody()?.string().orEmpty()
-        if (body.isBlank()) {
-            return ApiErrorDetails(statusCode = statusCode, message = "Error $statusCode", rawBody = null)
+            is SocketTimeoutException -> "Tiempo de espera agotado. Revise su red."
+            is IOException -> "Error de conexión de red."
+            else -> exception.localizedMessage
         }
+    }
 
-        val parsedMessage = runCatching {
-            val root = JSONObject(body)
-            root.optString("detail")
-                .ifBlank { root.optString("title") }
-                .ifBlank { root.optString("message") }
-                .ifBlank { body }
-        }.getOrDefault(body)
-
-        return ApiErrorDetails(statusCode = statusCode, message = parsedMessage, rawBody = body)
+    fun toDetails(exception: Throwable): ApiErrorDetails {
+        val message = if (exception is Exception) parse(exception) else exception.message
+        val httpException = exception as? HttpException
+        return ApiErrorDetails(
+            statusCode = httpException?.code(),
+            message = message ?: "Error desconocido",
+            rawBody = httpException?.response()?.errorBody()?.string()
+        )
     }
 
     fun readableError(exception: Throwable): String {
-        val details = toDetails(exception)
-        return if (details.statusCode != null) {
-            "Error ${details.statusCode}: ${details.message}"
+        return if (exception is Exception) {
+            parse(exception) ?: "Error desconocido"
         } else {
-            details.message
+            exception.message ?: "Error desconocido"
         }
     }
 }

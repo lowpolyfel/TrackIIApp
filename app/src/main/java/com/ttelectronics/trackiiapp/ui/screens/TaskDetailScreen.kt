@@ -93,19 +93,19 @@ fun TaskDetailScreen(
     val part = uiState.partInfo
     val ctx = uiState.contextInfo
     val routeStatus = ProductRouteStatus(
-        previousStep = ctx?.currentStepId?.toString() ?: "Paso 1",
-        currentStep = if (ctx?.isFirstStep == true) "Orden no empezada" else (ctx?.currentStepId?.toString() ?: "N/A"),
-        nextStep = ctx?.nextStepId?.toString() ?: "Paso 1",
-        source = ctx?.routeId?.toString() ?: (part?.routeNumber ?: "N/A"),
-        destination = ctx?.nextLocationName ?: (ctx?.routeId?.toString() ?: "N/A"),
-        started = ctx?.isFirstStep == false
+        previousStep = ctx?.currentStepNumber?.toString() ?: "1",
+        currentStep = if (ctx?.isNew == true) "Orden no empezada" else (ctx?.currentStepName ?: "N/A"),
+        nextStep = ctx?.nextSteps?.firstOrNull() ?: "Fin de ruta",
+        source = part?.routeNumber ?: "N/A",
+        destination = ctx?.nextSteps?.firstOrNull() ?: "Fin de ruta",
+        started = ctx?.isNew == false
     )
 
     val infoItems = listOf(
         InfoItem("Área", part?.area ?: "Pendiente API", Icons.Rounded.Factory),
         InfoItem("Familia", part?.family ?: "Pendiente API", Icons.Rounded.Category),
         InfoItem("Subfamilia", part?.subfamily ?: "Pendiente API", Icons.Rounded.Inventory2),
-        InfoItem("No. de ruta", ctx?.routeId?.toString() ?: part?.routeNumber ?: "Pendiente API", Icons.Rounded.Route)
+        InfoItem("No. de ruta", part?.routeNumber ?: "Pendiente API", Icons.Rounded.Route)
     )
 
     val localities = listOf("Localidad A", "Localidad B", "Localidad C")

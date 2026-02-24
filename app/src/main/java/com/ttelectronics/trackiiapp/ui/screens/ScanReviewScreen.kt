@@ -1,5 +1,6 @@
 package com.ttelectronics.trackiiapp.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Category
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -22,6 +24,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -42,6 +46,7 @@ import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
 import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
+import com.ttelectronics.trackiiapp.ui.components.rememberRawSoundPlayer
 import com.ttelectronics.trackiiapp.ui.theme.TTAccent
 import com.ttelectronics.trackiiapp.ui.theme.TTBlueDark
 import com.ttelectronics.trackiiapp.ui.theme.TTGreen
@@ -65,19 +70,38 @@ fun ScanReviewScreen(
     val vm: ScanReviewViewModel = viewModel(factory = ScanReviewViewModelFactory(ServiceLocator.scannerRepository(context)))
     val uiState by vm.uiState.collectAsState()
     val session = ServiceLocator.authRepository(context).sessionSnapshot()
+    val rightSound = rememberRawSoundPlayer("right")
+    val wrongSound = rememberRawSoundPlayer("wrong")
 
     LaunchedEffect(partNumber, lotNumber, orderFound) {
-        if (orderFound) vm.loadData(partNumber, lotNumber, session.deviceId)
+        if (orderFound) vm.fetchOrderContext(partNumber, lotNumber, session.deviceId)
+    }
+
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let {
+            wrongSound.play()
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            vm.clearMessages()
+        }
+    }
+
+    LaunchedEffect(uiState.successMessage) {
+        uiState.successMessage?.let {
+            rightSound.play()
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            vm.clearMessages()
+            onConfirm()
+        }
     }
 
     val partInfo = uiState.partInfo
-    val workContext = uiState.contextInfo
-    val noStartedOrder = (workContext?.isFirstStep == true)
 
     TrackIIBackground(glowOffsetX = 10.dp, glowOffsetY = (-10).dp) {
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 28.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp, vertical = 28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
@@ -88,20 +112,22 @@ fun ScanReviewScreen(
                     color = if (orderFound) MaterialTheme.colorScheme.onSurface else TTRed
                 )
                 Text(
-                    text = when {
-                        !orderFound -> errorMessage.ifBlank { "No se encontró la orden para la parte escaneada." }
-                        noStartedOrder -> "Orden sin comenzar"
-                        else -> "Confirma los datos antes de continuar."
-                    },
+                    text = if (orderFound) "Confirma y registra desde esta pantalla." else errorMessage.ifBlank { "No se encontró la orden para la parte escaneada." },
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (orderFound) TTTextSecondary else TTRed,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 6.dp, bottom = 20.dp)
                 )
 
-                Card(shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.94f)), modifier = Modifier.fillMaxWidth()) {
+                Card(
+                    shape = RoundedCornerShape(28.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.94f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Column(
-                        modifier = Modifier.background(Brush.verticalGradient(listOf(if (orderFound) TTGreenTint else Color(0xFFFFE6E6), Color.White))).padding(24.dp),
+                        modifier = Modifier
+                            .background(Brush.verticalGradient(listOf(if (orderFound) TTGreenTint else Color(0xFFFFE6E6), Color.White)))
+                            .padding(24.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         ScanHighlightRow(label = "No. Lote", value = lotNumber, orderFound = orderFound)
@@ -110,24 +136,42 @@ fun ScanReviewScreen(
                             InfoLine("Área", partInfo?.area ?: "Cargando...", Icons.Rounded.Factory)
                             InfoLine("Familia", partInfo?.family ?: "Cargando...", Icons.Rounded.Category)
                             InfoLine("Subfamilia", partInfo?.subfamily ?: "Cargando...", Icons.Rounded.Inventory2)
-                            InfoLine("No. de ruta", workContext?.routeId?.toString() ?: partInfo?.routeNumber ?: "Cargando...", Icons.Rounded.Route)
-                            if (noStartedOrder) {
-                                InfoLine("Ruta actual", "Orden no empezada", Icons.Rounded.Route)
-                                InfoLine("Ruta esperada", workContext?.currentStepId?.toString() ?: "Paso 1", Icons.Rounded.Route)
-                                InfoLine("Siguiente", workContext?.nextStepId?.toString() ?: "Paso 1", Icons.Rounded.Route)
-                            } else {
-                                InfoLine("Ruta actual", workContext?.currentStepId?.toString() ?: partInfo?.currentRoute ?: "Cargando...", Icons.Rounded.Route)
-                                InfoLine("Siguiente", workContext?.nextLocationName ?: "Cargando...", Icons.Rounded.Route)
-                            }
+                            InfoLine("No. de ruta", partInfo?.routeNumber ?: "Cargando...", Icons.Rounded.Route)
+                            InfoLine("Estado de ruta", uiState.stepInfoText, Icons.Rounded.Route)
+
+                            OutlinedTextField(
+                                value = uiState.quantityInput,
+                                onValueChange = vm::updateQuantity,
+                                label = { Text("Cantidad") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                                enabled = !uiState.isLoading,
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
-                        uiState.errorMessage?.let { Text(it, color = TTRed, style = MaterialTheme.typography.bodySmall) }
                     }
                 }
 
-                Row(modifier = Modifier.fillMaxWidth().padding(top = 18.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 18.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     SoftActionButton(text = "Escanear nuevamente", onClick = onRescan, modifier = Modifier.weight(1f))
                     if (orderFound) {
-                        PrimaryGlowButton(text = "Confirmar", onClick = onConfirm, modifier = Modifier.weight(1f))
+                        PrimaryGlowButton(
+                            text = if (uiState.isLoading) "Registrando..." else "Registrar",
+                            onClick = {
+                                vm.registerScan(
+                                    workOrderNumber = lotNumber,
+                                    deviceId = session.deviceId,
+                                    isAlloyTablet = session.deviceName.contains("alloy", ignoreCase = true)
+                                )
+                            },
+                            modifier = Modifier.weight(1f),
+                            enabled = !uiState.isLoading && uiState.quantityInput.isNotEmpty()
+                        )
                     }
                 }
             }
@@ -145,14 +189,28 @@ private fun ScanHighlightRow(label: String, value: String, orderFound: Boolean) 
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Box(modifier = Modifier.size(56.dp).background(brush = Brush.linearGradient(listOf(TTAccent, TTBlueDark)), shape = RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
+            Box(
+                modifier = Modifier.size(56.dp).background(
+                    brush = Brush.linearGradient(listOf(TTAccent, TTBlueDark)),
+                    shape = RoundedCornerShape(16.dp)
+                ),
+                contentAlignment = Alignment.Center
+            ) {
                 Icon(imageVector = Icons.Rounded.QrCode, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = label, style = MaterialTheme.typography.labelLarge, color = TTTextSecondary)
-                Text(text = value.ifBlank { "Pendiente de escaneo" }, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = if (value.isBlank()) TTTextSecondary else TTBlueDark)
+                Text(
+                    text = value.ifBlank { "Pendiente de escaneo" },
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = if (value.isBlank()) TTTextSecondary else TTBlueDark
+                )
             }
-            Icon(imageVector = if (orderFound) Icons.Rounded.CheckCircle else Icons.Rounded.Error, contentDescription = null, tint = if (orderFound) TTGreen else TTRed)
+            Icon(
+                imageVector = if (orderFound) Icons.Rounded.CheckCircle else Icons.Rounded.Error,
+                contentDescription = null,
+                tint = if (orderFound) TTGreen else TTRed
+            )
         }
     }
 }

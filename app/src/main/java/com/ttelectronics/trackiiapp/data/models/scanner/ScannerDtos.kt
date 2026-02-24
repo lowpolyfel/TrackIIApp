@@ -13,6 +13,7 @@ data class PartLookupResponse(
     @SerializedName(value = "currentRoute", alternate = ["currentStep", "currentLocation", "CurrentRoute", "CurrentStep"]) val currentRoute: String? = null
 )
 
+// DTO para recibir el contexto antes de registrar
 data class WorkOrderContextResponse(
     @SerializedName(value = "isNew", alternate = ["isFirstStep"]) val isNew: Boolean? = null,
     @SerializedName(value = "previousQuantity", alternate = ["qtyIn", "previousQty"]) val previousQuantity: Int? = null,
@@ -22,6 +23,7 @@ data class WorkOrderContextResponse(
     @SerializedName("nextLocationName") val nextLocationName: String? = null
 )
 
+// DTO para enviar el registro
 data class RegisterScanRequest(
     @SerializedName("workOrderNumber") val workOrderNumber: String,
     @SerializedName("partNumber") val partNumber: String,
@@ -32,6 +34,7 @@ data class RegisterScanRequest(
     @SerializedName("scanType") val scanType: String? = null
 )
 
+// DTO para la respuesta del registro
 data class RegisterScanResponse(
     @SerializedName("success") val success: Boolean? = null,
     @SerializedName("message") val message: String? = null,

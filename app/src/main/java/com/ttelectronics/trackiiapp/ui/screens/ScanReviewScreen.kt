@@ -5,9 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,14 +32,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ttelectronics.trackiiapp.core.ServiceLocator
 import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
@@ -67,8 +65,8 @@ fun ScanReviewScreen(
     onHome: () -> Unit
 ) {
     val context = LocalContext.current
-    val vm: ScanReviewViewModel = viewModel(factory = ScanReviewViewModelFactory(ServiceLocator.scannerRepository(context)))
-    val uiState by vm.uiState.collectAsState()
+    val viewModel: ScanReviewViewModel = viewModel(factory = ScanReviewViewModelFactory(ServiceLocator.scannerRepository(context)))
+    val uiState by viewModel.uiState.collectAsState()
     val session = ServiceLocator.authRepository(context).sessionSnapshot()
     val rightSound = rememberRawSoundPlayer("right")
     val wrongSound = rememberRawSoundPlayer("wrong")
@@ -179,7 +177,6 @@ fun ScanReviewScreen(
             FloatingHomeButton(onClick = onHome, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp))
         }
     }
-}
 
 @Composable
 private fun ScanHighlightRow(label: String, value: String, orderFound: Boolean) {
@@ -213,19 +210,53 @@ private fun ScanHighlightRow(label: String, value: String, orderFound: Boolean) 
             )
         }
     }
-}
 
-@Composable
-private fun InfoLine(label: String, value: String, icon: ImageVector) {
-    Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.95f))) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Icon(icon, contentDescription = null, tint = TTBlueDark)
-            Text(label, color = TTTextSecondary, modifier = Modifier.weight(1f))
-            Text(value, fontWeight = FontWeight.SemiBold)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if (!orderFound) {
+            Text(text = errorMessage.ifBlank { "Orden no encontrada" }, color = MaterialTheme.colorScheme.error)
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = onRescan) { Text("Escanear nuevamente") }
+            return@Column
         }
+
+        if (uiState.isLoading) {
+            CircularProgressIndicator()
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        Text(text = "Orden de trabajo: $lotNumber")
+        Text(text = "Número de Parte: ${uiState.scannedPartNumber}")
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(text = uiState.stepInfoText, color = MaterialTheme.colorScheme.primary)
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = uiState.quantityInput,
+            onValueChange = { viewModel.updateQuantity(it) },
+            label = { Text("Cantidad") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Button(
+            onClick = { viewModel.registerScan(lotNumber, session.deviceId) },
+            enabled = !uiState.isLoading && uiState.quantityInput.isNotEmpty()
+        ) {
+            Text("Registrar")
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+        Button(onClick = onRescan, enabled = !uiState.isLoading) { Text("Volver a escanear") }
+        Spacer(modifier = Modifier.height(12.dp))
+        Button(onClick = onHome, enabled = !uiState.isLoading) { Text("Inicio") }
     }
 }

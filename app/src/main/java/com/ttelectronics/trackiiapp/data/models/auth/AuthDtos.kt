@@ -39,6 +39,11 @@ data class RegisterResponse(
     @SerializedName("message") val message: String = "Registro completado"
 )
 
+
+
+data class TokenValidationRequest(
+    @SerializedName("tokenCode") val tokenCode: String
+)
 data class TokenValidationResponse(
     @SerializedName("valid") val valid: Boolean? = null,
     @SerializedName("isValid") val isValid: Boolean? = null

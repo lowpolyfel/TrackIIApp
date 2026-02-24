@@ -3,7 +3,6 @@ package com.ttelectronics.trackiiapp.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.ttelectronics.trackiiapp.data.network.ApiErrorParser
 import com.ttelectronics.trackiiapp.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,22 +28,34 @@ class RegisterTokenViewModel(private val authRepository: AuthRepository) : ViewM
     fun validateToken() {
         val tokenCode = _uiState.value.tokenCode.trim()
         if (tokenCode.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "TokenCode es obligatorio") }
+            _uiState.update { it.copy(errorMessage = "TokenCode es obligatorio", isValid = false, isLoading = false) }
             return
         }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, isValid = false) }
-            runCatching { authRepository.validateToken(tokenCode) }
-                .onSuccess { valid ->
-                    if (valid) {
-                        _uiState.update { it.copy(isLoading = false, isValid = true) }
+            authRepository.validateToken(tokenCode)
+                .onSuccess { isValid ->
+                    if (isValid) {
+                        _uiState.update { it.copy(isLoading = false, errorMessage = null, isValid = true) }
                     } else {
-                        _uiState.update { it.copy(isLoading = false, errorMessage = "Token inválido") }
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = "Error de red o token inválido",
+                                isValid = false
+                            )
+                        }
                     }
                 }
                 .onFailure { ex ->
-                    _uiState.update { it.copy(isLoading = false, errorMessage = ApiErrorParser.readableError(ex)) }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = ex.message ?: "Error de red o token inválido",
+                            isValid = false
+                        )
+                    }
                 }
         }
     }

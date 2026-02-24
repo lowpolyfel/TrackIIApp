@@ -1,8 +1,13 @@
 package com.ttelectronics.trackiiapp.data.repository
 
+import com.ttelectronics.trackiiapp.data.models.enums.ScanType
 import com.ttelectronics.trackiiapp.data.models.scanner.PartLookupResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.RegisterScanRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.RegisterScanResponse
+import com.ttelectronics.trackiiapp.data.models.scanner.ReworkRequest
+import com.ttelectronics.trackiiapp.data.models.scanner.ReworkResponse
+import com.ttelectronics.trackiiapp.data.models.scanner.ScrapRequest
+import com.ttelectronics.trackiiapp.data.models.scanner.ScrapResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.WorkOrderContextResponse
 import com.ttelectronics.trackiiapp.data.network.ScannerApiService
 import retrofit2.HttpException
@@ -20,10 +25,18 @@ class ScannerRepository(private val api: ScannerApiService) {
                 workOrderNumber = workOrderNumber,
                 partNumber = partNumber,
                 deviceId = deviceId,
-                scanType = "ENTRY",
+                scanType = ScanType.ENTRY,
                 qtyIn = qtyIn
             )
         )
+    }
+
+    suspend fun scrapOrder(workOrderNumber: String, partNumber: String, deviceId: Int, qty: Int, reason: String): ScrapResponse {
+        return api.scrap(ScrapRequest(workOrderNumber, partNumber, deviceId, qty, reason))
+    }
+
+    suspend fun reworkOrder(workOrderNumber: String, partNumber: String, deviceId: Int, location: String, reason: String?): ReworkResponse {
+        return api.rework(ReworkRequest(workOrderNumber, partNumber, deviceId, location, reason))
     }
 
     suspend fun validatePartExists(partNumber: String): Boolean {

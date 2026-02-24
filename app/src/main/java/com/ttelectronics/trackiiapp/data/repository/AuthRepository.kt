@@ -7,6 +7,7 @@ import com.ttelectronics.trackiiapp.data.models.auth.LoginRequest
 import com.ttelectronics.trackiiapp.data.models.auth.LoginResponse
 import com.ttelectronics.trackiiapp.data.models.auth.RegisterRequest
 import com.ttelectronics.trackiiapp.data.models.auth.RegisterResponse
+import com.ttelectronics.trackiiapp.data.models.auth.TokenValidationRequest
 import com.ttelectronics.trackiiapp.data.network.AuthApiService
 import retrofit2.HttpException
 
@@ -27,29 +28,6 @@ class AuthRepository(
 ) {
     suspend fun getLocations(): List<LocationDto> = api.getLocations().filter { it.active }
 
-    suspend fun validateToken(tokenCode: String): Boolean {
-        val normalized = tokenCode.trim()
-        if (normalized.isBlank()) return false
-
-        val queryResponse = api.validateTokenQuery(normalized)
-        if (queryResponse.isSuccessful) {
-            val body = queryResponse.body()
-            return body?.valid ?: body?.isValid ?: true
-        }
-
-        if (queryResponse.code() != 404 && queryResponse.code() != 405) {
-            throw HttpException(queryResponse)
-        }
-
-        val pathResponse = api.validateTokenPath(normalized)
-        if (pathResponse.isSuccessful) {
-            val body = pathResponse.body()
-            return body?.valid ?: body?.isValid ?: true
-        }
-
-        throw HttpException(pathResponse)
-    }
-
     suspend fun login(username: String, password: String, deviceUid: String): LoginResponse {
         val payload = api.login(LoginRequest(username = username, password = password, deviceUid = deviceUid))
         if (payload.accessToken.isNotBlank()) tokenStore.saveAccessToken(payload.accessToken)
@@ -65,6 +43,19 @@ class AuthRepository(
     }
 
     suspend fun register(request: RegisterRequest): RegisterResponse = api.register(request)
+
+
+    suspend fun validateToken(tokenCode: String): Result<Boolean> {
+        return try {
+            val response = api.validateToken(TokenValidationRequest(tokenCode = tokenCode.trim()))
+            val isValid = response.valid ?: response.isValid ?: false
+            Result.success(isValid)
+        } catch (_: HttpException) {
+            Result.failure(Exception("Error de red o token inválido"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
     fun sessionSnapshot(): SessionSnapshot = SessionSnapshot(
         isLoggedIn = appSession.isLoggedIn,

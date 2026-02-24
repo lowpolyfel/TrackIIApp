@@ -1,6 +1,5 @@
 package com.ttelectronics.trackiiapp.data.repository
 
-import com.ttelectronics.trackiiapp.data.models.enums.ScanType
 import com.ttelectronics.trackiiapp.data.models.scanner.PartLookupResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.RegisterScanRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.RegisterScanResponse
@@ -19,14 +18,18 @@ class ScannerRepository(private val api: ScannerApiService) {
         return api.getWorkOrderContext(workOrderNumber, deviceId)
     }
 
+    suspend fun registerScan(request: RegisterScanRequest): RegisterScanResponse {
+        return api.registerScan(request)
+    }
+
     suspend fun registerEntryScan(workOrderNumber: String, partNumber: String, deviceId: Int, qtyIn: Int?): RegisterScanResponse {
-        return api.registerScan(
+        return registerScan(
             RegisterScanRequest(
                 workOrderNumber = workOrderNumber,
                 partNumber = partNumber,
+                quantity = qtyIn ?: 1,
                 deviceId = deviceId,
-                scanType = ScanType.ENTRY,
-                qtyIn = qtyIn
+                isAlloyTablet = false
             )
         )
     }

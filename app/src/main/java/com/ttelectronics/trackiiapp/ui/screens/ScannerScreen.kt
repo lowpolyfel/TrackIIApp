@@ -34,6 +34,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
+import com.ttelectronics.trackiiapp.R
 import com.ttelectronics.trackiiapp.core.ServiceLocator
 import com.ttelectronics.trackiiapp.core.camera.CameraManager
 import com.ttelectronics.trackiiapp.ui.components.PermissionFallback
@@ -136,14 +137,15 @@ fun ScannerScreen(
         if (scannerUiState.shouldNavigate) {
             if (scannerUiState.isProductFound) {
                 overlaySuccess = true
-                overlayText = "Orden encontrada"
+                overlayText = context.getString(R.string.order_found)
                 showResultOverlay = true
                 rightSoundPlayer.play()
                 delay(1000)
                 onComplete(lotNumber, partNumber, true, "")
             } else {
                 overlaySuccess = false
-                overlayText = scannerUiState.validationError ?: "No se encontró la orden para esta parte."
+                overlayText = scannerUiState.validationError?.let { context.getString(it) }
+                    ?: context.getString(R.string.error_order_not_found_for_part)
                 showResultOverlay = true
                 wrongSoundPlayer.play()
                 delay(1300)

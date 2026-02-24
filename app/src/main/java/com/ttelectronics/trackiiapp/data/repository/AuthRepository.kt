@@ -7,7 +7,9 @@ import com.ttelectronics.trackiiapp.data.models.auth.LoginRequest
 import com.ttelectronics.trackiiapp.data.models.auth.LoginResponse
 import com.ttelectronics.trackiiapp.data.models.auth.RegisterRequest
 import com.ttelectronics.trackiiapp.data.models.auth.RegisterResponse
+import com.ttelectronics.trackiiapp.data.models.auth.TokenValidationRequest
 import com.ttelectronics.trackiiapp.data.network.AuthApiService
+import retrofit2.HttpException
 
 data class SessionSnapshot(
     val isLoggedIn: Boolean,
@@ -41,6 +43,19 @@ class AuthRepository(
     }
 
     suspend fun register(request: RegisterRequest): RegisterResponse = api.register(request)
+
+
+    suspend fun validateToken(tokenCode: String): Result<Boolean> {
+        return try {
+            val response = api.validateToken(TokenValidationRequest(tokenCode = tokenCode.trim()))
+            val isValid = response.valid ?: response.isValid ?: false
+            Result.success(isValid)
+        } catch (_: HttpException) {
+            Result.failure(Exception("Error de red o token inválido"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
     fun sessionSnapshot(): SessionSnapshot = SessionSnapshot(
         isLoggedIn = appSession.isLoggedIn,

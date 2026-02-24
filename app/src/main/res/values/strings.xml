@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">TrackIIApp</string>
+    <string name="error_part_mandatory">No. de parte es obligatorio</string>
+    <string name="error_order_not_found_for_part">No se encontró la orden para esta parte.</string>
+    <string name="error_generic_validation">No fue posible validar la parte. Intenta de nuevo.</string>
+    <string name="order_found">Orden encontrada</string>
+    <string name="error_token_mandatory">TokenCode es obligatorio</string>
+    <string name="error_network_or_invalid_token">Error de red o token inválido</string>
 </resources>

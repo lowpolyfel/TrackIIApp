@@ -8,13 +8,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,13 +45,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
@@ -76,10 +72,11 @@ import com.ttelectronics.trackiiapp.ui.viewmodel.ScannerViewModelFactory
 import kotlinx.coroutines.delay
 import java.util.concurrent.Executors
 
-private const val SCAN_WINDOW_LEFT = 0.12f
-private const val SCAN_WINDOW_TOP = 0.18f
-private const val SCAN_WINDOW_RIGHT = 0.88f
-private const val SCAN_WINDOW_BOTTOM = 0.82f
+private const val SCAN_WINDOW_LEFT = 0f
+private const val SCAN_WINDOW_TOP = 0f
+private const val SCAN_WINDOW_RIGHT = 1f
+private const val SCAN_WINDOW_BOTTOM = 1f
+private const val INSTRUCTION_DURATION = 4000
 
 @OptIn(ExperimentalGetImage::class)
 @Composable
@@ -103,7 +100,7 @@ fun ScannerScreen(
 
     var showInstructions by remember { mutableStateOf(true) }
     LaunchedEffect(Unit) {
-        delay(3000L)
+        delay(INSTRUCTION_DURATION.toLong())
         showInstructions = false
     }
 
@@ -203,12 +200,17 @@ fun ScannerScreen(
 @Composable
 private fun ScannerInstructionsScreen() {
     val transition = rememberInfiniteTransition(label = "instruction")
-    val sheetOffset by transition.animateFloat(
-        initialValue = 16f,
-        targetValue = 84f,
-        animationSpec = infiniteRepeatable(animation = tween(1300), repeatMode = RepeatMode.Reverse),
-        label = "instructionLine"
+    val progress by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = INSTRUCTION_DURATION, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "instructionProgress"
     )
+    val sheetOffset = (-46f) + (progress * 92f)
+    val sheetAlpha = (progress * 1.5f).coerceIn(0f, 1f)
 
     Column(
         modifier = Modifier
@@ -232,37 +234,37 @@ private fun ScannerInstructionsScreen() {
                 .background(
                     Brush.verticalGradient(
                         listOf(
-                            Color(0xFF111827),
-                            Color(0xFF1E3A5F),
-                            Color(0xFF0D1B2A)
+                            Color.White,
+                            Color(0xFFE9F4FF),
+                            Color(0xFFD8EAFF)
                         )
                     )
                 )
+                .border(1.dp, Color(0xFFBCD8F5), RoundedCornerShape(22.dp))
                 .padding(12.dp),
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Rounded.TabletAndroid,
-                contentDescription = null,
-                tint = Color.White.copy(alpha = 0.9f),
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .offset(y = 12.dp)
-                    .size(124.dp)
-            )
-            Icon(
                 imageVector = Icons.Rounded.Description,
                 contentDescription = null,
-                tint = TTGreen,
+                tint = TTGreen.copy(alpha = sheetAlpha),
                 modifier = Modifier
                     .align(Alignment.Center)
                     .size(88.dp)
                     .offset(y = sheetOffset.dp)
             )
             Icon(
+                imageVector = Icons.Rounded.TabletAndroid,
+                contentDescription = null,
+                tint = Color(0xFF2268AE),
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(124.dp)
+            )
+            Icon(
                 imageVector = Icons.Rounded.DocumentScanner,
                 contentDescription = null,
-                tint = TTGreen.copy(alpha = 0.9f),
+                tint = Color(0xFF1A5EA6),
                 modifier = Modifier
                     .align(Alignment.Center)
                     .offset(y = (-6).dp)
@@ -319,37 +321,15 @@ private fun CameraScanPanel(
 
     Box(
         modifier = modifier
-            .fillMaxWidth(0.96f)
-            .aspectRatio(2.05f)
+            .fillMaxWidth(0.73f)
+            .aspectRatio(1.19f)
             .background(Color.Black.copy(alpha = 0.12f), RoundedCornerShape(26.dp))
     ) {
         AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
-        ScannerCropMask()
         ScannerFrameOverlay(showFrame = !hasBarcodeInFrame)
     }
 }
 
-@Composable
-private fun ScannerCropMask() {
-    Canvas(
-        modifier = Modifier
-            .fillMaxSize()
-            .graphicsLayer(alpha = 0.99f)
-    ) {
-        drawRect(Color.Black.copy(alpha = 0.6f))
-        val left = size.width * SCAN_WINDOW_LEFT
-        val top = size.height * SCAN_WINDOW_TOP
-        val width = size.width * (SCAN_WINDOW_RIGHT - SCAN_WINDOW_LEFT)
-        val height = size.height * (SCAN_WINDOW_BOTTOM - SCAN_WINDOW_TOP)
-        drawRoundRect(
-            color = Color.Transparent,
-            topLeft = Offset(left, top),
-            size = Size(width, height),
-            cornerRadius = CornerRadius(20.dp.toPx(), 20.dp.toPx()),
-            blendMode = BlendMode.Clear
-        )
-    }
-}
 
 private fun buildCropRect(imageWidth: Int, imageHeight: Int): Rect {
     val left = (imageWidth * SCAN_WINDOW_LEFT).toInt()

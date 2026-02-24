@@ -13,17 +13,17 @@ import com.ttelectronics.trackiiapp.data.network.ScannerApiService
 import retrofit2.HttpException
 
 class ScannerRepository(private val api: ScannerApiService) {
-    suspend fun lookupPart(partNumber: String): PartLookupResponse = api.getPartInfo(partNumber)
+    suspend fun lookupPart(partNumber: String): PartLookupResponse = api.getPartInfo(partNumber.trim())
 
     suspend fun getWorkOrderContext(workOrderNumber: String, deviceId: Int): WorkOrderContextResponse {
-        return api.getWorkOrderContext(workOrderNumber, deviceId)
+        return api.getWorkOrderContext(workOrderNumber.trim(), deviceId)
     }
 
     suspend fun registerEntryScan(workOrderNumber: String, partNumber: String, deviceId: Int, qtyIn: Int?): RegisterScanResponse {
         return api.registerScan(
             RegisterScanRequest(
                 workOrderNumber = workOrderNumber,
-                partNumber = partNumber,
+                partNumber = partNumber.trim(),
                 deviceId = deviceId,
                 scanType = ScanType.ENTRY,
                 qtyIn = qtyIn
@@ -32,11 +32,20 @@ class ScannerRepository(private val api: ScannerApiService) {
     }
 
     suspend fun scrapOrder(workOrderNumber: String, partNumber: String, deviceId: Int, qty: Int, reason: String): ScrapResponse {
-        return api.scrap(ScrapRequest(workOrderNumber, partNumber, deviceId, qty, reason))
+        return api.scrap(ScrapRequest(workOrderNumber.trim(), partNumber.trim(), deviceId, qty, reason.trim()))
     }
 
     suspend fun reworkOrder(workOrderNumber: String, partNumber: String, deviceId: Int, location: String, reason: String?): ReworkResponse {
-        return api.rework(ReworkRequest(workOrderNumber, partNumber, deviceId, location, reason))
+        return api.rework(ReworkRequest(workOrderNumber.trim(), partNumber.trim(), deviceId, location.trim(), reason?.trim()))
+    }
+
+    suspend fun validateWorkOrder(workOrderNumber: String, deviceId: Int): Boolean {
+        return try {
+            api.getWorkOrderContext(workOrderNumber.trim(), deviceId)
+            true
+        } catch (ex: HttpException) {
+            if (ex.code() == 404) false else throw ex
+        }
     }
 
     suspend fun validatePartExists(partNumber: String): Boolean {

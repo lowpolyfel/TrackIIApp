@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.ttelectronics.trackiiapp.data.models.scanner.PartLookupResponse
+import com.ttelectronics.trackiiapp.data.models.scanner.RegisterScanResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.WorkOrderContextResponse
 import com.ttelectronics.trackiiapp.data.network.ApiErrorParser
 import com.ttelectronics.trackiiapp.data.repository.ScannerRepository
@@ -20,6 +21,8 @@ data class TaskDetailUiState(
     val partInfo: PartLookupResponse? = null,
     val contextInfo: WorkOrderContextResponse? = null,
     val qtyInput: String = "",
+    val cancelReason: String = "",
+    val reworkLocation: String = "",
     val saveSuccess: Boolean = false
 )
 
@@ -29,6 +32,15 @@ class TaskDetailViewModel(private val scannerRepository: ScannerRepository) : Vi
 
     fun onQtyChange(value: String) {
         _uiState.update { it.copy(qtyInput = value.filter { ch -> ch.isDigit() }, errorMessage = null) }
+    }
+
+
+    fun onCancelReasonChange(value: String) {
+        _uiState.update { it.copy(cancelReason = value, errorMessage = null) }
+    }
+
+    fun onReworkLocationChange(value: String) {
+        _uiState.update { it.copy(reworkLocation = value, errorMessage = null) }
     }
 
     fun loadData(partNumber: String, workOrderNumber: String, deviceId: Int) {
@@ -72,20 +84,62 @@ class TaskDetailViewModel(private val scannerRepository: ScannerRepository) : Vi
             }
         }
 
+        val submitAction: suspend () -> RegisterScanResponse = when (taskType) {
+            TaskType.ProductAdvance, TaskType.TravelSheet -> {
+                {
+                    scannerRepository.registerEntryScan(
+                        workOrderNumber = workOrderNumber,
+                        partNumber = partNumber,
+                        deviceId = deviceId,
+                        qtyIn = if (taskType == TaskType.ProductAdvance) qty else null
+                    )
+                }
+            }
+
+            TaskType.CancelOrder -> {
+                val reason = state.cancelReason.trim()
+                if (reason.isBlank()) {
+                    _uiState.update { it.copy(errorMessage = "Selecciona un motivo de cancelación.") }
+                    return
+                }
+                {
+                    scannerRepository.scrapOrder(
+                        workOrderNumber = workOrderNumber,
+                        partNumber = partNumber,
+                        deviceId = deviceId,
+                        qty = qty ?: 1,
+                        reason = reason
+                    )
+                    RegisterScanResponse(success = true, message = "Cancelación registrada")
+                }
+            }
+
+            TaskType.Rework -> {
+                val location = state.reworkLocation.trim()
+                if (location.isBlank()) {
+                    _uiState.update { it.copy(errorMessage = "Selecciona una localidad de retrabajo.") }
+                    return
+                }
+                {
+                    scannerRepository.reworkOrder(
+                        workOrderNumber = workOrderNumber,
+                        partNumber = partNumber,
+                        deviceId = deviceId,
+                        location = location,
+                        reason = null
+                    )
+                    RegisterScanResponse(success = true, message = "Retrabajo registrado")
+                }
+            }
+        }
+
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, saveSuccess = false) }
-            runCatching {
-                scannerRepository.registerEntryScan(
-                    workOrderNumber = workOrderNumber,
-                    partNumber = partNumber,
-                    deviceId = deviceId,
-                    qtyIn = if (taskType == TaskType.ProductAdvance) qty else null
-                )
-            }.onSuccess {
-                _uiState.update { it.copy(isLoading = false, saveSuccess = true) }
-            }.onFailure { ex ->
-                _uiState.update { it.copy(isLoading = false, errorMessage = ApiErrorParser.readableError(ex)) }
-            }
+            runCatching { submitAction() }
+                .onSuccess { _uiState.update { it.copy(isLoading = false, saveSuccess = true) } }
+                .onFailure { ex ->
+                    _uiState.update { it.copy(isLoading = false, errorMessage = ApiErrorParser.readableError(ex)) }
+                }
         }
     }
 }

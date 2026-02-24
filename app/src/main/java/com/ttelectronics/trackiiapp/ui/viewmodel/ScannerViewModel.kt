@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 data class ScannerUiState(
     val isValidating: Boolean = false,
     val validationError: Int? = null,
+    val validationErrorMessage: String? = null,
     val isProductFound: Boolean = false,
     val shouldNavigate: Boolean = false,
     val isLotFound: Boolean = false,
@@ -98,6 +99,7 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                 scannedPart = "",
                 isValidating = false,
                 validationError = null,
+                validationErrorMessage = null,
                 shouldNavigate = false
             )
         }
@@ -107,34 +109,50 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
         _uiState.update { it.copy(isLotFound = false, isPartFound = false) }
     }
 
-    fun validatePart(partNumber: String) {
+    fun validateScan(workOrderNumber: String, partNumber: String, deviceId: Int) {
         if (partNumber.isBlank()) {
-            _uiState.update { it.copy(validationError = R.string.error_part_mandatory) }
+            _uiState.update { it.copy(validationError = R.string.error_part_mandatory, validationErrorMessage = null) }
+            return
+        }
+        if (workOrderNumber.isBlank()) {
+            _uiState.update { it.copy(validationError = null, validationErrorMessage = "No. de lote es obligatorio") }
             return
         }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isValidating = true, validationError = null, shouldNavigate = false) }
-            runCatching { scannerRepository.validatePartExists(partNumber.trim()) }
-                .onSuccess { found ->
-                    _uiState.update {
-                        it.copy(
-                            isValidating = false,
-                            isProductFound = found,
-                            shouldNavigate = true,
-                            validationError = if (found) null else R.string.error_order_not_found_for_part
-                        )
-                    }
+            _uiState.update {
+                it.copy(
+                    isValidating = true,
+                    validationError = null,
+                    validationErrorMessage = null,
+                    shouldNavigate = false
+                )
+            }
+
+            runCatching {
+                val partExists = scannerRepository.validatePartExists(partNumber.trim())
+                val orderExists = scannerRepository.validateWorkOrder(workOrderNumber.trim(), deviceId)
+                partExists && orderExists
+            }.onSuccess { found ->
+                _uiState.update {
+                    it.copy(
+                        isValidating = false,
+                        isProductFound = found,
+                        shouldNavigate = true,
+                        validationError = if (found) null else R.string.error_order_not_found_for_part,
+                        validationErrorMessage = if (found) null else "No existe contexto de orden para el lote escaneado."
+                    )
                 }
-                .onFailure { _ ->
-                    _uiState.update {
-                        it.copy(
-                            isValidating = false,
-                            shouldNavigate = false,
-                            validationError = R.string.error_generic_validation
-                        )
-                    }
+            }.onFailure { ex ->
+                _uiState.update {
+                    it.copy(
+                        isValidating = false,
+                        shouldNavigate = false,
+                        validationError = R.string.error_generic_validation,
+                        validationErrorMessage = ex.message
+                    )
                 }
+            }
         }
     }
 

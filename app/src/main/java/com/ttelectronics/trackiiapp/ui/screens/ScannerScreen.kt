@@ -122,7 +122,7 @@ fun ScannerScreen(
 
     LaunchedEffect(canValidate) {
         if (canValidate && !scannerUiState.isValidating && !showResultOverlay) {
-            scannerViewModel.validatePart(partNumber)
+            scannerViewModel.validateScan(workOrderNumber = lotNumber, partNumber = partNumber, deviceId = ServiceLocator.authRepository(context).sessionSnapshot().deviceId)
         }
     }
 
@@ -144,7 +144,8 @@ fun ScannerScreen(
                 onComplete(lotNumber, partNumber, true, "")
             } else {
                 overlaySuccess = false
-                overlayText = scannerUiState.validationError?.let { context.getString(it) }
+                overlayText = scannerUiState.validationErrorMessage
+                    ?: scannerUiState.validationError?.let { context.getString(it) }
                     ?: context.getString(R.string.error_order_not_found_for_part)
                 showResultOverlay = true
                 wrongSoundPlayer.play()

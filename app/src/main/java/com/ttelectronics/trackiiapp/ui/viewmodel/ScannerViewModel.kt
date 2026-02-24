@@ -3,7 +3,7 @@ package com.ttelectronics.trackiiapp.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.ttelectronics.trackiiapp.data.network.ApiErrorParser
+import com.ttelectronics.trackiiapp.R
 import com.ttelectronics.trackiiapp.data.repository.ScannerRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 
 data class ScannerUiState(
     val isValidating: Boolean = false,
-    val validationError: String? = null,
+    val validationError: Int? = null,
     val isProductFound: Boolean = false,
     val shouldNavigate: Boolean = false,
     val isLotFound: Boolean = false,
@@ -107,7 +107,7 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
 
     fun validatePart(partNumber: String) {
         if (partNumber.isBlank()) {
-            _uiState.update { it.copy(validationError = "No. de parte es obligatorio") }
+            _uiState.update { it.copy(validationError = R.string.error_part_mandatory) }
             return
         }
 
@@ -120,16 +120,16 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                             isValidating = false,
                             isProductFound = found,
                             shouldNavigate = true,
-                            validationError = if (found) null else "No se encontró la orden para esta parte."
+                            validationError = if (found) null else R.string.error_order_not_found_for_part
                         )
                     }
                 }
-                .onFailure { ex ->
+                .onFailure { _ ->
                     _uiState.update {
                         it.copy(
                             isValidating = false,
                             shouldNavigate = false,
-                            validationError = ApiErrorParser.readableError(ex)
+                            validationError = R.string.error_generic_validation
                         )
                     }
                 }

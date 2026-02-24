@@ -2,11 +2,13 @@ package com.ttelectronics.trackiiapp.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
 import com.ttelectronics.trackiiapp.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 data class RegisterTokenUiState(
     val tokenCode: String = "",
@@ -30,7 +32,32 @@ class RegisterTokenViewModel(private val authRepository: AuthRepository) : ViewM
             return
         }
 
-        _uiState.update { it.copy(isLoading = false, errorMessage = null, isValid = true) }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, isValid = false) }
+            authRepository.validateToken(tokenCode)
+                .onSuccess { isValid ->
+                    if (isValid) {
+                        _uiState.update { it.copy(isLoading = false, errorMessage = null, isValid = true) }
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = "Error de red o token inválido",
+                                isValid = false
+                            )
+                        }
+                    }
+                }
+                .onFailure { ex ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = ex.message ?: "Error de red o token inválido",
+                            isValid = false
+                        )
+                    }
+                }
+        }
     }
 }
 

@@ -266,7 +266,7 @@ private fun CameraScanPanel(
     val analyzer = remember {
         ImageAnalysis.Analyzer { imageProxy ->
             val mediaImage = imageProxy.image ?: run { imageProxy.close(); return@Analyzer }
-            imageProxy.cropRect = buildCropRect(imageProxy.width, imageProxy.height)
+            mediaImage.setCropRect(buildCropRect(imageProxy.width, imageProxy.height))
             val inputImage = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
             barcodeScanner.process(inputImage)
                 .addOnSuccessListener(mainExecutor) { barcodes ->

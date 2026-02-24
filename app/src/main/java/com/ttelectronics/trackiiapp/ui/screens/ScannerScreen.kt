@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.DocumentScanner
 import androidx.compose.material.icons.rounded.TabletAndroid
 import androidx.compose.material3.Icon
@@ -47,6 +48,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
@@ -201,9 +203,9 @@ fun ScannerScreen(
 @Composable
 private fun ScannerInstructionsScreen() {
     val transition = rememberInfiniteTransition(label = "instruction")
-    val scanOffset by transition.animateFloat(
-        initialValue = -80f,
-        targetValue = 80f,
+    val sheetOffset by transition.animateFloat(
+        initialValue = 16f,
+        targetValue = 84f,
         animationSpec = infiniteRepeatable(animation = tween(1300), repeatMode = RepeatMode.Reverse),
         label = "instructionLine"
     )
@@ -227,26 +229,49 @@ private fun ScannerInstructionsScreen() {
                 .fillMaxWidth(0.82f)
                 .aspectRatio(1.4f)
                 .clip(RoundedCornerShape(22.dp))
-                .background(Color.Black.copy(alpha = 0.25f)),
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color(0xFF111827),
+                            Color(0xFF1E3A5F),
+                            Color(0xFF0D1B2A)
+                        )
+                    )
+                )
+                .padding(12.dp),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Rounded.TabletAndroid,
                 contentDescription = null,
                 tint = Color.White.copy(alpha = 0.9f),
-                modifier = Modifier.size(124.dp)
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = 12.dp)
+                    .size(124.dp)
+            )
+            Icon(
+                imageVector = Icons.Rounded.Description,
+                contentDescription = null,
+                tint = TTGreen,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(88.dp)
+                    .offset(y = sheetOffset.dp)
             )
             Icon(
                 imageVector = Icons.Rounded.DocumentScanner,
                 contentDescription = null,
-                tint = TTGreen,
+                tint = TTGreen.copy(alpha = 0.9f),
                 modifier = Modifier
-                    .size(78.dp)
-                    .offset(y = scanOffset.dp)
+                    .align(Alignment.Center)
+                    .offset(y = (-6).dp)
+                    .size(44.dp)
             )
         }
     }
 }
+
 
 @OptIn(ExperimentalGetImage::class)
 @Composable

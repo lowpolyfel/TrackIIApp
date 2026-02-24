@@ -47,7 +47,9 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
 
             val now = System.currentTimeMillis()
             val lotCandidate = normalizados.firstOrNull { lotRegex.matches(it) }
-            val partCandidate = normalizados.firstOrNull { partRegex.matches(it) }
+            val partCandidate = normalizados.firstOrNull { candidate ->
+                !lotRegex.matches(candidate) && partRegex.matches(candidate)
+            }
 
             var lotFound = false
             var partFound = false

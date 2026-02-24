@@ -34,6 +34,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
@@ -256,15 +258,17 @@ fun TrackIIDropdownField(
     var localSelected by remember { mutableStateOf("") }
     val selected = onOptionSelected?.let { selectedOption } ?: localSelected
 
-    Box(
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
         modifier = modifier
     ) {
         TextField(
             value = selected,
             onValueChange = {},
             modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = !expanded },
+                .menuAnchor()
+                .fillMaxWidth(),
             readOnly = true,
             label = { Text(text = label) },
             placeholder = {
@@ -273,10 +277,7 @@ fun TrackIIDropdownField(
                 }
             },
             trailingIcon = {
-                Icon(
-                    imageVector = Icons.Rounded.KeyboardArrowDown,
-                    contentDescription = "Dropdown arrow"
-                )
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
             },
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = TTBlueTint,
@@ -291,7 +292,7 @@ fun TrackIIDropdownField(
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.exposedDropdownSize()
         ) {
             options.forEach { option ->
                 DropdownMenuItem(

@@ -143,12 +143,16 @@ fun TaskDetailScreen(
                             TaskType.CancelOrder -> TrackIIDropdownField(
                                 label = "Motivo de cancelación",
                                 options = listOf("Error de calidad", "Material incorrecto", "Orden duplicada"),
-                                helper = "Selecciona un motivo"
+                                helper = "Selecciona un motivo",
+                                selectedOption = uiState.cancelReason,
+                                onOptionSelected = vm::onCancelReasonChange
                             )
                             TaskType.Rework -> TrackIIDropdownField(
                                 label = "Localidad de retrabajo",
-                                options = listOf("Localidad A", "Localidad B", "Localidad C"),
-                                helper = "Opciones desde API"
+                                options = localities,
+                                helper = "Opciones desde API",
+                                selectedOption = uiState.reworkLocation,
+                                onOptionSelected = vm::onReworkLocationChange
                             )
                             TaskType.TravelSheet -> Unit
                         }

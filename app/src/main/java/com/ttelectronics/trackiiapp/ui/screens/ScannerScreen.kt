@@ -8,7 +8,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -231,14 +230,12 @@ private fun ScannerInstructionsScreen() {
                 .background(Color.Black.copy(alpha = 0.25f)),
             contentAlignment = Alignment.Center
         ) {
-            AnimatedVisibility(visible = true) {
-                Icon(
-                    imageVector = Icons.Rounded.TabletAndroid,
-                    contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.9f),
-                    modifier = Modifier.size(124.dp)
-                )
-            }
+            Icon(
+                imageVector = Icons.Rounded.TabletAndroid,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.9f),
+                modifier = Modifier.size(124.dp)
+            )
             Icon(
                 imageVector = Icons.Rounded.DocumentScanner,
                 contentDescription = null,

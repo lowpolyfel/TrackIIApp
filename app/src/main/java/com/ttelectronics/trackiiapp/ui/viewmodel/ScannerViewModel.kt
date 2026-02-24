@@ -25,7 +25,7 @@ data class ScannerUiState(
 
 class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewModel() {
     private val lotRegex = Regex("^[0-9]{7}$")
-    private val partRegex = Regex("^[A-Z](?=.*[0-9])[A-Z0-9._/-]{3,}$")
+    private val partRegex = Regex("^[A-Z0-9]{6,15}$")
 
     private val _uiState = MutableStateFlow(ScannerUiState())
     val uiState: StateFlow<ScannerUiState> = _uiState.asStateFlow()
@@ -140,7 +140,7 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
         _uiState.update { it.copy(shouldNavigate = false) }
     }
 
-    private fun requiredStableReads(): Int = 2
+    private fun requiredStableReads(): Int = 4
 }
 
 private data class StableScanState(val candidate: String = "", val count: Int = 0, val lastAcceptedAt: Long = 0L) {

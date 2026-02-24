@@ -56,7 +56,7 @@ class TaskDetailViewModel(private val scannerRepository: ScannerRepository) : Vi
         val part = state.partInfo
         val qty = state.qtyInput.toIntOrNull()
 
-        if (part?.areaId == 1 && (context?.isFirstStep == true) && !deviceName.contains("alloy", ignoreCase = true)) {
+        if (part?.areaId == 1 && (context?.isNew == true) && !deviceName.contains("alloy", ignoreCase = true)) {
             _uiState.update { it.copy(errorMessage = "Solo tabletas Alloy pueden abrir ordenes de Discretos.") }
             return
         }
@@ -64,10 +64,6 @@ class TaskDetailViewModel(private val scannerRepository: ScannerRepository) : Vi
         if (taskType == TaskType.ProductAdvance) {
             if (qty == null || qty <= 0) {
                 _uiState.update { it.copy(errorMessage = "Ingresa piezas válidas.") }
-                return
-            }
-            if (context?.canProceed == false) {
-                _uiState.update { it.copy(errorMessage = context.message ?: "No se puede avanzar la orden en el paso actual.") }
                 return
             }
         }

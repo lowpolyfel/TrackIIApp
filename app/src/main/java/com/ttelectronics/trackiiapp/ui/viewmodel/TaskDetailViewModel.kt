@@ -5,8 +5,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.ttelectronics.trackiiapp.data.models.scanner.PartLookupResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.WorkOrderContextResponse
+import com.ttelectronics.trackiiapp.data.models.enums.ScanType
 import com.ttelectronics.trackiiapp.data.network.ApiErrorParser
 import com.ttelectronics.trackiiapp.data.repository.ScannerRepository
+import com.ttelectronics.trackiiapp.domain.scanner.ProductAdvanceScanPolicy
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +28,7 @@ data class TaskDetailUiState(
 class TaskDetailViewModel(private val scannerRepository: ScannerRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(TaskDetailUiState())
     val uiState: StateFlow<TaskDetailUiState> = _uiState.asStateFlow()
+    private val productAdvanceScanPolicy = ProductAdvanceScanPolicy()
 
     fun onQtyChange(value: String) {
         _uiState.update { it.copy(qtyInput = value.filter { ch -> ch.isDigit() }, errorMessage = null) }
@@ -52,37 +55,38 @@ class TaskDetailViewModel(private val scannerRepository: ScannerRepository) : Vi
 
     fun saveScan(taskType: TaskType, workOrderNumber: String, partNumber: String, deviceId: Int, deviceName: String) {
         val state = _uiState.value
-        val context = state.contextInfo
-        val part = state.partInfo
-        val qty = state.qtyInput.toIntOrNull()
 
-        if (part?.areaId == 1 && (context?.isFirstStep == true) && !deviceName.contains("alloy", ignoreCase = true)) {
-            _uiState.update { it.copy(errorMessage = "Solo tabletas Alloy pueden abrir ordenes de Discretos.") }
-            return
-        }
-
-        if (taskType == TaskType.ProductAdvance) {
-            if (qty == null || qty <= 0) {
-                _uiState.update { it.copy(errorMessage = "Ingresa piezas válidas.") }
-                return
-            }
-            if (context?.canProceed == false) {
-                _uiState.update { it.copy(errorMessage = context.message ?: "No se puede avanzar la orden en el paso actual.") }
-                return
-            }
+        val qtyFromInput = state.qtyInput.toIntOrNull()
+        val decision = if (taskType == TaskType.ProductAdvance) {
+            productAdvanceScanPolicy.evaluate(
+                workOrderNumber = workOrderNumber,
+                qtyInput = state.qtyInput,
+                deviceName = deviceName,
+                partInfo = state.partInfo,
+                context = state.contextInfo
+            )
+        } else {
+            null
         }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, saveSuccess = false) }
             runCatching {
-                scannerRepository.registerEntryScan(
+                scannerRepository.registerScan(
                     workOrderNumber = workOrderNumber,
                     partNumber = partNumber,
                     deviceId = deviceId,
-                    qtyIn = if (taskType == TaskType.ProductAdvance) qty else null
+                    scanType = decision?.scanType ?: ScanType.ENTRY,
+                    qtyIn = if (taskType == TaskType.ProductAdvance) decision?.qtyIn else qtyFromInput
                 )
             }.onSuccess {
-                _uiState.update { it.copy(isLoading = false, saveSuccess = true) }
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        saveSuccess = true,
+                        errorMessage = decision?.localMessage
+                    )
+                }
             }.onFailure { ex ->
                 _uiState.update { it.copy(isLoading = false, errorMessage = ApiErrorParser.readableError(ex)) }
             }

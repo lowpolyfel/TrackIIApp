@@ -19,13 +19,19 @@ class ScannerRepository(private val api: ScannerApiService) {
         return api.getWorkOrderContext(workOrderNumber, deviceId)
     }
 
-    suspend fun registerEntryScan(workOrderNumber: String, partNumber: String, deviceId: Int, qtyIn: Int?): RegisterScanResponse {
+    suspend fun registerScan(
+        workOrderNumber: String,
+        partNumber: String,
+        deviceId: Int,
+        scanType: ScanType,
+        qtyIn: Int?
+    ): RegisterScanResponse {
         return api.registerScan(
             RegisterScanRequest(
                 workOrderNumber = workOrderNumber,
                 partNumber = partNumber,
                 deviceId = deviceId,
-                scanType = ScanType.ENTRY,
+                scanType = scanType,
                 qtyIn = qtyIn
             )
         )

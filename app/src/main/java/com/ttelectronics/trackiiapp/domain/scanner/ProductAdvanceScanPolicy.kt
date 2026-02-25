@@ -36,17 +36,7 @@ class ProductAdvanceScanPolicy {
             )
         }
 
-        val isAlloyLocation = locationName.contains("alloy", ignoreCase = true)
-        val isTabletFamily = (partInfo?.family ?: "").contains("tablet", ignoreCase = true) ||
-            (partInfo?.subfamily ?: "").contains("tablet", ignoreCase = true)
 
-        if (context?.workOrderId == null && (!isAlloyLocation || !isTabletFamily)) {
-            return ProductAdvanceDecision(
-                canRegister = false,
-                qtyIn = qty,
-                localMessage = "Para WO nueva: ubicación Alloy y familia/subfamilia tipo tablet."
-            )
-        }
 
         if (context?.canProceed == false) {
             return ProductAdvanceDecision(

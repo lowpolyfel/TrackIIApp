@@ -155,7 +155,16 @@ fun TaskDetailScreen(
 
                         PrimaryGlowButton(
                             text = if (uiState.isLoading) "Guardando..." else "Guardar",
-                            onClick = { vm.saveScan(taskType, lotNumber, partNumber, auth.deviceId, auth.deviceName) },
+                            onClick = {
+                                vm.saveScan(
+                                    taskType = taskType,
+                                    workOrderNumber = lotNumber,
+                                    partNumber = partNumber,
+                                    userId = auth.userId,
+                                    deviceId = auth.deviceId,
+                                    locationName = auth.locationName
+                                )
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             enabled = !uiState.isLoading
                         )

@@ -1,6 +1,6 @@
 package com.ttelectronics.trackiiapp.data.repository
 
-import com.ttelectronics.trackiiapp.data.models.enums.ScanType
+import com.ttelectronics.trackiiapp.data.local.AppSession
 import com.ttelectronics.trackiiapp.data.models.scanner.PartLookupResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.RegisterScanRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.RegisterScanResponse
@@ -12,21 +12,31 @@ import com.ttelectronics.trackiiapp.data.models.scanner.WorkOrderContextResponse
 import com.ttelectronics.trackiiapp.data.network.ScannerApiService
 import retrofit2.HttpException
 
-class ScannerRepository(private val api: ScannerApiService) {
+class ScannerRepository(
+    private val api: ScannerApiService,
+    private val appSession: AppSession
+) {
     suspend fun lookupPart(partNumber: String): PartLookupResponse = api.getPartInfo(partNumber)
 
     suspend fun getWorkOrderContext(workOrderNumber: String, deviceId: Int): WorkOrderContextResponse {
         return api.getWorkOrderContext(workOrderNumber, deviceId)
     }
 
-    suspend fun registerEntryScan(workOrderNumber: String, partNumber: String, deviceId: Int, qtyIn: Int?): RegisterScanResponse {
+    suspend fun registerScan(
+        workOrderNumber: String,
+        partNumber: String,
+        userId: Int,
+        deviceId: Int,
+        qtyIn: Int
+    ): RegisterScanResponse {
+        val effectiveUserId = if (userId > 0) userId else appSession.userId
         return api.registerScan(
             RegisterScanRequest(
                 workOrderNumber = workOrderNumber,
                 partNumber = partNumber,
-                deviceId = deviceId,
-                scanType = ScanType.ENTRY,
-                qtyIn = qtyIn
+                quantity = qtyIn,
+                userId = effectiveUserId,
+                deviceId = deviceId
             )
         )
     }

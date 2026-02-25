@@ -108,14 +108,19 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
     }
 
     fun validatePart(partNumber: String) {
-        if (partNumber.isBlank()) {
+        val normalizedPartNumber = partNumber
+            .trim()
+            .uppercase()
+            .replace(" ", "")
+
+        if (normalizedPartNumber.isBlank()) {
             _uiState.update { it.copy(validationError = R.string.error_part_mandatory) }
             return
         }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isValidating = true, validationError = null, shouldNavigate = false) }
-            runCatching { scannerRepository.validatePartExists(partNumber.trim()) }
+            runCatching { scannerRepository.validatePartExists(normalizedPartNumber) }
                 .onSuccess { found ->
                     _uiState.update {
                         it.copy(

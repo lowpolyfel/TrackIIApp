@@ -30,13 +30,14 @@ class ScannerRepository(
         qtyIn: Int
     ): RegisterScanResponse {
         val effectiveUserId = if (userId > 0) userId else appSession.userId
+        val effectiveDeviceId = if (deviceId > 0) deviceId else appSession.deviceId
         return api.registerScan(
             RegisterScanRequest(
                 workOrderNumber = workOrderNumber,
                 partNumber = partNumber,
                 quantity = qtyIn,
                 userId = effectiveUserId,
-                deviceId = deviceId
+                deviceId = effectiveDeviceId
             )
         )
     }

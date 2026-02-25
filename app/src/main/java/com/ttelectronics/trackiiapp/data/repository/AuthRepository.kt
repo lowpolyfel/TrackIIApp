@@ -47,7 +47,7 @@ class AuthRepository(
 
     suspend fun validateToken(tokenCode: String): Result<Boolean> {
         return try {
-            val response = api.validateToken(TokenValidationRequest(tokenCode = tokenCode.trim()))
+            val response = api.validateToken(tokenCode.trim())
             val isValid = response.valid ?: response.isValid ?: false
             Result.success(isValid)
         } catch (_: HttpException) {

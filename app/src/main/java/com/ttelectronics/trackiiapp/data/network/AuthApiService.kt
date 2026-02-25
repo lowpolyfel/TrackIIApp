@@ -10,6 +10,7 @@ import com.ttelectronics.trackiiapp.data.models.auth.TokenValidationResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Query
 
 interface AuthApiService {
     @GET("api/locations")
@@ -21,6 +22,6 @@ interface AuthApiService {
     @POST("api/auth/register")
     suspend fun register(@Body request: RegisterRequest): RegisterResponse
 
-    @POST("api/auth/validate-token")
-    suspend fun validateToken(@Body request: TokenValidationRequest): TokenValidationResponse
+    @GET("api/auth/validate-token")
+    suspend fun validateToken(@Query("tokenCode") tokenCode: String): TokenValidationResponse
 }

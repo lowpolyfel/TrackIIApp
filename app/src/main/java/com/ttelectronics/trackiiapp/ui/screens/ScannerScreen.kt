@@ -118,11 +118,12 @@ fun ScannerScreen(
 
     val lotNumber = scannerUiState.scannedLot
     val partNumber = scannerUiState.scannedPart
+    val normalizedPartNumber = partNumber.trim().uppercase().replace(" ", "")
     val canValidate = lotNumber.isNotBlank() && partNumber.isNotBlank()
 
     LaunchedEffect(canValidate) {
         if (canValidate && !scannerUiState.isValidating && !showResultOverlay) {
-            scannerViewModel.validatePart(partNumber)
+            scannerViewModel.validatePart(normalizedPartNumber)
         }
     }
 
@@ -141,7 +142,7 @@ fun ScannerScreen(
                 showResultOverlay = true
                 rightSoundPlayer.play()
                 delay(1000)
-                onComplete(lotNumber, partNumber, true, "")
+                onComplete(lotNumber, normalizedPartNumber, true, "")
             } else {
                 overlaySuccess = false
                 overlayText = scannerUiState.validationError?.let { context.getString(it) }
@@ -149,7 +150,7 @@ fun ScannerScreen(
                 showResultOverlay = true
                 wrongSoundPlayer.play()
                 delay(1300)
-                onComplete(lotNumber, partNumber, false, overlayText)
+                onComplete(lotNumber, normalizedPartNumber, false, overlayText)
             }
             scannerViewModel.consumeNavigation()
         }

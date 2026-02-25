@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.ttelectronics.trackiiapp.data.models.scanner.PartLookupResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.WorkOrderContextResponse
+import com.ttelectronics.trackiiapp.data.models.enums.ScanType
 import com.ttelectronics.trackiiapp.data.network.ApiErrorParser
 import com.ttelectronics.trackiiapp.data.repository.ScannerRepository
 import com.ttelectronics.trackiiapp.domain.scanner.ProductAdvanceScanPolicy

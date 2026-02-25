@@ -1,7 +1,6 @@
 package com.ttelectronics.trackiiapp.data.models.scanner
 
 import com.google.gson.annotations.SerializedName
-import com.ttelectronics.trackiiapp.data.models.enums.ScanType
 import com.ttelectronics.trackiiapp.data.models.enums.WipStatus
 import com.ttelectronics.trackiiapp.data.models.enums.WorkOrderStatus
 
@@ -31,11 +30,11 @@ data class WorkOrderContextResponse(
 )
 
 data class RegisterScanRequest(
-    @SerializedName("workOrderNumber") val workOrderNumber: String,
-    @SerializedName("partNumber") val partNumber: String,
-    @SerializedName("deviceId") val deviceId: Int,
-    @SerializedName("scanType") val scanType: ScanType = ScanType.ENTRY,
-    @SerializedName("qtyIn") val qtyIn: Int? = null
+    @SerializedName("WorkOrderNumber") val workOrderNumber: String,
+    @SerializedName("PartNumber") val partNumber: String,
+    @SerializedName("Quantity") val quantity: Int,
+    @SerializedName("UserId") val userId: Int,
+    @SerializedName("DeviceId") val deviceId: Int
 )
 
 data class RegisterScanResponse(

@@ -53,7 +53,14 @@ class TaskDetailViewModel(private val scannerRepository: ScannerRepository) : Vi
         }
     }
 
-    fun saveScan(taskType: TaskType, workOrderNumber: String, partNumber: String, deviceId: Int, deviceName: String) {
+    fun saveScan(
+        taskType: TaskType,
+        workOrderNumber: String,
+        partNumber: String,
+        userId: Int,
+        deviceId: Int,
+        locationName: String
+    ) {
         val state = _uiState.value
 
         val qtyFromInput = state.qtyInput.toIntOrNull()
@@ -61,12 +68,17 @@ class TaskDetailViewModel(private val scannerRepository: ScannerRepository) : Vi
             productAdvanceScanPolicy.evaluate(
                 workOrderNumber = workOrderNumber,
                 qtyInput = state.qtyInput,
-                deviceName = deviceName,
+                locationName = locationName,
                 partInfo = state.partInfo,
                 context = state.contextInfo
             )
         } else {
             null
+        }
+
+        if (taskType == TaskType.ProductAdvance && decision?.canRegister == false) {
+            _uiState.update { it.copy(errorMessage = decision.localMessage) }
+            return
         }
 
         viewModelScope.launch {
@@ -75,16 +87,15 @@ class TaskDetailViewModel(private val scannerRepository: ScannerRepository) : Vi
                 scannerRepository.registerScan(
                     workOrderNumber = workOrderNumber,
                     partNumber = partNumber,
+                    userId = userId,
                     deviceId = deviceId,
-                    scanType = decision?.scanType ?: ScanType.ENTRY,
-                    qtyIn = if (taskType == TaskType.ProductAdvance) decision?.qtyIn else qtyFromInput
+                    qtyIn = if (taskType == TaskType.ProductAdvance) (decision?.qtyIn ?: 0) else (qtyFromInput ?: 0)
                 )
             }.onSuccess {
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        saveSuccess = true,
-                        errorMessage = decision?.localMessage
+                        saveSuccess = true
                     )
                 }
             }.onFailure { ex ->

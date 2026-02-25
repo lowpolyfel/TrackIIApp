@@ -32,7 +32,8 @@ object ServiceLocator {
 
     private fun buildScannerRepository(context: Context): ScannerRepository {
         val tokenStore = SecureTokenStore(context)
+        val appSession = AppSession(context)
         val client = ApiClient(tokenStore)
-        return ScannerRepository(client.scannerApiService)
+        return ScannerRepository(client.scannerApiService, appSession)
     }
 }

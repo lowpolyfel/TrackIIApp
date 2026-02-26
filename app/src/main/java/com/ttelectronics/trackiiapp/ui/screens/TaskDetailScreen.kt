@@ -19,8 +19,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Category
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Factory
+import androidx.compose.material.icons.rounded.Error
 import androidx.compose.material.icons.rounded.Inventory2
+import androidx.compose.material.icons.rounded.QrCode
 import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -50,6 +53,7 @@ import com.ttelectronics.trackiiapp.ui.components.TrackIIDropdownField
 import com.ttelectronics.trackiiapp.ui.components.TrackIITextField
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
 import com.ttelectronics.trackiiapp.ui.theme.TTBlue
+import com.ttelectronics.trackiiapp.ui.theme.TTBlueDark
 import com.ttelectronics.trackiiapp.ui.theme.TTBlueTint
 import com.ttelectronics.trackiiapp.ui.theme.TTGreen
 import com.ttelectronics.trackiiapp.ui.theme.TTGreenTint
@@ -61,12 +65,11 @@ import com.ttelectronics.trackiiapp.ui.viewmodel.TaskDetailViewModelFactory
 data class InfoItem(val title: String, val value: String, val icon: ImageVector)
 
 data class ProductRouteStatus(
-    val previousStep: String,
-    val currentStep: String,
-    val nextStep: String,
-    val source: String,
-    val destination: String,
-    val started: Boolean
+    val isStarted: Boolean,
+    val isEligible: Boolean,
+    val currentLocationName: String,
+    val previousLocationName: String,
+    val nextLocationName: String
 )
 
 @Composable
@@ -92,24 +95,28 @@ fun TaskDetailScreen(
 
     val part = uiState.partInfo
     val ctx = uiState.contextInfo
-    val currentStepName = ctx?.currentStepName
-    val nextStepName = ctx?.nextSteps?.firstOrNull()?.locationName
+    val isEligible = if (ctx?.isNew == true) {
+        ctx.currentStepName?.equals(auth.locationName, ignoreCase = true) ?: false
+    } else {
+        ctx?.nextSteps?.firstOrNull()?.locationName?.equals(auth.locationName, ignoreCase = true) ?: false
+    }
+
     val routeStatus = ProductRouteStatus(
-        previousStep = currentStepName ?: "Desconocida",
-        currentStep = if (ctx?.isNew == true) "Orden no empezada" else (currentStepName ?: "Desconocida"),
-        nextStep = nextStepName ?: "Fin de ruta",
-        source = currentStepName ?: "Desconocida",
-        destination = nextStepName ?: "Fin de ruta",
-        started = ctx?.isNew == false
+        isStarted = ctx?.isNew == false,
+        isEligible = isEligible,
+        currentLocationName = ctx?.currentStepName ?: "Paso 1",
+        previousLocationName = "Paso ${(ctx?.currentStepNumber ?: 2) - 1}",
+        nextLocationName = ctx?.nextSteps?.firstOrNull()?.locationName ?: "Fin de ruta"
     )
 
     val infoItems = listOf(
-        InfoItem("Área", part?.areaName ?: "Sin área", Icons.Rounded.Factory),
-        InfoItem("Familia", part?.familyName ?: "Sin familia", Icons.Rounded.Category),
-        InfoItem("Subfamilia", part?.subfamilyName ?: "Sin subfamilia", Icons.Rounded.Inventory2),
-        InfoItem("No. de ruta", part?.activeRouteId?.toString() ?: "Sin ruta activa", Icons.Rounded.Route)
+        InfoItem("No. Lote", lotNumber, Icons.Rounded.Inventory2),
+        InfoItem("No. Parte", partNumber, Icons.Rounded.QrCode),
+        InfoItem("Área", part?.areaName ?: "Pendiente", Icons.Rounded.Factory),
+        InfoItem("Familia", part?.familyName ?: "Pendiente", Icons.Rounded.Category),
+        InfoItem("Subfamilia", part?.subfamilyName ?: "Pendiente", Icons.Rounded.Inventory2),
+        InfoItem("Versión Ruta", ctx?.routeName ?: part?.activeRouteId?.toString() ?: "Pendiente", Icons.Rounded.Route)
     )
-
 
     TrackIIBackground(glowOffsetX = 24.dp, glowOffsetY = 120.dp) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -124,7 +131,6 @@ fun TaskDetailScreen(
 
                 GlassCard {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        ScanHeader(lotNumber = lotNumber, partNumber = partNumber)
                         InfoGrid(items = infoItems)
                         ProductRouteDashboard(status = routeStatus)
 
@@ -179,48 +185,48 @@ fun TaskDetailScreen(
 }
 
 @Composable
-private fun ScanHeader(lotNumber: String, partNumber: String) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text("Lote: $lotNumber", color = TTTextSecondary)
-        Text("Parte: $partNumber", color = TTTextSecondary)
-    }
-}
-
-@Composable
 private fun ProductRouteDashboard(status: ProductRouteStatus) {
-    if (!status.started) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(TTBlueTint.copy(alpha = 0.5f), Color.White)), shape = RoundedCornerShape(20.dp))
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text("Ruta actual del producto", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold), color = TTTextSecondary)
-            Text("Orden no empezada", color = TTTextSecondary)
-            Text("Ruta actual: ${status.previousStep}")
-            Text("Ruta siguiente: ${status.nextStep}")
-        }
-        return
-    }
-
     val breath = rememberInfiniteTransition(label = "breath")
     val scale = breath.animateFloat(initialValue = 1f, targetValue = 1.08f, animationSpec = infiniteRepeatable(animation = tween(900), repeatMode = RepeatMode.Reverse), label = "breathScale").value
 
     Column(
         modifier = Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(TTBlueTint.copy(alpha = 0.5f), Color.White)), shape = RoundedCornerShape(20.dp)).padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Text("Ruta actual del producto", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold), color = TTTextSecondary)
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Salida: ${status.source}", style = MaterialTheme.typography.labelMedium, color = TTTextSecondary)
-            Text("Destino: ${status.destination}", style = MaterialTheme.typography.labelMedium, color = TTTextSecondary)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(
+                imageVector = if (status.isEligible) Icons.Rounded.CheckCircle else Icons.Rounded.Error,
+                contentDescription = null,
+                tint = if (status.isEligible) TTGreen else TTRed,
+                modifier = Modifier.size(22.dp)
+            )
+            Text(
+                text = if (status.isEligible) "Producto en ruta correcta" else "Fuera de ruta / Acción inválida",
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = if (status.isEligible) TTGreen else TTRed
+            )
         }
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-            RouteNode(label = "Localidad actual", value = status.previousStep, isCurrent = false)
-            RouteNode(label = "Estado", value = status.currentStep, isCurrent = true, scale = scale)
-            RouteNode(label = "Siguiente", value = status.nextStep, isCurrent = false)
+
+        if (!status.isStarted) {
+            Text("Esta orden se abrirá por primera vez", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold), color = TTTextSecondary, textAlign = TextAlign.Center)
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
+                RouteNode(label = "Paso 1", value = status.currentLocationName, isCurrent = true, scale = scale)
+                RouteNode(label = "Paso 2", value = status.nextLocationName, isCurrent = false, scale = 0.85f)
+            }
+        } else {
+            androidx.compose.material3.Card(shape = RoundedCornerShape(12.dp), colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = TTBlue.copy(alpha = 0.1f))) {
+                Text(
+                    text = "Localidad actual: ${status.currentLocationName}",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                    color = TTBlueDark,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
+                RouteNode(label = "Paso anterior", value = status.previousLocationName, isCurrent = false, scale = 0.85f)
+                RouteNode(label = "Paso siguiente", value = status.nextLocationName, isCurrent = true, scale = scale)
+            }
         }
     }
 }

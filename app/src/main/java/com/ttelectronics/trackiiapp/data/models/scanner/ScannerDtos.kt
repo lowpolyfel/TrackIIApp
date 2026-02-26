@@ -21,6 +21,7 @@ data class WorkOrderContextResponse(
     @SerializedName("previousQuantity") val previousQuantity: Int? = null,
     @SerializedName("currentStepNumber") val currentStepNumber: Int? = null,
     @SerializedName("currentStepName") val currentStepName: String? = null,
+    @SerializedName("routeName") val routeName: String? = null,
     @SerializedName("nextSteps") val nextSteps: List<NextRouteStepResponse>? = null
 )
 

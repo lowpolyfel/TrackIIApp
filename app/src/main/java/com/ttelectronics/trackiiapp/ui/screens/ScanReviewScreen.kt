@@ -114,11 +114,11 @@ fun ScanReviewScreen(
                                 InfoLine("Área", partInfo?.areaName ?: "Sin área", Icons.Rounded.Factory)
                                 InfoLine("Familia", partInfo?.familyName ?: "Sin familia", Icons.Rounded.Category)
                                 InfoLine("Subfamilia", partInfo?.subfamilyName ?: "Sin subfamilia", Icons.Rounded.Inventory2)
-                                InfoLine("No. de ruta", partInfo?.activeRouteId?.toString() ?: "Sin ruta activa", Icons.Rounded.Route)
+                                InfoLine("Versión de ruta", workContext?.routeName ?: partInfo?.activeRouteId?.toString() ?: "Sin ruta activa", Icons.Rounded.Route)
 
                                 if (workContext?.isNew == true) {
                                     InfoLine("Ruta actual", "Orden no empezada", Icons.Rounded.Route)
-                                    InfoLine("Siguiente localidad", workContext.nextSteps?.firstOrNull()?.locationName ?: "Desconocida", Icons.Rounded.Route)
+                                    InfoLine("Siguiente localidad", workContext.currentStepName ?: "Paso 1", Icons.Rounded.Route)
                                 } else {
                                     InfoLine("Localidad actual", workContext?.currentStepName ?: "Desconocida", Icons.Rounded.Route)
                                     InfoLine("Siguiente localidad", workContext?.nextSteps?.firstOrNull()?.locationName ?: "Fin de ruta", Icons.Rounded.Route)

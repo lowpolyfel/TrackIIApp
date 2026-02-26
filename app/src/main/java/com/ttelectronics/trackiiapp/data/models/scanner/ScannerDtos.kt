@@ -1,32 +1,35 @@
 package com.ttelectronics.trackiiapp.data.models.scanner
 
 import com.google.gson.annotations.SerializedName
-import com.ttelectronics.trackiiapp.data.models.enums.WipStatus
-import com.ttelectronics.trackiiapp.data.models.enums.WorkOrderStatus
 
 data class PartLookupResponse(
-    @SerializedName(value = "found", alternate = ["exists", "isFound", "Found"]) val found: Boolean? = null,
-    @SerializedName(value = "partNumber", alternate = ["part_number", "PartNumber"]) val partNumber: String? = null,
-    @SerializedName(value = "area", alternate = ["Area", "areaName", "AreaName"]) val area: String? = null,
-    @SerializedName(value = "areaId", alternate = ["AreaId"]) val areaId: Int? = null,
-    @SerializedName(value = "family", alternate = ["Family", "familyName", "FamilyName"]) val family: String? = null,
-    @SerializedName(value = "subfamily", alternate = ["Subfamily", "subfamilyName", "SubfamilyName"]) val subfamily: String? = null,
-    @SerializedName(value = "routeNumber", alternate = ["route_number", "routeId", "RouteNumber", "RouteId"]) val routeNumber: String? = null,
-    @SerializedName(value = "currentRoute", alternate = ["currentStep", "currentLocation", "CurrentRoute", "CurrentStep"]) val currentRoute: String? = null
+    @SerializedName("found") val found: Boolean? = null,
+    @SerializedName("message") val message: String? = null,
+    @SerializedName("partNumber") val partNumber: String? = null,
+    @SerializedName("productId") val productId: Int? = null,
+    @SerializedName("subfamilyId") val subfamilyId: Int? = null,
+    @SerializedName("subfamilyName") val subfamilyName: String? = null,
+    @SerializedName("familyId") val familyId: Int? = null,
+    @SerializedName("familyName") val familyName: String? = null,
+    @SerializedName("areaId") val areaId: Int? = null,
+    @SerializedName("areaName") val areaName: String? = null,
+    @SerializedName("activeRouteId") val activeRouteId: Int? = null
 )
 
 data class WorkOrderContextResponse(
-    @SerializedName("success") val success: Boolean? = null,
-    @SerializedName("message") val message: String? = null,
-    @SerializedName("workOrderId") val workOrderId: Int? = null,
-    @SerializedName("status") val status: WorkOrderStatus? = null,
-    @SerializedName("routeId") val routeId: Int? = null,
-    @SerializedName("currentStepId") val currentStepId: Int? = null,
-    @SerializedName("nextStepId") val nextStepId: Int? = null,
-    @SerializedName("nextLocationName") val nextLocationName: String? = null,
-    @SerializedName("isFirstStep") val isFirstStep: Boolean? = null,
-    @SerializedName("canProceed") val canProceed: Boolean? = null,
-    @SerializedName("wipStatus") val wipStatus: WipStatus? = null
+    @SerializedName("isNew") val isNew: Boolean? = null,
+    @SerializedName("previousQuantity") val previousQuantity: Int? = null,
+    @SerializedName("currentStepNumber") val currentStepNumber: Int? = null,
+    @SerializedName("currentStepName") val currentStepName: String? = null,
+    @SerializedName("nextSteps") val nextSteps: List<NextRouteStepResponse>? = null
+)
+
+data class NextRouteStepResponse(
+    @SerializedName("stepId") val stepId: Int,
+    @SerializedName("stepNumber") val stepNumber: Int,
+    @SerializedName("stepName") val stepName: String,
+    @SerializedName("locationId") val locationId: Int,
+    @SerializedName("locationName") val locationName: String
 )
 
 data class RegisterScanRequest(

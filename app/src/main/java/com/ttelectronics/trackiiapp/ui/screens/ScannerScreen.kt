@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -163,8 +162,7 @@ fun ScannerScreen(
             } else if (hasCameraPermission) {
                 CameraScanPanel(
                     modifier = Modifier
-                        .align(Alignment.Center)
-                        .offset(y = (-20).dp),
+                        .align(Alignment.Center),
                     onRawValuesDetected = { rawValues ->
                         hasBarcodeInFrame = rawValues.isNotEmpty()
                         scannerViewModel.procesarFotograma(rawValues)
@@ -322,8 +320,10 @@ private fun CameraScanPanel(
 
     Box(
         modifier = modifier
-            .fillMaxWidth(0.73f)
-            .aspectRatio(1.19f)
+            .fillMaxWidth()
+            .padding(16.dp)
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(26.dp))
             .background(Color.Black.copy(alpha = 0.12f), RoundedCornerShape(26.dp))
     ) {
         AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())

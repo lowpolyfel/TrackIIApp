@@ -110,14 +110,12 @@ fun ScanReviewScreen(
                             InfoLine("Área", partInfo?.area ?: "Cargando...", Icons.Rounded.Factory)
                             InfoLine("Familia", partInfo?.family ?: "Cargando...", Icons.Rounded.Category)
                             InfoLine("Subfamilia", partInfo?.subfamily ?: "Cargando...", Icons.Rounded.Inventory2)
-                            InfoLine("No. de ruta", workContext?.routeId?.toString() ?: partInfo?.routeNumber ?: "Cargando...", Icons.Rounded.Route)
                             if (noStartedOrder) {
                                 InfoLine("Ruta actual", "Orden no empezada", Icons.Rounded.Route)
-                                InfoLine("Ruta esperada", workContext?.currentStepId?.toString() ?: "Paso 1", Icons.Rounded.Route)
-                                InfoLine("Siguiente", workContext?.nextStepId?.toString() ?: "Paso 1", Icons.Rounded.Route)
+                                InfoLine("Ruta siguiente", workContext?.nextLocationName ?: partInfo?.nextLocationName ?: "Cargando...", Icons.Rounded.Route)
                             } else {
-                                InfoLine("Ruta actual", workContext?.currentStepId?.toString() ?: partInfo?.currentRoute ?: "Cargando...", Icons.Rounded.Route)
-                                InfoLine("Siguiente", workContext?.nextLocationName ?: "Cargando...", Icons.Rounded.Route)
+                                InfoLine("Ruta actual", workContext?.currentLocationName ?: partInfo?.currentLocationName ?: "Cargando...", Icons.Rounded.Route)
+                                InfoLine("Ruta siguiente", workContext?.nextLocationName ?: partInfo?.nextLocationName ?: "Cargando...", Icons.Rounded.Route)
                             }
                         }
                         uiState.errorMessage?.let { Text(it, color = TTRed, style = MaterialTheme.typography.bodySmall) }

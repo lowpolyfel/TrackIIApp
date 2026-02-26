@@ -1,11 +1,14 @@
 package com.ttelectronics.trackiiapp.data.repository
 
 import com.ttelectronics.trackiiapp.data.local.AppSession
+import com.ttelectronics.trackiiapp.data.models.scanner.ErrorCategoryResponse
+import com.ttelectronics.trackiiapp.data.models.scanner.ErrorCodeResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.PartLookupResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.RegisterScanRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.RegisterScanResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.ReworkRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.ReworkResponse
+import com.ttelectronics.trackiiapp.data.models.scanner.ScrapOrderRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.ScrapRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.ScrapResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.WorkOrderContextResponse
@@ -42,8 +45,16 @@ class ScannerRepository(
         )
     }
 
+
+    suspend fun getErrorCategories(): List<ErrorCategoryResponse> = api.getErrorCategories()
+
+    suspend fun getErrorCodes(categoryId: Int): List<ErrorCodeResponse> = api.getErrorCodes(categoryId)
     suspend fun scrapOrder(workOrderNumber: String, partNumber: String, deviceId: Int, qty: Int, reason: String): ScrapResponse {
         return api.scrap(ScrapRequest(workOrderNumber, partNumber, deviceId, qty, reason))
+    }
+
+    suspend fun scrapOrder(request: ScrapOrderRequest): ScrapResponse {
+        return api.scrapOrder(request)
     }
 
     suspend fun reworkOrder(workOrderNumber: String, partNumber: String, deviceId: Int, location: String, reason: String?): ReworkResponse {

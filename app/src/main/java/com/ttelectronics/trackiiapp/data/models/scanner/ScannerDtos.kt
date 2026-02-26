@@ -12,7 +12,9 @@ data class PartLookupResponse(
     @SerializedName(value = "family", alternate = ["Family", "familyName", "FamilyName"]) val family: String? = null,
     @SerializedName(value = "subfamily", alternate = ["Subfamily", "subfamilyName", "SubfamilyName"]) val subfamily: String? = null,
     @SerializedName(value = "routeNumber", alternate = ["route_number", "routeId", "RouteNumber", "RouteId"]) val routeNumber: String? = null,
-    @SerializedName(value = "currentRoute", alternate = ["currentStep", "currentLocation", "CurrentRoute", "CurrentStep"]) val currentRoute: String? = null
+    @SerializedName(value = "currentRoute", alternate = ["currentStep", "currentLocation", "CurrentRoute", "CurrentStep"]) val currentRoute: String? = null,
+    @SerializedName(value = "currentLocationName", alternate = ["CurrentLocationName"]) val currentLocationName: String? = null,
+    @SerializedName(value = "nextLocationName", alternate = ["NextLocationName"]) val nextLocationName: String? = null
 )
 
 data class WorkOrderContextResponse(
@@ -23,7 +25,10 @@ data class WorkOrderContextResponse(
     @SerializedName("routeId") val routeId: Int? = null,
     @SerializedName("currentStepId") val currentStepId: Int? = null,
     @SerializedName("nextStepId") val nextStepId: Int? = null,
+    @SerializedName("currentLocationName") val currentLocationName: String? = null,
     @SerializedName("nextLocationName") val nextLocationName: String? = null,
+    @SerializedName("routeVersion") val routeVersion: String? = null,
+    @SerializedName("routeName") val routeName: String? = null,
     @SerializedName("isFirstStep") val isFirstStep: Boolean? = null,
     @SerializedName("canProceed") val canProceed: Boolean? = null,
     @SerializedName("wipStatus") val wipStatus: WipStatus? = null

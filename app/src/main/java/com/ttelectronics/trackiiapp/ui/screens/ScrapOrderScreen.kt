@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.ttelectronics.trackiiapp.ui.screens
 
 import android.widget.Toast
@@ -10,6 +12,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
@@ -122,7 +127,7 @@ fun ScrapOrderScreen(
                         var categoryExpanded by remember { mutableStateOf(false) }
                         ExposedDropdownMenuBox(
                             expanded = categoryExpanded,
-                            onExpandedChange = { categoryExpanded = !categoryExpanded }
+                            onExpandedChange = { categoryExpanded = it }
                         ) {
                             OutlinedTextField(
                                 value = uiState.selectedCategory?.name.orEmpty(),
@@ -135,12 +140,12 @@ fun ScrapOrderScreen(
                                     .fillMaxWidth(),
                                 shape = RoundedCornerShape(18.dp)
                             )
-                            androidx.compose.material3.ExposedDropdownMenu(
+                            ExposedDropdownMenu(
                                 expanded = categoryExpanded,
                                 onDismissRequest = { categoryExpanded = false }
                             ) {
                                 uiState.categories.forEach { category ->
-                                    androidx.compose.material3.DropdownMenuItem(
+                                    DropdownMenuItem(
                                         text = { Text(category.name) },
                                         onClick = {
                                             viewModel.onCategorySelected(category)
@@ -154,8 +159,8 @@ fun ScrapOrderScreen(
                         var codeExpanded by remember { mutableStateOf(false) }
                         ExposedDropdownMenuBox(
                             expanded = codeExpanded,
-                            onExpandedChange = {
-                                if (uiState.selectedCategory != null) codeExpanded = !codeExpanded
+                            onExpandedChange = { isExpanded ->
+                                if (uiState.selectedCategory != null) codeExpanded = isExpanded
                             }
                         ) {
                             OutlinedTextField(
@@ -170,12 +175,12 @@ fun ScrapOrderScreen(
                                     .fillMaxWidth(),
                                 shape = RoundedCornerShape(18.dp)
                             )
-                            androidx.compose.material3.ExposedDropdownMenu(
+                            ExposedDropdownMenu(
                                 expanded = codeExpanded,
                                 onDismissRequest = { codeExpanded = false }
                             ) {
                                 uiState.codes.forEach { code ->
-                                    androidx.compose.material3.DropdownMenuItem(
+                                    DropdownMenuItem(
                                         text = { Text("${code.code} - ${code.description}") },
                                         onClick = {
                                             viewModel.onCodeSelected(code)

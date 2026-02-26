@@ -364,27 +364,26 @@ fun PrimaryGlowButton(
 }
 
 @Composable
-fun SoftActionButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val transition = rememberInfiniteTransition(label = "softButtonPulse")
-    val scale by transition.animateFloat(
-        initialValue = 0.985f,
-        targetValue = 1.015f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2200),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "softButtonScale"
-    )
+fun SoftActionButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
     Button(
         onClick = onClick,
-        modifier = modifier.graphicsLayer {
-            scaleX = scale
-            scaleY = scale
-        },
-        colors = ButtonDefaults.buttonColors(containerColor = TTBlueLight),
-        shape = RoundedCornerShape(18.dp)
+        enabled = enabled,
+        modifier = modifier.height(50.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = TTBlue,
+            disabledContainerColor = Color.Gray.copy(alpha = 0.5f)
+        ),
+        shape = RoundedCornerShape(12.dp)
     ) {
-        Text(text = text, color = TTBlueDark, fontWeight = FontWeight.SemiBold)
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+        )
     }
 }
 

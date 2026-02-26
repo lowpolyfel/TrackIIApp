@@ -39,7 +39,7 @@ class TaskDetailViewModel(private val scannerRepository: ScannerRepository) : Vi
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             val partResult = runCatching { scannerRepository.lookupPart(partNumber.trim()) }
-            val ctxResult = runCatching { scannerRepository.getWorkOrderContext(workOrderNumber.trim(), deviceId) }
+            val ctxResult = runCatching { scannerRepository.getWorkOrderContext(workOrderNumber.trim(), deviceId, partNumber.trim()) }
             val err = partResult.exceptionOrNull()?.let { ApiErrorParser.readableError(it) }
                 ?: ctxResult.exceptionOrNull()?.let { ApiErrorParser.readableError(it) }
             _uiState.update {

@@ -28,21 +28,11 @@ class ProductAdvanceScanPolicy {
         }
 
         val normalizedWo = workOrderNumber.trim()
-        if (context?.workOrderId == null && normalizedWo.length != 7) {
+        if (normalizedWo.length != 7) {
             return ProductAdvanceDecision(
                 canRegister = false,
                 qtyIn = qty,
                 localMessage = "WO inválida (debe ser de 7 dígitos)."
-            )
-        }
-
-
-
-        if (context?.canProceed == false) {
-            return ProductAdvanceDecision(
-                canRegister = false,
-                qtyIn = qty,
-                localMessage = context.message ?: "Dispositivo no corresponde al paso actual."
             )
         }
 

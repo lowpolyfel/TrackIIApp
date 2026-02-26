@@ -3,11 +3,13 @@ package com.ttelectronics.trackiiapp.ui.screens
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Rect
+import android.util.Size
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -54,6 +56,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
+import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.ttelectronics.trackiiapp.R
 import com.ttelectronics.trackiiapp.core.ServiceLocator
@@ -61,7 +65,8 @@ import com.ttelectronics.trackiiapp.core.camera.CameraManager
 import com.ttelectronics.trackiiapp.ui.components.PermissionFallback
 import com.ttelectronics.trackiiapp.ui.components.ScanResultOverlay
 import com.ttelectronics.trackiiapp.ui.components.ScannerFrameOverlay
-import com.ttelectronics.trackiiapp.ui.components.ScannerOverlay
+import com.ttelectronics.trackiiapp.ui.components.ScannerControlsPanel
+import com.ttelectronics.trackiiapp.ui.components.ScannerHeader
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.components.rememberRawSoundPlayer
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
@@ -76,7 +81,7 @@ private const val SCAN_WINDOW_LEFT = 0f
 private const val SCAN_WINDOW_TOP = 0f
 private const val SCAN_WINDOW_RIGHT = 1f
 private const val SCAN_WINDOW_BOTTOM = 1f
-private const val INSTRUCTION_DURATION = 4000
+private const val INSTRUCTION_DURATION = 2500
 
 @OptIn(ExperimentalGetImage::class)
 @Composable
@@ -157,44 +162,57 @@ fun ScannerScreen(
     }
 
     TrackIIBackground(glowOffsetX = 40.dp, glowOffsetY = (-30).dp) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            if (showInstructions) {
-                ScannerInstructionsScreen()
-            } else if (hasCameraPermission) {
-                CameraScanPanel(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .offset(y = (-20).dp),
-                    onRawValuesDetected = { rawValues ->
-                        hasBarcodeInFrame = rawValues.isNotEmpty()
-                        scannerViewModel.procesarFotograma(rawValues)
-                    },
-                    onScanFailure = { hasBarcodeInFrame = false },
-                    hasBarcodeInFrame = hasBarcodeInFrame
-                )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 16.dp, bottom = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            ScannerHeader(taskTitle = taskType.title)
 
-                ScannerOverlay(
-                    taskTitle = taskType.title,
+            if (showInstructions) {
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    ScannerInstructionsScreen()
+                }
+            } else if (hasCameraPermission) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CameraScanPanel(
+                        modifier = Modifier.fillMaxWidth().aspectRatio(3f / 4f),
+                        onRawValuesDetected = { rawValues ->
+                            hasBarcodeInFrame = rawValues.isNotEmpty()
+                            scannerViewModel.procesarFotograma(rawValues)
+                        },
+                        onScanFailure = { hasBarcodeInFrame = false },
+                        hasBarcodeInFrame = hasBarcodeInFrame
+                    )
+                }
+
+                ScannerControlsPanel(
                     lotNumber = lotNumber,
                     partNumber = partNumber,
+                    isValidating = scannerUiState.isValidating,
+                    canValidate = canValidate,
                     onReset = {
                         showResultOverlay = false
                         overlayText = ""
                         scannerViewModel.resetScan()
                     },
-                    onBack = onBack,
-                    statusText = when {
-                        scannerUiState.isValidating -> "Validando parte en BD..."
-                        canValidate -> "Escaneo completo, esperando validación..."
-                        else -> "Escanea lote y parte"
-                    }
+                    onBack = onBack
                 )
             } else {
-                PermissionFallback(onRequest = { permissionLauncher.launch(Manifest.permission.CAMERA) })
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    PermissionFallback(onRequest = { permissionLauncher.launch(Manifest.permission.CAMERA) })
+                }
             }
-
-            ScanResultOverlay(visible = showResultOverlay, success = overlaySuccess, message = overlayText)
         }
+
+        ScanResultOverlay(visible = showResultOverlay, success = overlaySuccess, message = overlayText)
     }
 }
 
@@ -210,8 +228,13 @@ private fun ScannerInstructionsScreen() {
         ),
         label = "instructionProgress"
     )
-    val sheetOffset = (-46f) + (progress * 92f)
-    val sheetAlpha = (progress * 1.5f).coerceIn(0f, 1f)
+    val fastProgress = (progress * 1.45f).coerceIn(0f, 1f)
+    val sheetOffset = (-56f) + (fastProgress * 124f)
+    val sheetAlpha = when {
+        fastProgress < 0.18f -> (fastProgress / 0.18f).coerceIn(0f, 1f)
+        fastProgress > 0.82f -> ((1f - fastProgress) / 0.18f).coerceIn(0f, 1f)
+        else -> 1f
+    }
 
     Column(
         modifier = Modifier
@@ -289,16 +312,38 @@ private fun CameraScanPanel(
 
     val executor = remember { Executors.newSingleThreadExecutor() }
     val mainExecutor = remember { ContextCompat.getMainExecutor(context) }
-    val barcodeScanner = remember { BarcodeScanning.getClient() }
-    val analysis = remember { ImageAnalysis.Builder().setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build() }
+    val barcodeScanner = remember {
+        val options = BarcodeScannerOptions.Builder()
+            .setBarcodeFormats(
+                Barcode.FORMAT_CODE_128,
+                Barcode.FORMAT_CODE_39,
+                Barcode.FORMAT_DATA_MATRIX,
+                Barcode.FORMAT_QR_CODE
+            )
+            .build()
+        BarcodeScanning.getClient(options)
+    }
+    val analysis = remember {
+        ImageAnalysis.Builder()
+            .setTargetResolution(Size(1280, 720))
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .build()
+    }
     val analyzer = remember {
         ImageAnalysis.Analyzer { imageProxy ->
             val mediaImage = imageProxy.image ?: run { imageProxy.close(); return@Analyzer }
-            mediaImage.setCropRect(buildCropRect(imageProxy.width, imageProxy.height))
+            val cropRect = buildCropRect(imageProxy)
+            mediaImage.setCropRect(cropRect)
             val inputImage = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
             barcodeScanner.process(inputImage)
                 .addOnSuccessListener(mainExecutor) { barcodes ->
-                    onRawValuesDetected(barcodes.mapNotNull { it.rawValue })
+                    val acceptedRawValues = barcodes
+                        .filter { barcode ->
+                            val bounds = barcode.boundingBox ?: return@filter false
+                            Rect.intersects(bounds, cropRect)
+                        }
+                        .mapNotNull { it.rawValue }
+                    onRawValuesDetected(acceptedRawValues)
                 }
                 .addOnFailureListener(mainExecutor) { onScanFailure() }
                 .addOnCompleteListener { imageProxy.close() }
@@ -322,8 +367,10 @@ private fun CameraScanPanel(
 
     Box(
         modifier = modifier
-            .fillMaxWidth(0.73f)
-            .aspectRatio(1.19f)
+            .fillMaxWidth()
+            .padding(16.dp)
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(26.dp))
             .background(Color.Black.copy(alpha = 0.12f), RoundedCornerShape(26.dp))
     ) {
         AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
@@ -332,7 +379,9 @@ private fun CameraScanPanel(
 }
 
 
-private fun buildCropRect(imageWidth: Int, imageHeight: Int): Rect {
+private fun buildCropRect(imageProxy: ImageProxy): Rect {
+    val imageWidth = imageProxy.width
+    val imageHeight = imageProxy.height
     val left = (imageWidth * SCAN_WINDOW_LEFT).toInt()
     val top = (imageHeight * SCAN_WINDOW_TOP).toInt()
     val right = (imageWidth * SCAN_WINDOW_RIGHT).toInt().coerceAtMost(imageWidth)

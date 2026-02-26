@@ -53,34 +53,110 @@ import com.ttelectronics.trackiiapp.ui.theme.TTRed
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
 
 @Composable
-fun ScannerOverlay(taskTitle: String, lotNumber: String, partNumber: String, onReset: () -> Unit, onBack: () -> Unit, statusText: String) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.TopCenter)
-                .background(Brush.verticalGradient(listOf(TTBlueDark.copy(alpha = 0.18f), Color.Transparent)))
-                .padding(horizontal = 24.dp, vertical = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+fun ScannerHeader(taskTitle: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.ttlogo),
+            contentDescription = "TT logo",
+            modifier = Modifier.height(32.dp)
+        )
+
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = TTBlueDark.copy(alpha = 0.15f)),
+            elevation = CardDefaults.cardElevation(0.dp)
         ) {
-            Image(painter = painterResource(id = R.drawable.ttlogo), contentDescription = "TT logo", modifier = Modifier.fillMaxWidth(0.42f).height(38.dp))
-            Text(text = taskTitle, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.9f))
+            Text(
+                text = taskTitle,
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                color = TTBlueDark,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun ScannerControlsPanel(
+    lotNumber: String,
+    partNumber: String,
+    isValidating: Boolean,
+    canValidate: Boolean,
+    onReset: () -> Unit,
+    onBack: () -> Unit
+) {
+    val statusText = when {
+        isValidating -> "Validando en BD..."
+        canValidate -> "Escaneo listo, validando..."
+        else -> "Escanea lote y parte para continuar"
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Card(
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.95f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Datos Capturados",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = TTBlueDark
+                )
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("No. Lote", style = MaterialTheme.typography.labelMedium, color = TTTextSecondary)
+                        Text(
+                            text = if (lotNumber.isBlank()) "---" else lotNumber,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                            color = if (lotNumber.isBlank()) TTTextSecondary else Color.Black
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                        Text("No. Parte", style = MaterialTheme.typography.labelMedium, color = TTTextSecondary)
+                        Text(
+                            text = if (partNumber.isBlank()) "---" else partNumber,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                            color = if (partNumber.isBlank()) TTTextSecondary else Color.Black
+                        )
+                    }
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = if (canValidate) Icons.Rounded.CheckCircle else Icons.Rounded.DocumentScanner,
+                        contentDescription = null,
+                        tint = if (canValidate) TTGreen else TTTextSecondary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = statusText,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (canValidate) TTGreen else TTTextSecondary,
+                        modifier = Modifier.padding(start = 6.dp)
+                    )
+                }
+            }
         }
 
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(Color.Transparent, TTBlueDark.copy(alpha = 0.16f))))
-                .padding(horizontal = 24.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            ScannerInfoCard(lotNumber = lotNumber, partNumber = partNumber)
-            Text(statusText, color = Color.White, style = MaterialTheme.typography.bodySmall)
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                SoftActionButton(text = "Reiniciar", onClick = onReset, modifier = Modifier.weight(1f))
-                SoftActionButton(text = "Volver", onClick = onBack, modifier = Modifier.weight(1f))
-            }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            SoftActionButton(text = "Reiniciar", onClick = onReset, modifier = Modifier.weight(1f))
+            SoftActionButton(text = "Volver", onClick = onBack, modifier = Modifier.weight(1f))
         }
     }
 }

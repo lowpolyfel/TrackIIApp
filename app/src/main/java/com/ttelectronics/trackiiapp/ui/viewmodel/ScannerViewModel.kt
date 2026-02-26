@@ -25,7 +25,7 @@ data class ScannerUiState(
 
 class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewModel() {
     private val lotRegex = Regex("^[0-9]{7}$")
-    private val partRegex = Regex("^[A-Z0-9]{6,15}$")
+    private val partRegex = Regex("^[A-Z0-9\\-]{6,25}$")
 
     private val _uiState = MutableStateFlow(ScannerUiState())
     val uiState: StateFlow<ScannerUiState> = _uiState.asStateFlow()

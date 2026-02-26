@@ -59,6 +59,27 @@ data class ScrapResponse(
     @SerializedName("message") val message: String? = null
 )
 
+data class ErrorCategoryResponse(
+    @SerializedName("id") val id: Int,
+    @SerializedName("name") val name: String
+)
+
+data class ErrorCodeResponse(
+    @SerializedName("id") val id: Int,
+    @SerializedName("code") val code: String,
+    @SerializedName("description") val description: String
+)
+
+data class ScrapOrderRequest(
+    @SerializedName("workOrderNumber") val workOrderNumber: String,
+    @SerializedName("partNumber") val partNumber: String,
+    @SerializedName("deviceId") val deviceId: Int,
+    @SerializedName("qty") val qty: Int,
+    @SerializedName("errorCategoryId") val errorCategoryId: Int,
+    @SerializedName("errorCodeId") val errorCodeId: Int,
+    @SerializedName("comments") val comments: String
+)
+
 data class ReworkRequest(
     @SerializedName("workOrderNumber") val workOrderNumber: String,
     @SerializedName("partNumber") val partNumber: String,

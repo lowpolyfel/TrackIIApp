@@ -1,10 +1,13 @@
 package com.ttelectronics.trackiiapp.data.network
 
+import com.ttelectronics.trackiiapp.data.models.scanner.ErrorCategoryResponse
+import com.ttelectronics.trackiiapp.data.models.scanner.ErrorCodeResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.PartLookupResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.RegisterScanRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.RegisterScanResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.ReworkRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.ReworkResponse
+import com.ttelectronics.trackiiapp.data.models.scanner.ScrapOrderRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.ScrapRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.ScrapResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.WorkOrderContextResponse
@@ -28,8 +31,17 @@ interface ScannerApiService {
     @POST("api/scanner/register")
     suspend fun registerScan(@Body request: RegisterScanRequest): RegisterScanResponse
 
+    @GET("api/scanner/error-categories")
+    suspend fun getErrorCategories(): List<ErrorCategoryResponse>
+
+    @GET("api/scanner/error-categories/{id}/codes")
+    suspend fun getErrorCodes(@Path("id") categoryId: Int): List<ErrorCodeResponse>
+
     @POST("api/scanner/scrap")
     suspend fun scrap(@Body request: ScrapRequest): ScrapResponse
+
+    @POST("api/scanner/scrap")
+    suspend fun scrapOrder(@Body request: ScrapOrderRequest): ScrapResponse
 
     @POST("api/scanner/rework")
     suspend fun rework(@Body request: ReworkRequest): ReworkResponse

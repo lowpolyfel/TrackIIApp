@@ -71,7 +71,6 @@ fun ScanReviewScreen(
 
     val partInfo = uiState.partInfo
     val workContext = uiState.contextInfo
-    val noStartedOrder = (workContext?.isFirstStep == true)
 
     TrackIIBackground(glowOffsetX = 10.dp, glowOffsetY = (-10).dp) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -89,7 +88,7 @@ fun ScanReviewScreen(
                 Text(
                     text = when {
                         !orderFound -> errorMessage.ifBlank { "No se encontró la orden para la parte escaneada." }
-                        noStartedOrder -> "Orden sin comenzar"
+                        workContext?.isNew == true -> "Orden sin comenzar"
                         else -> "Confirma los datos antes de continuar."
                     },
                     style = MaterialTheme.typography.bodyMedium,
@@ -105,16 +104,25 @@ fun ScanReviewScreen(
                     ) {
                         ScanHighlightRow(label = "No. Lote", value = lotNumber, orderFound = orderFound)
                         ScanHighlightRow(label = "No. Parte", value = partNumber, orderFound = orderFound)
+
                         if (orderFound) {
-                            InfoLine("Área", partInfo?.area ?: "Cargando...", Icons.Rounded.Factory)
-                            InfoLine("Familia", partInfo?.family ?: "Cargando...", Icons.Rounded.Category)
-                            InfoLine("Subfamilia", partInfo?.subfamily ?: "Cargando...", Icons.Rounded.Inventory2)
-                            if (noStartedOrder) {
-                                InfoLine("Ruta actual", "Orden no empezada", Icons.Rounded.Route)
-                                InfoLine("Ruta siguiente", workContext?.nextLocationName ?: partInfo?.nextLocationName ?: "Cargando...", Icons.Rounded.Route)
+                            if (uiState.isLoading) {
+                                Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                                    androidx.compose.material3.CircularProgressIndicator(color = TTBlueDark)
+                                }
                             } else {
-                                InfoLine("Ruta actual", workContext?.currentLocationName ?: partInfo?.currentLocationName ?: "Cargando...", Icons.Rounded.Route)
-                                InfoLine("Ruta siguiente", workContext?.nextLocationName ?: partInfo?.nextLocationName ?: "Cargando...", Icons.Rounded.Route)
+                                InfoLine("Área", partInfo?.areaName ?: "Sin área", Icons.Rounded.Factory)
+                                InfoLine("Familia", partInfo?.familyName ?: "Sin familia", Icons.Rounded.Category)
+                                InfoLine("Subfamilia", partInfo?.subfamilyName ?: "Sin subfamilia", Icons.Rounded.Inventory2)
+                                InfoLine("No. de ruta", partInfo?.activeRouteId?.toString() ?: "Sin ruta activa", Icons.Rounded.Route)
+
+                                if (workContext?.isNew == true) {
+                                    InfoLine("Ruta actual", "Orden no empezada", Icons.Rounded.Route)
+                                    InfoLine("Siguiente localidad", workContext.nextSteps?.firstOrNull()?.locationName ?: "Desconocida", Icons.Rounded.Route)
+                                } else {
+                                    InfoLine("Localidad actual", workContext?.currentStepName ?: "Desconocida", Icons.Rounded.Route)
+                                    InfoLine("Siguiente localidad", workContext?.nextSteps?.firstOrNull()?.locationName ?: "Fin de ruta", Icons.Rounded.Route)
+                                }
                             }
                         }
                         uiState.errorMessage?.let { Text(it, color = TTRed, style = MaterialTheme.typography.bodySmall) }

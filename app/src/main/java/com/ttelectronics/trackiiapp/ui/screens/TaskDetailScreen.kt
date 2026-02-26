@@ -92,20 +92,22 @@ fun TaskDetailScreen(
 
     val part = uiState.partInfo
     val ctx = uiState.contextInfo
+    val currentStepName = ctx?.currentStepName
+    val nextStepName = ctx?.nextSteps?.firstOrNull()?.locationName
     val routeStatus = ProductRouteStatus(
-        previousStep = ctx?.currentLocationName ?: part?.currentLocationName ?: "N/A",
-        currentStep = if (ctx?.isFirstStep == true) "Orden no empezada" else (ctx?.currentLocationName ?: part?.currentLocationName ?: "N/A"),
-        nextStep = ctx?.nextLocationName ?: part?.nextLocationName ?: "N/A",
-        source = ctx?.currentLocationName ?: part?.currentLocationName ?: "N/A",
-        destination = ctx?.nextLocationName ?: part?.nextLocationName ?: "N/A",
-        started = ctx?.isFirstStep == false
+        previousStep = currentStepName ?: "Desconocida",
+        currentStep = if (ctx?.isNew == true) "Orden no empezada" else (currentStepName ?: "Desconocida"),
+        nextStep = nextStepName ?: "Fin de ruta",
+        source = currentStepName ?: "Desconocida",
+        destination = nextStepName ?: "Fin de ruta",
+        started = ctx?.isNew == false
     )
 
     val infoItems = listOf(
-        InfoItem("Área", part?.area ?: "Pendiente API", Icons.Rounded.Factory),
-        InfoItem("Familia", part?.family ?: "Pendiente API", Icons.Rounded.Category),
-        InfoItem("Subfamilia", part?.subfamily ?: "Pendiente API", Icons.Rounded.Inventory2),
-        InfoItem("No. de ruta", ctx?.routeVersion ?: ctx?.routeName ?: part?.routeNumber ?: "Pendiente API", Icons.Rounded.Route)
+        InfoItem("Área", part?.areaName ?: "Sin área", Icons.Rounded.Factory),
+        InfoItem("Familia", part?.familyName ?: "Sin familia", Icons.Rounded.Category),
+        InfoItem("Subfamilia", part?.subfamilyName ?: "Sin subfamilia", Icons.Rounded.Inventory2),
+        InfoItem("No. de ruta", part?.activeRouteId?.toString() ?: "Sin ruta activa", Icons.Rounded.Route)
     )
 
 
@@ -146,7 +148,7 @@ fun TaskDetailScreen(
                             )
                             TaskType.Rework -> TrackIIDropdownField(
                                 label = "Localidad de retrabajo",
-                                options = listOfNotNull(ctx?.currentLocationName, ctx?.nextLocationName).ifEmpty { listOf("Pendiente API") },
+                                options = ctx?.nextSteps?.map { it.locationName }?.distinct().orEmpty().ifEmpty { listOf("Pendiente API") },
                                 helper = "Opciones desde API"
                             )
                             TaskType.TravelSheet -> Unit

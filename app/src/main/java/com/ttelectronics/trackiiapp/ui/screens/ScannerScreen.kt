@@ -3,11 +3,13 @@ package com.ttelectronics.trackiiapp.ui.screens
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Rect
+import android.util.Size
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -22,7 +24,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -54,6 +55,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
+import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.ttelectronics.trackiiapp.R
 import com.ttelectronics.trackiiapp.core.ServiceLocator
@@ -288,16 +291,38 @@ private fun CameraScanPanel(
 
     val executor = remember { Executors.newSingleThreadExecutor() }
     val mainExecutor = remember { ContextCompat.getMainExecutor(context) }
-    val barcodeScanner = remember { BarcodeScanning.getClient() }
-    val analysis = remember { ImageAnalysis.Builder().setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build() }
+    val barcodeScanner = remember {
+        val options = BarcodeScannerOptions.Builder()
+            .setBarcodeFormats(
+                Barcode.FORMAT_CODE_128,
+                Barcode.FORMAT_CODE_39,
+                Barcode.FORMAT_DATA_MATRIX,
+                Barcode.FORMAT_QR_CODE
+            )
+            .build()
+        BarcodeScanning.getClient(options)
+    }
+    val analysis = remember {
+        ImageAnalysis.Builder()
+            .setTargetResolution(Size(1280, 720))
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .build()
+    }
     val analyzer = remember {
         ImageAnalysis.Analyzer { imageProxy ->
             val mediaImage = imageProxy.image ?: run { imageProxy.close(); return@Analyzer }
-            mediaImage.setCropRect(buildCropRect(imageProxy.width, imageProxy.height))
+            val cropRect = buildCropRect(imageProxy)
+            mediaImage.setCropRect(cropRect)
             val inputImage = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
             barcodeScanner.process(inputImage)
                 .addOnSuccessListener(mainExecutor) { barcodes ->
-                    onRawValuesDetected(barcodes.mapNotNull { it.rawValue })
+                    val acceptedRawValues = barcodes
+                        .filter { barcode ->
+                            val bounds = barcode.boundingBox ?: return@filter false
+                            Rect.intersects(bounds, cropRect)
+                        }
+                        .mapNotNull { it.rawValue }
+                    onRawValuesDetected(acceptedRawValues)
                 }
                 .addOnFailureListener(mainExecutor) { onScanFailure() }
                 .addOnCompleteListener { imageProxy.close() }
@@ -333,7 +358,9 @@ private fun CameraScanPanel(
 }
 
 
-private fun buildCropRect(imageWidth: Int, imageHeight: Int): Rect {
+private fun buildCropRect(imageProxy: ImageProxy): Rect {
+    val imageWidth = imageProxy.width
+    val imageHeight = imageProxy.height
     val left = (imageWidth * SCAN_WINDOW_LEFT).toInt()
     val top = (imageHeight * SCAN_WINDOW_TOP).toInt()
     val right = (imageWidth * SCAN_WINDOW_RIGHT).toInt().coerceAtMost(imageWidth)

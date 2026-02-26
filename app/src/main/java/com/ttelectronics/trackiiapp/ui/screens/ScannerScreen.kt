@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -138,11 +139,14 @@ fun ScannerScreen(
         }
     }
 
+    val orderFoundText = stringResource(R.string.order_found)
+    val orderNotFoundText = stringResource(R.string.error_order_not_found_for_part)
+
     LaunchedEffect(scannerUiState.shouldNavigate) {
         if (scannerUiState.shouldNavigate) {
             if (scannerUiState.isProductFound) {
                 overlaySuccess = true
-                overlayText = context.getString(R.string.order_found)
+                overlayText = orderFoundText
                 showResultOverlay = true
                 rightSoundPlayer.play()
                 delay(1000)
@@ -150,7 +154,7 @@ fun ScannerScreen(
             } else {
                 overlaySuccess = false
                 overlayText = scannerUiState.validationError?.let { context.getString(it) }
-                    ?: context.getString(R.string.error_order_not_found_for_part)
+                    ?: orderNotFoundText
                 showResultOverlay = true
                 wrongSoundPlayer.play()
                 delay(1300)

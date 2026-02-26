@@ -112,7 +112,7 @@ fun WelcomeScreen(
                         modifier = Modifier.size(360.dp),
                         contentScale = ContentScale.Fit
                     )
-                    AnimatedVisibility(
+                    this@Column.AnimatedVisibility(
                         visible = leafAlpha > 0f,
                         exit = fadeOut(animationSpec = tween(durationMillis = 260))
                     ) {

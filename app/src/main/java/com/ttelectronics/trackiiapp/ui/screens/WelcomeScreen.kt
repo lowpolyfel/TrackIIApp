@@ -126,6 +126,7 @@ fun WelcomeScreen(
                 }
                 Spacer(modifier = Modifier.size(20.dp))
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    // Contenedor de flechas
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         ArrowHint(alpha = arrowOne)
                         ArrowHint(alpha = arrowTwo)

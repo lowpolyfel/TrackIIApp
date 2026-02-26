@@ -18,8 +18,8 @@ class ScannerRepository(
 ) {
     suspend fun lookupPart(partNumber: String): PartLookupResponse = api.getPartInfo(partNumber)
 
-    suspend fun getWorkOrderContext(workOrderNumber: String, deviceId: Int): WorkOrderContextResponse {
-        return api.getWorkOrderContext(workOrderNumber, deviceId)
+    suspend fun getWorkOrderContext(workOrderNumber: String, deviceId: Int, partNumber: String?): WorkOrderContextResponse {
+        return api.getWorkOrderContext(workOrderNumber, deviceId, partNumber)
     }
 
     suspend fun registerScan(

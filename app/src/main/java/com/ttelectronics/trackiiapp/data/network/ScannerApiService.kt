@@ -18,10 +18,11 @@ interface ScannerApiService {
     @GET("api/scanner/part/{partNumber}")
     suspend fun getPartInfo(@Path("partNumber") partNumber: String): PartLookupResponse
 
-    @GET("api/scanner/work-orders/{workOrderNumber}/context")
+    @GET("api/scanner/context/{workOrderNumber}")
     suspend fun getWorkOrderContext(
         @Path("workOrderNumber") workOrderNumber: String,
-        @Query("deviceId") deviceId: Int
+        @Query("deviceId") deviceId: Int,
+        @Query("partNumber") partNumber: String?
     ): WorkOrderContextResponse
 
     @POST("api/scanner/register")

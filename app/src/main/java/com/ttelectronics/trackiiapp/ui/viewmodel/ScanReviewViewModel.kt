@@ -32,7 +32,7 @@ class ScanReviewViewModel(private val scannerRepository: ScannerRepository) : Vi
             val partResult = runCatching { scannerRepository.lookupPart(partNumber) }
             val contextResult = runCatching {
                 if (workOrderNumber.isBlank()) null
-                else scannerRepository.getWorkOrderContext(workOrderNumber, deviceId)
+                else scannerRepository.getWorkOrderContext(workOrderNumber, deviceId, partNumber)
             }
 
             val error = partResult.exceptionOrNull()?.let { ApiErrorParser.readableError(it) }

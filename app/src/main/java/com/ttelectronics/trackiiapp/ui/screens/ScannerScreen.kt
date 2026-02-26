@@ -82,6 +82,7 @@ private const val SCAN_WINDOW_TOP = 0f
 private const val SCAN_WINDOW_RIGHT = 1f
 private const val SCAN_WINDOW_BOTTOM = 1f
 private const val INSTRUCTION_DURATION = 2500
+private const val SHEET_LOOP_DURATION_MS = 1200
 
 @OptIn(ExperimentalGetImage::class)
 @Composable
@@ -226,7 +227,7 @@ private fun ScannerInstructionsScreen() {
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = INSTRUCTION_DURATION, easing = LinearEasing),
+            animation = tween(durationMillis = SHEET_LOOP_DURATION_MS, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "instructionProgress"

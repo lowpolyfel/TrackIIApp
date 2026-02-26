@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -66,7 +65,8 @@ import com.ttelectronics.trackiiapp.core.camera.CameraManager
 import com.ttelectronics.trackiiapp.ui.components.PermissionFallback
 import com.ttelectronics.trackiiapp.ui.components.ScanResultOverlay
 import com.ttelectronics.trackiiapp.ui.components.ScannerFrameOverlay
-import com.ttelectronics.trackiiapp.ui.components.ScannerOverlay
+import com.ttelectronics.trackiiapp.ui.components.ScannerControlsPanel
+import com.ttelectronics.trackiiapp.ui.components.ScannerHeader
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.components.rememberRawSoundPlayer
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
@@ -165,43 +165,57 @@ fun ScannerScreen(
     }
 
     TrackIIBackground(glowOffsetX = 40.dp, glowOffsetY = (-30).dp) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            if (showInstructions) {
-                ScannerInstructionsScreen()
-            } else if (hasCameraPermission) {
-                CameraScanPanel(
-                    modifier = Modifier
-                        .align(Alignment.Center),
-                    onRawValuesDetected = { rawValues ->
-                        hasBarcodeInFrame = rawValues.isNotEmpty()
-                        scannerViewModel.procesarFotograma(rawValues)
-                    },
-                    onScanFailure = { hasBarcodeInFrame = false },
-                    hasBarcodeInFrame = hasBarcodeInFrame
-                )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 16.dp, bottom = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            ScannerHeader(taskTitle = taskType.title)
 
-                ScannerOverlay(
-                    taskTitle = taskType.title,
+            if (showInstructions) {
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    ScannerInstructionsScreen()
+                }
+            } else if (hasCameraPermission) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CameraScanPanel(
+                        modifier = Modifier.fillMaxWidth().aspectRatio(3f / 4f),
+                        onRawValuesDetected = { rawValues ->
+                            hasBarcodeInFrame = rawValues.isNotEmpty()
+                            scannerViewModel.procesarFotograma(rawValues)
+                        },
+                        onScanFailure = { hasBarcodeInFrame = false },
+                        hasBarcodeInFrame = hasBarcodeInFrame
+                    )
+                }
+
+                ScannerControlsPanel(
                     lotNumber = lotNumber,
                     partNumber = partNumber,
+                    isValidating = scannerUiState.isValidating,
+                    canValidate = canValidate,
                     onReset = {
                         showResultOverlay = false
                         overlayText = ""
                         scannerViewModel.resetScan()
                     },
-                    onBack = onBack,
-                    statusText = when {
-                        scannerUiState.isValidating -> "Validando parte en BD..."
-                        canValidate -> "Escaneo completo, esperando validación..."
-                        else -> "Escanea lote y parte"
-                    }
+                    onBack = onBack
                 )
             } else {
-                PermissionFallback(onRequest = { permissionLauncher.launch(Manifest.permission.CAMERA) })
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    PermissionFallback(onRequest = { permissionLauncher.launch(Manifest.permission.CAMERA) })
+                }
             }
-
-            ScanResultOverlay(visible = showResultOverlay, success = overlaySuccess, message = overlayText)
         }
+
+        ScanResultOverlay(visible = showResultOverlay, success = overlaySuccess, message = overlayText)
     }
 }
 

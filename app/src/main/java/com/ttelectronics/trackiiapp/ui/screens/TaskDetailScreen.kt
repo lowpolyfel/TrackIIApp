@@ -104,8 +104,8 @@ fun TaskDetailScreen(
     val routeStatus = ProductRouteStatus(
         isStarted = ctx?.isNew == false,
         isEligible = isEligible,
-        currentLocationName = ctx?.currentStepName ?: "Paso 1",
-        previousLocationName = "Paso ${(ctx?.currentStepNumber ?: 2) - 1}",
+        currentLocationName = ctx?.currentStepName ?: "Localidad desconocida",
+        previousLocationName = ctx?.currentStepName ?: "Sin localidad previa",
         nextLocationName = ctx?.nextSteps?.firstOrNull()?.locationName ?: "Fin de ruta"
     )
 
@@ -211,8 +211,8 @@ private fun ProductRouteDashboard(status: ProductRouteStatus) {
         if (!status.isStarted) {
             Text("Esta orden se abrirá por primera vez", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold), color = TTTextSecondary, textAlign = TextAlign.Center)
             Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                RouteNode(label = "Paso 1", value = status.currentLocationName, isCurrent = true, scale = scale)
-                RouteNode(label = "Paso 2", value = status.nextLocationName, isCurrent = false, scale = 0.85f)
+                RouteNode(label = "Localidad actual", value = status.currentLocationName, isCurrent = true, scale = scale)
+                RouteNode(label = "Siguiente localidad", value = status.nextLocationName, isCurrent = false, scale = 0.85f)
             }
         } else {
             androidx.compose.material3.Card(shape = RoundedCornerShape(12.dp), colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = TTBlue.copy(alpha = 0.1f))) {
@@ -224,8 +224,8 @@ private fun ProductRouteDashboard(status: ProductRouteStatus) {
                 )
             }
             Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                RouteNode(label = "Paso anterior", value = status.previousLocationName, isCurrent = false, scale = 0.85f)
-                RouteNode(label = "Paso siguiente", value = status.nextLocationName, isCurrent = true, scale = scale)
+                RouteNode(label = "Localidad previa", value = status.previousLocationName, isCurrent = false, scale = 0.85f)
+                RouteNode(label = "Siguiente localidad", value = status.nextLocationName, isCurrent = true, scale = scale)
             }
         }
     }

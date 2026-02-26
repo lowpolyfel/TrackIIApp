@@ -112,7 +112,7 @@ fun WelcomeScreen(
                         modifier = Modifier.size(360.dp),
                         contentScale = ContentScale.Fit
                     )
-                    AnimatedVisibility(
+                    this@Column.AnimatedVisibility(
                         visible = leafAlpha > 0f,
                         exit = fadeOut(animationSpec = tween(durationMillis = 260))
                     ) {
@@ -126,6 +126,7 @@ fun WelcomeScreen(
                 }
                 Spacer(modifier = Modifier.size(20.dp))
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    // Contenedor de flechas
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         ArrowHint(alpha = arrowOne)
                         ArrowHint(alpha = arrowTwo)

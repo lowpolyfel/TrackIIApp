@@ -81,7 +81,7 @@ private const val SCAN_WINDOW_LEFT = 0f
 private const val SCAN_WINDOW_TOP = 0f
 private const val SCAN_WINDOW_RIGHT = 1f
 private const val SCAN_WINDOW_BOTTOM = 1f
-private const val INSTRUCTION_DURATION = 4000
+private const val INSTRUCTION_DURATION = 2500
 
 @OptIn(ExperimentalGetImage::class)
 @Composable
@@ -231,8 +231,13 @@ private fun ScannerInstructionsScreen() {
         ),
         label = "instructionProgress"
     )
-    val sheetOffset = (-46f) + (progress * 92f)
-    val sheetAlpha = (progress * 1.5f).coerceIn(0f, 1f)
+    val fastProgress = (progress * 1.45f).coerceIn(0f, 1f)
+    val sheetOffset = (-56f) + (fastProgress * 124f)
+    val sheetAlpha = when {
+        fastProgress < 0.18f -> (fastProgress / 0.18f).coerceIn(0f, 1f)
+        fastProgress > 0.82f -> ((1f - fastProgress) / 0.18f).coerceIn(0f, 1f)
+        else -> 1f
+    }
 
     Column(
         modifier = Modifier

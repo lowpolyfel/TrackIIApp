@@ -1,11 +1,13 @@
 package com.ttelectronics.trackiiapp.ui.screens
 
+import android.widget.Toast
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,6 +53,7 @@ import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.components.TrackIIDropdownField
 import com.ttelectronics.trackiiapp.ui.components.TrackIITextField
+import com.ttelectronics.trackiiapp.ui.components.rememberRawSoundPlayer
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
 import com.ttelectronics.trackiiapp.ui.theme.TTBlue
 import com.ttelectronics.trackiiapp.ui.theme.TTBlueDark
@@ -82,6 +85,7 @@ fun TaskDetailScreen(
     onHome: () -> Unit
 ) {
     val context = LocalContext.current
+    val rightSoundPlayer = rememberRawSoundPlayer("right")
     val auth = ServiceLocator.authRepository(context).sessionSnapshot()
     val vm: TaskDetailViewModel = viewModel(factory = TaskDetailViewModelFactory(ServiceLocator.scannerRepository(context)))
     val uiState by vm.uiState.collectAsState()
@@ -90,15 +94,25 @@ fun TaskDetailScreen(
         vm.loadData(partNumber, lotNumber, auth.deviceId)
     }
     LaunchedEffect(uiState.saveSuccess) {
-        if (uiState.saveSuccess) onComplete()
+        if (uiState.saveSuccess) {
+            rightSoundPlayer.play()
+            Toast.makeText(
+                context,
+                "¡Registro completado correctamente!",
+                Toast.LENGTH_LONG
+            ).show()
+            onComplete()
+        }
     }
 
     val part = uiState.partInfo
     val ctx = uiState.contextInfo
+    val userLocation = auth.locationName.trim()
+
     val isEligible = if (ctx?.isNew == true) {
-        ctx.currentStepName?.equals(auth.locationName, ignoreCase = true) ?: false
+        ctx.currentStepName?.trim()?.equals(userLocation, ignoreCase = true) ?: false
     } else {
-        ctx?.nextSteps?.firstOrNull()?.locationName?.equals(auth.locationName, ignoreCase = true) ?: false
+        ctx?.nextSteps?.firstOrNull()?.locationName?.trim()?.equals(userLocation, ignoreCase = true) ?: false
     }
 
     val routeStatus = ProductRouteStatus(
@@ -136,11 +150,27 @@ fun TaskDetailScreen(
 
                         when (taskType) {
                             TaskType.ProductAdvance -> {
-                                TrackIITextField(
-                                    label = "Piezas",
-                                    value = uiState.qtyInput,
-                                    onValueChange = vm::onQtyChange
+                                val infiniteTransition = rememberInfiniteTransition(label = "glow")
+                                val glowAlpha by infiniteTransition.animateFloat(
+                                    initialValue = 0.2f,
+                                    targetValue = 0.8f,
+                                    animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse),
+                                    label = "glowAlpha"
                                 )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 8.dp)
+                                        .border(2.dp, TTBlueDark.copy(alpha = glowAlpha), RoundedCornerShape(12.dp))
+                                        .background(TTBlueDark.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+                                        .padding(8.dp)
+                                ) {
+                                    TrackIITextField(
+                                        label = "Piezas",
+                                        value = uiState.qtyInput,
+                                        onValueChange = vm::onQtyChange
+                                    )
+                                }
                                 Text(
                                     text = "No mayor a piezas del paso anterior si aplica.",
                                     style = MaterialTheme.typography.bodySmall,
@@ -211,8 +241,8 @@ private fun ProductRouteDashboard(status: ProductRouteStatus) {
         if (!status.isStarted) {
             Text("Esta orden se abrirá por primera vez", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold), color = TTTextSecondary, textAlign = TextAlign.Center)
             Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                RouteNode(label = "Localidad actual", value = status.currentLocationName, isCurrent = true, scale = scale)
-                RouteNode(label = "Siguiente localidad", value = status.nextLocationName, isCurrent = false, scale = 0.85f)
+                RouteNode(label = "Localidad inicial", value = status.currentLocationName, isCurrent = true, scale = scale)
+                RouteNode(label = "Localidad destino", value = status.nextLocationName, isCurrent = false, scale = 0.85f)
             }
         } else {
             androidx.compose.material3.Card(shape = RoundedCornerShape(12.dp), colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = TTBlue.copy(alpha = 0.1f))) {

@@ -67,7 +67,7 @@ class ScrapOrderViewModel(
             }.onSuccess { context ->
                 val defaultQty = context.previousQuantity?.toString().orEmpty()
                 _uiState.update {
-                    it.copy(qtyInput = defaultQty)
+                    if (it.qtyInput.isBlank()) it.copy(qtyInput = defaultQty) else it
                 }
             }
         }
@@ -172,11 +172,11 @@ class ScrapOrderViewModel(
                     ScrapOrderRequest(
                         workOrderNumber = state.lotNumber,
                         partNumber = state.partNumber,
-                        deviceId = appSession.deviceId,
-                        qty = qty,
-                        errorCategoryId = category.id,
+                        quantity = qty,
                         errorCodeId = code.id,
-                        comments = state.comments
+                        comments = state.comments,
+                        userId = appSession.userId,
+                        deviceId = appSession.deviceId
                     )
                 )
             }.onSuccess {

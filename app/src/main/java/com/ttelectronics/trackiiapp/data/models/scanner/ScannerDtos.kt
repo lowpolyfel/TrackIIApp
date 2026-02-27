@@ -73,11 +73,11 @@ data class ErrorCodeResponse(
 data class ScrapOrderRequest(
     @SerializedName("workOrderNumber") val workOrderNumber: String,
     @SerializedName("partNumber") val partNumber: String,
-    @SerializedName("deviceId") val deviceId: Int,
-    @SerializedName("qty") val qty: Int,
-    @SerializedName("errorCategoryId") val errorCategoryId: Int,
+    @SerializedName("quantity") val quantity: Int,
     @SerializedName("errorCodeId") val errorCodeId: Int,
-    @SerializedName("comments") val comments: String
+    @SerializedName("comments") val comments: String,
+    @SerializedName("userId") val userId: Int,
+    @SerializedName("deviceId") val deviceId: Int
 )
 
 data class ReworkRequest(

@@ -133,6 +133,12 @@ fun TrackIINavHost(
                 onComplete = { lot, part, found, error ->
                     navController.navigate(TrackIIRoute.scanReviewRoute(taskType, lot, part, found, error))
                 },
+                onReworkTask = { lot, part ->
+                    navController.navigate(TrackIIRoute.taskRoute(TaskType.Rework, lot, part))
+                },
+                onReworkRelease = { lot, part ->
+                    navController.navigate(TrackIIRoute.reworkReleaseRoute(lot, part))
+                },
                 onHome = navigateHome
             )
         }
@@ -184,7 +190,13 @@ fun TrackIINavHost(
             val lot = backStackEntry.arguments?.getString("lot").orEmpty()
             val part = backStackEntry.arguments?.getString("part").orEmpty()
             ReworkReleaseScreen(
-                onRelease = navigateHome,
+                lotNumber = lot,
+                onReleaseSuccess = {
+                    navController.navigate(TrackIIRoute.scannerRoute(TaskType.Rework)) {
+                        popUpTo(TrackIIRoute.Tasks) { inclusive = false }
+                        launchSingleTop = true
+                    }
+                },
                 onContinueRework = {
                     navController.navigate(TrackIIRoute.taskRoute(TaskType.Rework, lot, part))
                 },

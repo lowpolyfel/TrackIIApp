@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.ttelectronics.trackiiapp.R
+import com.ttelectronics.trackiiapp.data.models.enums.WipStatus
 import com.ttelectronics.trackiiapp.data.repository.ScannerRepository
+import com.ttelectronics.trackiiapp.ui.navigation.TaskType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,13 +17,21 @@ import kotlinx.coroutines.launch
 data class ScannerUiState(
     val isValidating: Boolean = false,
     val validationError: Int? = null,
+    val customValidationMessage: String? = null,
     val isProductFound: Boolean = false,
     val shouldNavigate: Boolean = false,
+    val navigationTarget: ScannerNavigationTarget = ScannerNavigationTarget.ScanReview,
     val isLotFound: Boolean = false,
     val isPartFound: Boolean = false,
     val scannedLot: String = "",
     val scannedPart: String = ""
 )
+
+enum class ScannerNavigationTarget {
+    ScanReview,
+    ReworkTask,
+    ReworkRelease
+}
 
 class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewModel() {
     private val lotRegex = Regex("^[0-9]{7}$")
@@ -96,7 +106,9 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                 scannedPart = "",
                 isValidating = false,
                 validationError = null,
-                shouldNavigate = false
+                customValidationMessage = null,
+                shouldNavigate = false,
+                navigationTarget = ScannerNavigationTarget.ScanReview
             )
         }
     }
@@ -105,28 +117,47 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
         _uiState.update { it.copy(isLotFound = false, isPartFound = false) }
     }
 
-    fun validatePart(partNumber: String) {
+    fun validateForTask(taskType: TaskType, lotNumber: String, partNumber: String) {
         val normalizedPartNumber = normalizeBarcode(partNumber)
+        val normalizedLot = normalizeBarcode(lotNumber)
 
         if (normalizedPartNumber.isBlank()) {
             _uiState.update { it.copy(validationError = R.string.error_part_mandatory) }
             return
         }
 
+        if (taskType == TaskType.Rework) {
+            validateReworkOrder(normalizedLot)
+            return
+        }
+
+        validatePartExists(normalizedPartNumber)
+    }
+
+    private fun validatePartExists(partNumber: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isValidating = true, validationError = null, shouldNavigate = false) }
-            runCatching { scannerRepository.validatePartExists(normalizedPartNumber) }
+            _uiState.update {
+                it.copy(
+                    isValidating = true,
+                    validationError = null,
+                    customValidationMessage = null,
+                    shouldNavigate = false,
+                    navigationTarget = ScannerNavigationTarget.ScanReview
+                )
+            }
+            runCatching { scannerRepository.validatePartExists(partNumber) }
                 .onSuccess { found ->
                     _uiState.update {
                         it.copy(
                             isValidating = false,
                             isProductFound = found,
                             shouldNavigate = true,
+                            navigationTarget = ScannerNavigationTarget.ScanReview,
                             validationError = if (found) null else R.string.error_order_not_found_for_part
                         )
                     }
                 }
-                .onFailure { _ ->
+                .onFailure {
                     _uiState.update {
                         it.copy(
                             isValidating = false,
@@ -135,6 +166,93 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                         )
                     }
                 }
+        }
+    }
+
+    private fun validateReworkOrder(workOrderNumber: String) {
+        if (workOrderNumber.isBlank()) {
+            _uiState.update { it.copy(validationError = R.string.error_part_mandatory) }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isValidating = true,
+                    validationError = null,
+                    customValidationMessage = null,
+                    shouldNavigate = false
+                )
+            }
+            runCatching { scannerRepository.validateRework(workOrderNumber) }
+                .onSuccess { response ->
+                    val exists = response.exists ?: false
+                    if (!exists) {
+                        _uiState.update {
+                            it.copy(
+                                isValidating = false,
+                                isProductFound = false,
+                                shouldNavigate = true,
+                                navigationTarget = ScannerNavigationTarget.ScanReview,
+                                customValidationMessage = "Esta orden aún no empieza"
+                            )
+                        }
+                        return@onSuccess
+                    }
+
+                    when (parseWipStatus(response.status)) {
+                        WipStatus.ACTIVE -> {
+                            _uiState.update {
+                                it.copy(
+                                    isValidating = false,
+                                    isProductFound = true,
+                                    shouldNavigate = true,
+                                    navigationTarget = ScannerNavigationTarget.ReworkTask
+                                )
+                            }
+                        }
+
+                        WipStatus.HOLD -> {
+                            _uiState.update {
+                                it.copy(
+                                    isValidating = false,
+                                    isProductFound = true,
+                                    shouldNavigate = true,
+                                    navigationTarget = ScannerNavigationTarget.ReworkRelease
+                                )
+                            }
+                        }
+
+                        else -> {
+                            _uiState.update {
+                                it.copy(
+                                    isValidating = false,
+                                    shouldNavigate = true,
+                                    navigationTarget = ScannerNavigationTarget.ScanReview,
+                                    customValidationMessage = response.message ?: "No fue posible validar el estado del lote."
+                                )
+                            }
+                        }
+                    }
+                }
+                .onFailure {
+                    _uiState.update {
+                        it.copy(
+                            isValidating = false,
+                            shouldNavigate = false,
+                            validationError = R.string.error_generic_validation
+                        )
+                    }
+                }
+        }
+    }
+
+    private fun parseWipStatus(rawValue: String?): WipStatus {
+        val normalized = rawValue?.trim()?.uppercase() ?: return WipStatus.ERROR
+        return when (normalized) {
+            "ACTIVE" -> WipStatus.ACTIVE
+            "HOLD" -> WipStatus.HOLD
+            else -> WipStatus.ERROR
         }
     }
 

@@ -92,3 +92,19 @@ data class ReworkResponse(
     @SerializedName("success") val success: Boolean? = null,
     @SerializedName("message") val message: String? = null
 )
+
+data class ReworkValidationResponse(
+    @SerializedName("exists") val exists: Boolean? = null,
+    @SerializedName("status") val status: String? = null,
+    @SerializedName("workOrderNumber") val workOrderNumber: String? = null,
+    @SerializedName("message") val message: String? = null
+)
+
+data class ReleaseWipItemRequest(
+    @SerializedName("workOrderNumber") val workOrderNumber: String
+)
+
+data class ReleaseWipItemResponse(
+    @SerializedName("success") val success: Boolean? = null,
+    @SerializedName("message") val message: String? = null
+)

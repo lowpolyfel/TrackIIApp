@@ -35,9 +35,7 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
 
     fun procesarFotograma(codigosCrudos: List<String>) {
         viewModelScope.launch(Dispatchers.Default) {
-            val normalizados = codigosCrudos.mapNotNull { raw ->
-                raw.trim().uppercase().replace(" ", "").takeIf { it.isNotEmpty() }
-            }
+            val normalizados = codigosCrudos.mapNotNull(::normalizeBarcode).filter { it.isNotEmpty() }
 
             if (normalizados.isEmpty()) {
                 lotScanState = lotScanState.clear()
@@ -108,10 +106,7 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
     }
 
     fun validatePart(partNumber: String) {
-        val normalizedPartNumber = partNumber
-            .trim()
-            .uppercase()
-            .replace(" ", "")
+        val normalizedPartNumber = normalizeBarcode(partNumber)
 
         if (normalizedPartNumber.isBlank()) {
             _uiState.update { it.copy(validationError = R.string.error_part_mandatory) }
@@ -146,6 +141,9 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
     fun consumeNavigation() {
         _uiState.update { it.copy(shouldNavigate = false) }
     }
+
+    private fun normalizeBarcode(value: String): String =
+        value.trim().uppercase().replace("\\s+".toRegex(), "")
 
     private fun requiredStableReads(): Int = 4
 }

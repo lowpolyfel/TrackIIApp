@@ -12,12 +12,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -136,13 +137,14 @@ fun ScrapOrderScreen(
                                 label = { Text("Categoría de Falla") },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
                                 modifier = Modifier
-                                    .menuAnchor()
+                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                                     .fillMaxWidth(),
                                 shape = RoundedCornerShape(18.dp)
                             )
-                            ExposedDropdownMenu(
+                            DropdownMenu(
                                 expanded = categoryExpanded,
-                                onDismissRequest = { categoryExpanded = false }
+                                onDismissRequest = { categoryExpanded = false },
+                                modifier = Modifier.exposedDropdownSize()
                             ) {
                                 uiState.categories.forEach { category ->
                                     DropdownMenuItem(
@@ -171,13 +173,14 @@ fun ScrapOrderScreen(
                                 label = { Text("Código de Falla") },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = codeExpanded) },
                                 modifier = Modifier
-                                    .menuAnchor()
+                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                                     .fillMaxWidth(),
                                 shape = RoundedCornerShape(18.dp)
                             )
-                            ExposedDropdownMenu(
+                            DropdownMenu(
                                 expanded = codeExpanded,
-                                onDismissRequest = { codeExpanded = false }
+                                onDismissRequest = { codeExpanded = false },
+                                modifier = Modifier.exposedDropdownSize()
                             ) {
                                 uiState.codes.forEach { code ->
                                     DropdownMenuItem(

@@ -21,7 +21,7 @@ interface ScannerApiService {
     @GET("api/scanner/part/{partNumber}")
     suspend fun getPartInfo(@Path("partNumber") partNumber: String): PartLookupResponse
 
-    @GET("api/scanner/context/{workOrderNumber}")
+    @GET("api/scanner/work-orders/{workOrderNumber}/context")
     suspend fun getWorkOrderContext(
         @Path("workOrderNumber") workOrderNumber: String,
         @Query("deviceId") deviceId: Int,

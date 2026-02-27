@@ -172,11 +172,11 @@ class ScrapOrderViewModel(
                     ScrapOrderRequest(
                         workOrderNumber = state.lotNumber,
                         partNumber = state.partNumber,
-                        deviceId = appSession.deviceId,
-                        qty = qty,
-                        errorCategoryId = category.id,
+                        quantity = qty,
                         errorCodeId = code.id,
-                        comments = state.comments
+                        comments = state.comments,
+                        userId = appSession.userId,
+                        deviceId = appSession.deviceId
                     )
                 )
             }.onSuccess {

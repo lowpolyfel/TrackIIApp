@@ -37,17 +37,34 @@ class TaskDetailViewModel(private val scannerRepository: ScannerRepository) : Vi
     fun loadData(partNumber: String, workOrderNumber: String, deviceId: Int) {
         if (partNumber.isBlank()) return
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update {
+                it.copy(
+                    isLoading = true,
+                    errorMessage = null,
+                    partInfo = null,
+                    contextInfo = null,
+                    saveSuccess = false
+                )
+            }
             val partResult = runCatching { scannerRepository.lookupPart(partNumber.trim()) }
             val ctxResult = runCatching { scannerRepository.getWorkOrderContext(workOrderNumber.trim(), deviceId, partNumber.trim()) }
             val err = partResult.exceptionOrNull()?.let { ApiErrorParser.readableError(it) }
                 ?: ctxResult.exceptionOrNull()?.let { ApiErrorParser.readableError(it) }
+
+            val normalizedContext = ctxResult.getOrNull()?.let { context ->
+                if (context.isNew == true) {
+                    context.copy(previousQuantity = 0)
+                } else {
+                    context
+                }
+            }
+
             _uiState.update {
                 it.copy(
                     isLoading = false,
                     errorMessage = err,
                     partInfo = partResult.getOrNull(),
-                    contextInfo = ctxResult.getOrNull()
+                    contextInfo = normalizedContext
                 )
             }
         }

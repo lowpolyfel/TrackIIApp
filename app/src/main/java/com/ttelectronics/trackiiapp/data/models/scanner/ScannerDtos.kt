@@ -22,6 +22,7 @@ data class WorkOrderContextResponse(
     @SerializedName("currentStepNumber") val currentStepNumber: Int? = null,
     @SerializedName("currentStepName") val currentStepName: String? = null,
     @SerializedName("routeName") val routeName: String? = null,
+    @SerializedName("wipStatus") val wipStatus: String? = null,
     @SerializedName("nextSteps") val nextSteps: List<NextRouteStepResponse>? = null
 )
 
@@ -83,9 +84,12 @@ data class ScrapOrderRequest(
 data class ReworkRequest(
     @SerializedName("workOrderNumber") val workOrderNumber: String,
     @SerializedName("partNumber") val partNumber: String,
-    @SerializedName("deviceId") val deviceId: Int,
-    @SerializedName("location") val location: String,
-    @SerializedName("reason") val reason: String? = null
+    @SerializedName("quantity") val quantity: Int,
+    @SerializedName("locationId") val locationId: Int,
+    @SerializedName("isRelease") val isRelease: Boolean,
+    @SerializedName("reason") val reason: String?,
+    @SerializedName("userId") val userId: Int,
+    @SerializedName("deviceId") val deviceId: Int
 )
 
 data class ReworkResponse(

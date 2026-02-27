@@ -13,7 +13,7 @@ import com.ttelectronics.trackiiapp.core.ServiceLocator
 import com.ttelectronics.trackiiapp.ui.screens.LoginScreen
 import com.ttelectronics.trackiiapp.ui.screens.RegisterScreen
 import com.ttelectronics.trackiiapp.ui.screens.RegisterTokenScreen
-import com.ttelectronics.trackiiapp.ui.screens.ReworkReleaseScreen
+import com.ttelectronics.trackiiapp.ui.screens.ReworkScreen
 import com.ttelectronics.trackiiapp.ui.screens.ScanReviewScreen
 import com.ttelectronics.trackiiapp.ui.screens.ScrapOrderScreen
 import com.ttelectronics.trackiiapp.ui.screens.ScannerScreen
@@ -183,11 +183,11 @@ fun TrackIINavHost(
         ) { backStackEntry ->
             val lot = backStackEntry.arguments?.getString("lot").orEmpty()
             val part = backStackEntry.arguments?.getString("part").orEmpty()
-            ReworkReleaseScreen(
-                onRelease = navigateHome,
-                onContinueRework = {
-                    navController.navigate(TrackIIRoute.taskRoute(TaskType.Rework, lot, part))
-                },
+            ReworkScreen(
+                lotNumber = lot,
+                partNumber = part,
+                onComplete = navigateHome,
+                onBack = { navController.popBackStack() },
                 onHome = navigateHome
             )
         }

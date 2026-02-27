@@ -6,8 +6,11 @@ import com.ttelectronics.trackiiapp.data.models.scanner.ErrorCodeResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.PartLookupResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.RegisterScanRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.RegisterScanResponse
+import com.ttelectronics.trackiiapp.data.models.scanner.ReleaseWipItemRequest
+import com.ttelectronics.trackiiapp.data.models.scanner.ReleaseWipItemResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.ReworkRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.ReworkResponse
+import com.ttelectronics.trackiiapp.data.models.scanner.ReworkValidationResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.ScrapOrderRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.ScrapRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.ScrapResponse
@@ -59,6 +62,15 @@ class ScannerRepository(
 
     suspend fun reworkOrder(workOrderNumber: String, partNumber: String, deviceId: Int, location: String, reason: String?): ReworkResponse {
         return api.rework(ReworkRequest(workOrderNumber, partNumber, deviceId, location, reason))
+    }
+
+
+    suspend fun validateRework(workOrderNumber: String): ReworkValidationResponse {
+        return api.validateRework(workOrderNumber)
+    }
+
+    suspend fun releaseWipItem(workOrderNumber: String): ReleaseWipItemResponse {
+        return api.releaseWipItem(ReleaseWipItemRequest(workOrderNumber = workOrderNumber))
     }
 
     suspend fun validatePartExists(partNumber: String): Boolean {

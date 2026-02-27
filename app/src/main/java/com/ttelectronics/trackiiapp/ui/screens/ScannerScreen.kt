@@ -73,6 +73,7 @@ import com.ttelectronics.trackiiapp.ui.components.rememberRawSoundPlayer
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
 import com.ttelectronics.trackiiapp.ui.theme.TTGreen
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
+import com.ttelectronics.trackiiapp.ui.viewmodel.ScannerNavigationTarget
 import com.ttelectronics.trackiiapp.ui.viewmodel.ScannerViewModel
 import com.ttelectronics.trackiiapp.ui.viewmodel.ScannerViewModelFactory
 import kotlinx.coroutines.delay
@@ -91,6 +92,8 @@ fun ScannerScreen(
     taskType: TaskType,
     onBack: () -> Unit,
     onComplete: (String, String, Boolean, String) -> Unit,
+    onReworkTask: (String, String) -> Unit,
+    onReworkRelease: (String, String) -> Unit,
     onHome: () -> Unit
 ) {
     val context = LocalContext.current
@@ -130,7 +133,7 @@ fun ScannerScreen(
 
     LaunchedEffect(canValidate) {
         if (canValidate && !scannerUiState.isValidating && !showResultOverlay) {
-            scannerViewModel.validatePart(normalizedPartNumber)
+            scannerViewModel.validateForTask(taskType, lotNumber, normalizedPartNumber)
         }
     }
 
@@ -146,21 +149,44 @@ fun ScannerScreen(
 
     LaunchedEffect(scannerUiState.shouldNavigate) {
         if (scannerUiState.shouldNavigate) {
-            if (scannerUiState.isProductFound) {
-                overlaySuccess = true
-                overlayText = orderFoundText
-                showResultOverlay = true
-                rightSoundPlayer.play()
-                delay(1000)
-                onComplete(lotNumber, normalizedPartNumber, true, "")
-            } else {
-                overlaySuccess = false
-                overlayText = scannerUiState.validationError?.let { context.getString(it) }
-                    ?: orderNotFoundText
-                showResultOverlay = true
-                wrongSoundPlayer.play()
-                delay(1300)
-                onComplete(lotNumber, normalizedPartNumber, false, overlayText)
+            when (scannerUiState.navigationTarget) {
+                ScannerNavigationTarget.ReworkTask -> {
+                    overlaySuccess = true
+                    overlayText = orderFoundText
+                    showResultOverlay = true
+                    rightSoundPlayer.play()
+                    delay(1000)
+                    onReworkTask(lotNumber, normalizedPartNumber)
+                }
+
+                ScannerNavigationTarget.ReworkRelease -> {
+                    overlaySuccess = true
+                    overlayText = orderFoundText
+                    showResultOverlay = true
+                    rightSoundPlayer.play()
+                    delay(1000)
+                    onReworkRelease(lotNumber, normalizedPartNumber)
+                }
+
+                ScannerNavigationTarget.ScanReview -> {
+                    if (scannerUiState.isProductFound) {
+                        overlaySuccess = true
+                        overlayText = orderFoundText
+                        showResultOverlay = true
+                        rightSoundPlayer.play()
+                        delay(1000)
+                        onComplete(lotNumber, normalizedPartNumber, true, "")
+                    } else {
+                        overlaySuccess = false
+                        overlayText = scannerUiState.customValidationMessage
+                            ?: scannerUiState.validationError?.let { context.getString(it) }
+                            ?: orderNotFoundText
+                        showResultOverlay = true
+                        wrongSoundPlayer.play()
+                        delay(1300)
+                        onComplete(lotNumber, normalizedPartNumber, false, overlayText)
+                    }
+                }
             }
             scannerViewModel.consumeNavigation()
         }

@@ -5,8 +5,11 @@ import com.ttelectronics.trackiiapp.data.models.scanner.ErrorCodeResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.PartLookupResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.RegisterScanRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.RegisterScanResponse
+import com.ttelectronics.trackiiapp.data.models.scanner.ReleaseWipItemRequest
+import com.ttelectronics.trackiiapp.data.models.scanner.ReleaseWipItemResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.ReworkRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.ReworkResponse
+import com.ttelectronics.trackiiapp.data.models.scanner.ReworkValidationResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.ScrapOrderRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.ScrapRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.ScrapResponse
@@ -45,4 +48,10 @@ interface ScannerApiService {
 
     @POST("api/scanner/rework")
     suspend fun rework(@Body request: ReworkRequest): ReworkResponse
+
+    @GET("api/scanner/rework/validate")
+    suspend fun validateRework(@Query("workOrderNumber") workOrderNumber: String): ReworkValidationResponse
+
+    @POST("api/scanner/rework/release")
+    suspend fun releaseWipItem(@Body request: ReleaseWipItemRequest): ReleaseWipItemResponse
 }

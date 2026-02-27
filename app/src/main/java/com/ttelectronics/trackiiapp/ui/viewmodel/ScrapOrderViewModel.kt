@@ -65,9 +65,9 @@ class ScrapOrderViewModel(
                     partNumber = state.partNumber
                 )
             }.onSuccess { context ->
-                val defaultQty = context.previousQuantity?.takeIf { it > 0 }?.toString().orEmpty()
+                val defaultQty = context.previousQuantity?.toString().orEmpty()
                 _uiState.update {
-                    if (it.qtyInput.isBlank()) it.copy(qtyInput = defaultQty) else it
+                    it.copy(qtyInput = defaultQty)
                 }
             }
         }

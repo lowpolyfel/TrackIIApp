@@ -105,8 +105,9 @@ fun TaskDetailScreen(
         }
     }
 
+    val isDataReady = !uiState.isLoading
     val part = uiState.partInfo
-    val ctx = uiState.contextInfo
+    val ctx = if (isDataReady) uiState.contextInfo else null
     val userLocation = auth.locationName.trim()
 
     val isEligible = if (ctx?.isNew == true) {
@@ -129,7 +130,7 @@ fun TaskDetailScreen(
         InfoItem("Área", part?.areaName ?: "Pendiente", Icons.Rounded.Factory),
         InfoItem("Familia", part?.familyName ?: "Pendiente", Icons.Rounded.Category),
         InfoItem("Subfamilia", part?.subfamilyName ?: "Pendiente", Icons.Rounded.Inventory2),
-        InfoItem("Versión Ruta", ctx?.routeName ?: part?.activeRouteId?.toString() ?: "Pendiente", Icons.Rounded.Route)
+        InfoItem("Versión Ruta", formatRouteName(ctx?.routeName) ?: part?.activeRouteId?.toString() ?: "Pendiente", Icons.Rounded.Route)
     )
 
     TrackIIBackground(glowOffsetX = 24.dp, glowOffsetY = 120.dp) {
@@ -299,4 +300,15 @@ private fun InfoTile(title: String, value: String, icon: ImageVector, modifier: 
             Text(text = value, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.onSurface)
         }
     }
+}
+
+
+private fun formatRouteName(rawRouteName: String?): String? {
+    val routeName = rawRouteName?.trim().orEmpty()
+    if (routeName.isBlank()) return null
+
+    val looksLikeNumericId = routeName.matches(Regex("^\\d+$"))
+    val looksLikeStepPlaceholder = routeName.matches(Regex("^paso\\s*\\d+$", RegexOption.IGNORE_CASE))
+
+    return if (looksLikeNumericId || looksLikeStepPlaceholder) null else routeName
 }

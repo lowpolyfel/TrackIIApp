@@ -152,6 +152,7 @@ fun TrackIINavHost(
             val ok = backStackEntry.arguments?.getBoolean("ok") ?: true
             val error = backStackEntry.arguments?.getString("error").orEmpty()
             ScanReviewScreen(
+                taskType = taskType,
                 lotNumber = lot,
                 partNumber = part,
                 orderFound = ok,

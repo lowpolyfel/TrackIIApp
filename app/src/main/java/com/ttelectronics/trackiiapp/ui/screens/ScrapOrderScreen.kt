@@ -7,11 +7,21 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenu
@@ -29,18 +39,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ttelectronics.trackiiapp.core.ServiceLocator
 import com.ttelectronics.trackiiapp.data.local.AppSession
 import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
-import com.ttelectronics.trackiiapp.ui.components.GlassCard
-import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.ScanResultOverlay
+import com.ttelectronics.trackiiapp.ui.components.ScannerHeader
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.components.rememberRawSoundPlayer
@@ -58,6 +70,7 @@ fun ScrapOrderScreen(
     onHome: () -> Unit
 ) {
     val context = LocalContext.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val viewModel: ScrapOrderViewModel = viewModel(
         factory = ScrapOrderViewModelFactory(
             ServiceLocator.scannerRepository(context),
@@ -68,6 +81,8 @@ fun ScrapOrderScreen(
     val rightSoundPlayer = rememberRawSoundPlayer("right")
 
     var showSuccessOverlay by remember { mutableStateOf(false) }
+    var categoryExpanded by remember { mutableStateOf(false) }
+    var codeExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(lotNumber, partNumber) {
         viewModel.initialize(lotNumber, partNumber)
@@ -83,158 +98,217 @@ fun ScrapOrderScreen(
         }
     }
 
-    TrackIIBackground(glowOffsetX = 18.dp, glowOffsetY = 20.dp) {
+    val glassContainer = Color.White.copy(alpha = 0.22f)
+    val cardContainer = Color.White.copy(alpha = 0.90f)
+    val cardBrush = Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.92f), Color(0xFFEFF5FF)))
+
+    TrackIIBackground {
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 24.dp, vertical = 28.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                    .padding(top = 16.dp, bottom = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = "Cancelar Orden",
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = "Completa los datos para registrar la cancelación.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TTTextSecondary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
-                )
+                ScannerHeader(taskTitle = "Cancelar Orden")
 
-                GlassCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OutlinedTextField(
-                            value = uiState.lotNumber,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("No. Lote") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp)
-                        )
-                        OutlinedTextField(
-                            value = uiState.partNumber,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("No. Parte") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp)
-                        )
-
-                        var categoryExpanded by remember { mutableStateOf(false) }
-                        ExposedDropdownMenuBox(
-                            expanded = categoryExpanded,
-                            onExpandedChange = { categoryExpanded = it }
-                        ) {
-                            OutlinedTextField(
-                                value = uiState.selectedCategory?.name.orEmpty(),
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("Categoría de Falla") },
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
-                                modifier = Modifier
-                                    .menuAnchor()
-                                    .fillMaxWidth(),
-                                shape = RoundedCornerShape(18.dp)
-                            )
-                            ExposedDropdownMenu(
-                                expanded = categoryExpanded,
-                                onDismissRequest = { categoryExpanded = false }
-                            ) {
-                                uiState.categories.forEach { category ->
-                                    DropdownMenuItem(
-                                        text = { Text(category.name) },
-                                        onClick = {
-                                            viewModel.onCategorySelected(category)
-                                            categoryExpanded = false
-                                        }
-                                    )
-                                }
-                            }
-                        }
-
-                        var codeExpanded by remember { mutableStateOf(false) }
-                        ExposedDropdownMenuBox(
-                            expanded = codeExpanded,
-                            onExpandedChange = { isExpanded ->
-                                if (uiState.selectedCategory != null) codeExpanded = isExpanded
-                            }
-                        ) {
-                            OutlinedTextField(
-                                value = uiState.selectedCode?.let { "${it.code} - ${it.description}" }.orEmpty(),
-                                onValueChange = {},
-                                readOnly = true,
-                                enabled = uiState.selectedCategory != null,
-                                label = { Text("Código de Falla") },
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = codeExpanded) },
-                                modifier = Modifier
-                                    .menuAnchor()
-                                    .fillMaxWidth(),
-                                shape = RoundedCornerShape(18.dp)
-                            )
-                            ExposedDropdownMenu(
-                                expanded = codeExpanded,
-                                onDismissRequest = { codeExpanded = false }
-                            ) {
-                                uiState.codes.forEach { code ->
-                                    DropdownMenuItem(
-                                        text = { Text("${code.code} - ${code.description}") },
-                                        onClick = {
-                                            viewModel.onCodeSelected(code)
-                                            codeExpanded = false
-                                        }
-                                    )
-                                }
-                            }
-                        }
-
-                        OutlinedTextField(
-                            value = uiState.qtyInput,
-                            onValueChange = viewModel::onQtyChange,
-                            label = { Text("Piezas a cancelar") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp)
-                        )
-
-                        OutlinedTextField(
-                            value = uiState.comments,
-                            onValueChange = viewModel::onCommentsChange,
-                            label = { Text("Comentarios (Opcional)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 3,
-                            shape = RoundedCornerShape(18.dp)
-                        )
-
-                        if (uiState.isLoadingCategories || uiState.isLoadingCodes || uiState.isSubmitting) {
-                            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator()
-                            }
-                        }
-
-                        uiState.errorMessage?.let {
-                            Text(it, color = TTRed, style = MaterialTheme.typography.bodySmall)
-                        }
-
-                        PrimaryGlowButton(
-                            text = "Confirmar Cancelación",
-                            onClick = viewModel::submit,
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 16.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = glassContainer),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(Color.Red.copy(alpha = 0.05f), RoundedCornerShape(20.dp)),
-                            enabled = !uiState.isSubmitting
+                                .background(cardBrush)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .padding(16.dp)
+                                    .fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    Text("No. Lote", style = MaterialTheme.typography.labelMedium, color = TTTextSecondary)
+                                    Text(uiState.lotNumber, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text("No. Parte", style = MaterialTheme.typography.labelMedium, color = TTTextSecondary)
+                                    Text(uiState.partNumber, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
+                                }
+                            }
+                        }
+                    }
+
+                    Text(
+                        "Piezas a cancelar",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White
+                    )
+                    OutlinedTextField(
+                        value = uiState.qtyInput,
+                        onValueChange = { newValue -> if (newValue.all { it.isDigit() }) viewModel.onQtyChange(newValue) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(cardContainer, RoundedCornerShape(12.dp)),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = cardContainer,
+                            unfocusedContainerColor = cardContainer
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Next
                         )
-                        SoftActionButton(
-                            text = "Volver",
-                            onClick = onBack,
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = !uiState.isSubmitting
+                    )
+
+                    ExposedDropdownMenuBox(
+                        expanded = categoryExpanded,
+                        onExpandedChange = { categoryExpanded = it }
+                    ) {
+                        OutlinedTextField(
+                            value = uiState.selectedCategory?.name.orEmpty(),
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Categoría de falla") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth()
+                                .background(cardContainer, RoundedCornerShape(12.dp)),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = cardContainer,
+                                unfocusedContainerColor = cardContainer
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        ExposedDropdownMenu(
+                            expanded = categoryExpanded,
+                            onDismissRequest = { categoryExpanded = false }
+                        ) {
+                            uiState.categories.forEach { category ->
+                                DropdownMenuItem(
+                                    text = { Text(category.name) },
+                                    onClick = {
+                                        viewModel.onCategorySelected(category)
+                                        categoryExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    ExposedDropdownMenuBox(
+                        expanded = codeExpanded,
+                        onExpandedChange = { isExpanded ->
+                            if (uiState.selectedCategory != null) codeExpanded = isExpanded
+                        }
+                    ) {
+                        OutlinedTextField(
+                            value = uiState.selectedCode?.let { "${it.code} - ${it.description}" }.orEmpty(),
+                            onValueChange = {},
+                            readOnly = true,
+                            enabled = uiState.selectedCategory != null,
+                            label = { Text("Código de falla") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = codeExpanded) },
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth()
+                                .background(cardContainer, RoundedCornerShape(12.dp)),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = cardContainer,
+                                unfocusedContainerColor = cardContainer
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        ExposedDropdownMenu(
+                            expanded = codeExpanded,
+                            onDismissRequest = { codeExpanded = false }
+                        ) {
+                            uiState.codes.forEach { code ->
+                                DropdownMenuItem(
+                                    text = { Text("${code.code} - ${code.description}") },
+                                    onClick = {
+                                        viewModel.onCodeSelected(code)
+                                        codeExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Text(
+                        "Comentarios del operador",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White
+                    )
+                    OutlinedTextField(
+                        value = uiState.comments,
+                        onValueChange = viewModel::onCommentsChange,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp)
+                            .background(cardContainer, RoundedCornerShape(12.dp)),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = cardContainer,
+                            unfocusedContainerColor = cardContainer
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        placeholder = { Text("Describe el motivo de la cancelación...") },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                            onDone = { keyboardController?.hide() }
+                        )
+                    )
+
+                    if (uiState.isLoadingCategories || uiState.isLoadingCodes || uiState.isSubmitting) {
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    }
+
+                    uiState.errorMessage?.let {
+                        Text(it, color = TTRed, style = MaterialTheme.typography.bodySmall)
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Button(
+                        onClick = {
+                            keyboardController?.hide()
+                            viewModel.submit()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(55.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = TTRed),
+                        shape = RoundedCornerShape(14.dp),
+                        enabled = !uiState.isSubmitting
+                    ) {
+                        Text(
+                            "Confirmar Cancelación",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                         )
                     }
+
+                    SoftActionButton(
+                        text = "Volver",
+                        onClick = onBack,
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !uiState.isSubmitting
+                    )
                 }
             }
+
             FloatingHomeButton(
                 onClick = onHome,
                 modifier = Modifier

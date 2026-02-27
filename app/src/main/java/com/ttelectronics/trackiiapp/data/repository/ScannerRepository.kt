@@ -57,8 +57,28 @@ class ScannerRepository(
         return api.scrapOrder(request)
     }
 
-    suspend fun reworkOrder(workOrderNumber: String, partNumber: String, deviceId: Int, location: String, reason: String?): ReworkResponse {
-        return api.rework(ReworkRequest(workOrderNumber, partNumber, deviceId, location, reason))
+    suspend fun reworkOrder(
+        workOrderNumber: String,
+        partNumber: String,
+        quantity: Int,
+        locationId: Int,
+        isRelease: Boolean,
+        reason: String?,
+        userId: Int,
+        deviceId: Int
+    ): ReworkResponse {
+        return api.rework(
+            ReworkRequest(
+                workOrderNumber = workOrderNumber,
+                partNumber = partNumber,
+                quantity = quantity,
+                locationId = locationId,
+                isRelease = isRelease,
+                reason = reason,
+                userId = userId,
+                deviceId = deviceId
+            )
+        )
     }
 
     suspend fun validatePartExists(partNumber: String): Boolean {

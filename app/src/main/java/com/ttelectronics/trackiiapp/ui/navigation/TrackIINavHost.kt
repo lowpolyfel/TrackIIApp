@@ -14,6 +14,7 @@ import com.ttelectronics.trackiiapp.ui.screens.LoginScreen
 import com.ttelectronics.trackiiapp.ui.screens.RegisterScreen
 import com.ttelectronics.trackiiapp.ui.screens.RegisterTokenScreen
 import com.ttelectronics.trackiiapp.ui.screens.ReworkReleaseScreen
+import com.ttelectronics.trackiiapp.ui.screens.ReworkScreen
 import com.ttelectronics.trackiiapp.ui.screens.ScanReviewScreen
 import com.ttelectronics.trackiiapp.ui.screens.ScrapOrderScreen
 import com.ttelectronics.trackiiapp.ui.screens.ScannerScreen
@@ -31,6 +32,7 @@ object TrackIIRoute {
     const val ScanReview = "scan-review/{task}?lot={lot}&part={part}&ok={ok}&error={error}"
     const val Task = "task/{task}?lot={lot}&part={part}"
     const val ReworkRelease = "rework-release?lot={lot}&part={part}"
+    const val ReworkForm = "rework-form?lot={lot}&part={part}"
     const val ScrapOrder = "scrap-order?lot={lot}&part={part}"
 
     fun scannerRoute(task: TaskType) = "scanner/${task.route}"
@@ -45,6 +47,10 @@ object TrackIIRoute {
 
     fun reworkReleaseRoute(lot: String, part: String): String {
         return "rework-release?lot=${Uri.encode(lot)}&part=${Uri.encode(part)}"
+    }
+
+    fun reworkFormRoute(lot: String, part: String): String {
+        return "rework-form?lot=${Uri.encode(lot)}&part=${Uri.encode(part)}"
     }
 }
 
@@ -186,8 +192,25 @@ fun TrackIINavHost(
             ReworkReleaseScreen(
                 onRelease = navigateHome,
                 onContinueRework = {
-                    navController.navigate(TrackIIRoute.taskRoute(TaskType.Rework, lot, part))
+                    navController.navigate(TrackIIRoute.reworkFormRoute(lot, part))
                 },
+                onHome = navigateHome
+            )
+        }
+        composable(
+            route = TrackIIRoute.ReworkForm,
+            arguments = listOf(
+                navArgument("lot") { defaultValue = "" },
+                navArgument("part") { defaultValue = "" }
+            )
+        ) { backStackEntry ->
+            val lot = backStackEntry.arguments?.getString("lot").orEmpty()
+            val part = backStackEntry.arguments?.getString("part").orEmpty()
+            ReworkScreen(
+                lotNumber = lot,
+                partNumber = part,
+                onComplete = navigateHome,
+                onBack = { navController.popBackStack() },
                 onHome = navigateHome
             )
         }

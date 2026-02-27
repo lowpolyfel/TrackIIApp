@@ -67,7 +67,7 @@ class ScrapOrderViewModel(
             }.onSuccess { context ->
                 val defaultQty = context.previousQuantity?.toString().orEmpty()
                 _uiState.update {
-                    it.copy(qtyInput = defaultQty)
+                    if (it.qtyInput.isBlank()) it.copy(qtyInput = defaultQty) else it
                 }
             }
         }

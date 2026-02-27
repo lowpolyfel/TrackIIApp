@@ -39,8 +39,38 @@ class ScrapOrderViewModel(
     val uiState: StateFlow<ScrapOrderUiState> = _uiState.asStateFlow()
 
     fun initialize(lotNumber: String, partNumber: String) {
-        _uiState.update { it.copy(lotNumber = lotNumber, partNumber = partNumber) }
+        _uiState.update {
+            it.copy(
+                lotNumber = lotNumber,
+                partNumber = partNumber,
+                qtyInput = "",
+                errorMessage = null,
+                saveSuccess = false
+            )
+        }
+        loadWorkContext()
         loadCategories()
+    }
+
+
+    private fun loadWorkContext() {
+        val state = _uiState.value
+        if (state.lotNumber.isBlank() || state.partNumber.isBlank()) return
+
+        viewModelScope.launch {
+            runCatching {
+                scannerRepository.getWorkOrderContext(
+                    workOrderNumber = state.lotNumber,
+                    deviceId = appSession.deviceId,
+                    partNumber = state.partNumber
+                )
+            }.onSuccess { context ->
+                val defaultQty = context.previousQuantity?.takeIf { it > 0 }?.toString().orEmpty()
+                _uiState.update {
+                    if (it.qtyInput.isBlank()) it.copy(qtyInput = defaultQty) else it
+                }
+            }
+        }
     }
 
     fun loadCategories() {

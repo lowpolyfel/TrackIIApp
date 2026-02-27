@@ -41,6 +41,8 @@ import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
 import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
+import com.ttelectronics.trackiiapp.ui.components.rememberRawSoundPlayer
+import com.ttelectronics.trackiiapp.ui.navigation.TaskType
 import com.ttelectronics.trackiiapp.ui.theme.TTAccent
 import com.ttelectronics.trackiiapp.ui.theme.TTBlueDark
 import com.ttelectronics.trackiiapp.ui.theme.TTGreen
@@ -52,6 +54,7 @@ import com.ttelectronics.trackiiapp.ui.viewmodel.ScanReviewViewModelFactory
 
 @Composable
 fun ScanReviewScreen(
+    taskType: TaskType,
     lotNumber: String,
     partNumber: String,
     orderFound: Boolean,
@@ -62,6 +65,7 @@ fun ScanReviewScreen(
 ) {
     val context = LocalContext.current
     val vm: ScanReviewViewModel = viewModel(factory = ScanReviewViewModelFactory(ServiceLocator.scannerRepository(context)))
+    val wrongSoundPlayer = rememberRawSoundPlayer("wrong")
     val uiState by vm.uiState.collectAsState()
     val session = ServiceLocator.authRepository(context).sessionSnapshot()
 
@@ -132,7 +136,22 @@ fun ScanReviewScreen(
                 Row(modifier = Modifier.fillMaxWidth().padding(top = 18.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     SoftActionButton(text = "Escanear nuevamente", onClick = onRescan, modifier = Modifier.weight(1f))
                     if (orderFound) {
-                        PrimaryGlowButton(text = "Confirmar", onClick = onConfirm, modifier = Modifier.weight(1f))
+                        PrimaryGlowButton(
+                            text = "Continuar",
+                            onClick = {
+                                if (taskType == TaskType.CancelOrder && workContext?.isNew == true) {
+                                    wrongSoundPlayer.play()
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        "Esta orden no puede cancelarse porque aún no empieza.",
+                                        android.widget.Toast.LENGTH_LONG
+                                    ).show()
+                                } else {
+                                    onConfirm()
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                 }
             }

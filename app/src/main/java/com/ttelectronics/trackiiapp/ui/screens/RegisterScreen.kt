@@ -15,6 +15,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -36,6 +39,7 @@ import com.ttelectronics.trackiiapp.ui.theme.TTRed
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
 import com.ttelectronics.trackiiapp.ui.viewmodel.RegisterViewModel
 import com.ttelectronics.trackiiapp.ui.viewmodel.RegisterViewModelFactory
+import kotlinx.coroutines.delay
 
 @Composable
 fun RegisterScreen(
@@ -49,6 +53,7 @@ fun RegisterScreen(
         ?: "No disponible"
     val vm: RegisterViewModel = viewModel(factory = RegisterViewModelFactory(ServiceLocator.authRepository(context)))
     val uiState by vm.uiState.collectAsState()
+    var showSuccessDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(tokenCode) {
         vm.setToken(tokenCode)
@@ -56,13 +61,14 @@ fun RegisterScreen(
         vm.loadLocations()
     }
 
-    uiState.successMessage?.let {
-        SuccessOverlayDialog(
-            title = "Registro completado",
-            message = it,
-            show = true
-        )
-        LaunchedEffect(it) { onCreateAccount() }
+    LaunchedEffect(uiState.successMessage) {
+        if (!uiState.successMessage.isNullOrBlank()) {
+            showSuccessDialog = true
+            delay(1400)
+            showSuccessDialog = false
+            vm.clearSuccessMessage()
+            onCreateAccount()
+        }
     }
 
     TrackIIBackground(glowOffsetX = (-40).dp, glowOffsetY = 30.dp) {
@@ -138,6 +144,12 @@ fun RegisterScreen(
             FloatingHomeButton(
                 onClick = onHome,
                 modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp)
+            )
+
+            SuccessOverlayDialog(
+                title = "Registro completado",
+                message = uiState.successMessage.orEmpty(),
+                show = showSuccessDialog
             )
         }
     }

@@ -8,6 +8,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -86,8 +87,14 @@ fun TaskDetailScreen(
 ) {
     val context = LocalContext.current
     val rightSoundPlayer = rememberRawSoundPlayer("right")
-    val auth = ServiceLocator.authRepository(context).sessionSnapshot()
-    val vm: TaskDetailViewModel = viewModel(factory = TaskDetailViewModelFactory(ServiceLocator.scannerRepository(context)))
+    val authRepository = ServiceLocator.authRepository(context)
+    val auth = authRepository.sessionSnapshot()
+    val vm: TaskDetailViewModel = viewModel(
+        factory = TaskDetailViewModelFactory(
+            ServiceLocator.scannerRepository(context),
+            authRepository
+        )
+    )
     val uiState by vm.uiState.collectAsState()
 
     LaunchedEffect(partNumber, lotNumber, auth.deviceId) {
@@ -183,11 +190,32 @@ fun TaskDetailScreen(
                                 options = listOf("Error de calidad", "Material incorrecto", "Orden duplicada"),
                                 helper = "Selecciona un motivo"
                             )
-                            TaskType.Rework -> TrackIIDropdownField(
-                                label = "Localidad de retrabajo",
-                                options = ctx?.nextSteps?.map { it.locationName }?.distinct().orEmpty().ifEmpty { listOf("Pendiente API") },
-                                helper = "Opciones desde API"
-                            )
+                            TaskType.Rework -> {
+                                TrackIITextField(
+                                    label = "Cantidad (Piezas)",
+                                    value = uiState.qtyInput,
+                                    onValueChange = vm::onQtyChange
+                                )
+                                TrackIIDropdownField(
+                                    label = "Localidad de retrabajo",
+                                    options = uiState.reworkLocations.map { it.name },
+                                    helper = "Selecciona una localidad",
+                                    selectedOption = uiState.selectedReworkLocation?.name.orEmpty(),
+                                    onOptionSelected = vm::onReworkLocationSelected
+                                )
+                                TrackIITextField(
+                                    label = "Motivo / Comentarios (Opcional)",
+                                    value = uiState.reworkReason,
+                                    onValueChange = vm::onReworkReasonChange
+                                )
+                                AnimatedVisibility(uiState.reworkLocations.isEmpty()) {
+                                    Text(
+                                        text = "No hay localidades disponibles para retrabajo.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = TTTextSecondary
+                                    )
+                                }
+                            }
                             TaskType.TravelSheet -> Unit
                         }
 

@@ -3,10 +3,11 @@ package com.ttelectronics.trackiiapp.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.ttelectronics.trackiiapp.data.models.auth.LocationDto
 import com.ttelectronics.trackiiapp.data.models.scanner.PartLookupResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.WorkOrderContextResponse
-import com.ttelectronics.trackiiapp.data.models.enums.ScanType
 import com.ttelectronics.trackiiapp.data.network.ApiErrorParser
+import com.ttelectronics.trackiiapp.data.repository.AuthRepository
 import com.ttelectronics.trackiiapp.data.repository.ScannerRepository
 import com.ttelectronics.trackiiapp.domain.scanner.ProductAdvanceScanPolicy
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
@@ -22,16 +23,31 @@ data class TaskDetailUiState(
     val partInfo: PartLookupResponse? = null,
     val contextInfo: WorkOrderContextResponse? = null,
     val qtyInput: String = "",
+    val reworkReason: String = "",
+    val reworkLocations: List<LocationDto> = emptyList(),
+    val selectedReworkLocation: LocationDto? = null,
     val saveSuccess: Boolean = false
 )
 
-class TaskDetailViewModel(private val scannerRepository: ScannerRepository) : ViewModel() {
+class TaskDetailViewModel(
+    private val scannerRepository: ScannerRepository,
+    private val authRepository: AuthRepository
+) : ViewModel() {
     private val _uiState = MutableStateFlow(TaskDetailUiState())
     val uiState: StateFlow<TaskDetailUiState> = _uiState.asStateFlow()
     private val productAdvanceScanPolicy = ProductAdvanceScanPolicy()
 
     fun onQtyChange(value: String) {
         _uiState.update { it.copy(qtyInput = value.filter { ch -> ch.isDigit() }, errorMessage = null) }
+    }
+
+    fun onReworkReasonChange(value: String) {
+        _uiState.update { it.copy(reworkReason = value, errorMessage = null) }
+    }
+
+    fun onReworkLocationSelected(locationName: String) {
+        val selected = _uiState.value.reworkLocations.firstOrNull { it.name == locationName }
+        _uiState.update { it.copy(selectedReworkLocation = selected, errorMessage = null) }
     }
 
     fun loadData(partNumber: String, workOrderNumber: String, deviceId: Int) {
@@ -48,8 +64,10 @@ class TaskDetailViewModel(private val scannerRepository: ScannerRepository) : Vi
             }
             val partResult = runCatching { scannerRepository.lookupPart(partNumber.trim()) }
             val ctxResult = runCatching { scannerRepository.getWorkOrderContext(workOrderNumber.trim(), deviceId, partNumber.trim()) }
+            val locationResult = runCatching { authRepository.getLocations() }
             val err = partResult.exceptionOrNull()?.let { ApiErrorParser.readableError(it) }
                 ?: ctxResult.exceptionOrNull()?.let { ApiErrorParser.readableError(it) }
+                ?: locationResult.exceptionOrNull()?.let { ApiErrorParser.readableError(it) }
 
             val normalizedContext = ctxResult.getOrNull()?.let { context ->
                 if (context.isNew == true) {
@@ -60,11 +78,17 @@ class TaskDetailViewModel(private val scannerRepository: ScannerRepository) : Vi
             }
 
             _uiState.update {
+                val locations = locationResult.getOrNull().orEmpty()
+                val selectedLocation = it.selectedReworkLocation
+                    ?.let { selected -> locations.firstOrNull { location -> location.id == selected.id } }
+                    ?: locations.firstOrNull()
                 it.copy(
                     isLoading = false,
                     errorMessage = err,
                     partInfo = partResult.getOrNull(),
-                    contextInfo = normalizedContext
+                    contextInfo = normalizedContext,
+                    reworkLocations = locations,
+                    selectedReworkLocation = selectedLocation
                 )
             }
         }
@@ -98,18 +122,29 @@ class TaskDetailViewModel(private val scannerRepository: ScannerRepository) : Vi
             return
         }
 
+        if (taskType == TaskType.Rework) {
+            val selectedLocationId = state.selectedReworkLocation?.id ?: 0
+            if ((qtyFromInput ?: 0) <= 0) {
+                _uiState.update { it.copy(errorMessage = "Ingresa una cantidad válida para retrabajo.") }
+                return
+            }
+            if (selectedLocationId <= 0) {
+                _uiState.update { it.copy(errorMessage = "Selecciona la localidad de retrabajo.") }
+                return
+            }
+        }
+
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, saveSuccess = false) }
             runCatching {
                 if (taskType == TaskType.Rework) {
-                    val locationId = state.contextInfo?.nextSteps?.firstOrNull()?.locationId ?: 0
                     scannerRepository.reworkOrder(
                         workOrderNumber = workOrderNumber,
                         partNumber = partNumber,
                         quantity = qtyFromInput ?: 0,
-                        locationId = locationId,
+                        locationId = state.selectedReworkLocation?.id ?: 0,
                         isRelease = false,
-                        reason = null,
+                        reason = state.reworkReason.ifBlank { null },
                         userId = userId,
                         deviceId = deviceId
                     )
@@ -136,6 +171,9 @@ class TaskDetailViewModel(private val scannerRepository: ScannerRepository) : Vi
     }
 }
 
-class TaskDetailViewModelFactory(private val scannerRepository: ScannerRepository) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T = TaskDetailViewModel(scannerRepository) as T
+class TaskDetailViewModelFactory(
+    private val scannerRepository: ScannerRepository,
+    private val authRepository: AuthRepository
+) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T = TaskDetailViewModel(scannerRepository, authRepository) as T
 }

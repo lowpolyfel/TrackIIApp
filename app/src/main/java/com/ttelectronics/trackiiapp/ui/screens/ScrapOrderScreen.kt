@@ -24,7 +24,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
@@ -102,7 +101,7 @@ fun ScrapOrderScreen(
     val cardContainer = Color.White.copy(alpha = 0.90f)
     val cardBrush = Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.92f), Color(0xFFEFF5FF)))
 
-    TrackIIBackground {
+    TrackIIBackground(glowOffsetX = 40.dp, glowOffsetY = (-30).dp) {
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier

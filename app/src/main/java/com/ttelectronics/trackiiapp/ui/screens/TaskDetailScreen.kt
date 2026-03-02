@@ -102,7 +102,7 @@ fun TaskDetailScreen(
     LaunchedEffect(partNumber, lotNumber, auth.deviceId) {
         vm.loadData(partNumber, lotNumber, auth.deviceId)
     }
-    LaunchedEffect(uiState.saveSuccess, uiState.partialScrapNavigation) {
+    LaunchedEffect(uiState.saveSuccess) {
         if (uiState.saveSuccess) {
             rightSoundPlayer.play()
             kotlinx.coroutines.delay(1800)

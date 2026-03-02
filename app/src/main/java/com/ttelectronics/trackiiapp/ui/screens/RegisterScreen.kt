@@ -46,7 +46,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun RegisterScreen(
     tokenCode: String,
-    onCreateAccount: () -> Unit,
+    onCreateAccount: (String?) -> Unit,
     onBackToLogin: () -> Unit,
     onHome: () -> Unit
 ) {
@@ -70,7 +70,8 @@ fun RegisterScreen(
             delay(1400)
             showSuccessDialog = false
             vm.clearSuccessMessage()
-            onCreateAccount()
+            onCreateAccount(uiState.nextDestination)
+            vm.consumeNextDestination()
         }
     }
 

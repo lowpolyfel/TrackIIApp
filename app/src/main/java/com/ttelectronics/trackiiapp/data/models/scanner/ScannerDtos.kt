@@ -101,7 +101,8 @@ data class ReworkValidationResponse(
 )
 
 data class ReleaseWipItemRequest(
-    @SerializedName("workOrderNumber") val workOrderNumber: String
+    @SerializedName("workOrderNumber") val workOrderNumber: String,
+    @SerializedName("isRelease") val isRelease: Boolean = true
 )
 
 data class ReleaseWipItemResponse(

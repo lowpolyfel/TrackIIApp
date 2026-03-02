@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.ttelectronics.trackiiapp.data.models.auth.LocationDto
 import com.ttelectronics.trackiiapp.data.models.scanner.PartLookupResponse
+import com.ttelectronics.trackiiapp.data.models.scanner.RegisterScanResponse
+import com.ttelectronics.trackiiapp.data.models.scanner.ReworkResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.WorkOrderContextResponse
 import com.ttelectronics.trackiiapp.data.network.ApiErrorParser
 import com.ttelectronics.trackiiapp.data.repository.AuthRepository
@@ -26,7 +28,15 @@ data class TaskDetailUiState(
     val reworkReason: String = "",
     val reworkLocations: List<LocationDto> = emptyList(),
     val selectedReworkLocation: LocationDto? = null,
-    val saveSuccess: Boolean = false
+    val isSubmitting: Boolean = false,
+    val saveSuccess: Boolean = false,
+    val partialScrapNavigation: PartialScrapNavigation? = null
+)
+
+data class PartialScrapNavigation(
+    val lotNumber: String,
+    val partNumber: String,
+    val difference: Int
 )
 
 class TaskDetailViewModel(
@@ -59,7 +69,9 @@ class TaskDetailViewModel(
                     errorMessage = null,
                     partInfo = null,
                     contextInfo = null,
-                    saveSuccess = false
+                    saveSuccess = false,
+                    partialScrapNavigation = null,
+                    isSubmitting = false
                 )
             }
             val partResult = runCatching { scannerRepository.lookupPart(partNumber.trim()) }
@@ -104,6 +116,11 @@ class TaskDetailViewModel(
     ) {
         val state = _uiState.value
 
+        // 1. REGLA DE ORO: Prevenir el doble toque (Double Submit)
+        if (state.isLoading || state.isSubmitting || state.saveSuccess) {
+            return
+        }
+
         val qtyFromInput = state.qtyInput.toIntOrNull()
         val decision = if (taskType == TaskType.ProductAdvance) {
             productAdvanceScanPolicy.evaluate(
@@ -135,7 +152,7 @@ class TaskDetailViewModel(
         }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null, saveSuccess = false) }
+            _uiState.update { it.copy(isLoading = true, isSubmitting = true, errorMessage = null, saveSuccess = false, partialScrapNavigation = null) }
             runCatching {
                 if (taskType == TaskType.Rework) {
                     scannerRepository.reworkOrder(
@@ -157,17 +174,57 @@ class TaskDetailViewModel(
                         qtyIn = if (taskType == TaskType.ProductAdvance) (decision?.qtyIn ?: 0) else (qtyFromInput ?: 0)
                     )
                 }
-            }.onSuccess {
+            }.onSuccess { response ->
+                val responseSuccess = when (response) {
+                    is RegisterScanResponse -> response.success == true
+                    is ReworkResponse -> response.success == true
+                    else -> true
+                }
+                val responseMessage = when (response) {
+                    is RegisterScanResponse -> response.message
+                    is ReworkResponse -> response.message
+                    else -> null
+                }
+
+                if (!responseSuccess) {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            isSubmitting = false,
+                            errorMessage = responseMessage ?: "No fue posible guardar el registro."
+                        )
+                    }
+                    return@onSuccess
+                }
+
+                val previousQuantity = state.contextInfo?.previousQuantity ?: 0
+                val currentQuantityIngresada = if (taskType == TaskType.ProductAdvance) (decision?.qtyIn ?: 0) else (qtyFromInput ?: 0)
+                val difference = previousQuantity - currentQuantityIngresada
+
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        saveSuccess = true
+                        isSubmitting = false,
+                        saveSuccess = true,
+                        partialScrapNavigation = if (taskType == TaskType.ProductAdvance && difference > 0) {
+                            PartialScrapNavigation(
+                                lotNumber = workOrderNumber,
+                                partNumber = partNumber,
+                                difference = difference
+                            )
+                        } else {
+                            null
+                        }
                     )
                 }
             }.onFailure { ex ->
-                _uiState.update { it.copy(isLoading = false, errorMessage = ApiErrorParser.readableError(ex)) }
+                _uiState.update { it.copy(isLoading = false, isSubmitting = false, errorMessage = ApiErrorParser.readableError(ex)) }
             }
         }
+    }
+
+    fun consumePartialScrapNavigation() {
+        _uiState.update { it.copy(partialScrapNavigation = null) }
     }
 }
 

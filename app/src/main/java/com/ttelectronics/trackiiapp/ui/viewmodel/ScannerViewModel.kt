@@ -127,12 +127,113 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
             return
         }
 
-        if (taskType == TaskType.Rework) {
-            validateReworkOrder(normalizedLot)
-            return
-        }
+        when (taskType) {
+            TaskType.Rework -> {
+                validateReworkOrder(normalizedLot)
+            }
 
-        validatePartExists(normalizedPartNumber)
+            TaskType.ProductAdvance, TaskType.CancelOrder -> {
+                validateOrderForAdvanceOrScrap(taskType, normalizedLot, normalizedPartNumber)
+            }
+
+            else -> {
+                validatePartExists(normalizedPartNumber)
+            }
+        }
+    }
+
+    private fun validateOrderForAdvanceOrScrap(taskType: TaskType, lotNumber: String, partNumber: String) {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(isValidating = true, validationError = null, customValidationMessage = null, shouldNavigate = false)
+            }
+
+            // 1. Validar que la parte (Product) sí exista en el catálogo primero
+            val partFound = runCatching { scannerRepository.validatePartExists(partNumber) }.getOrElse { false }
+            if (!partFound) {
+                _uiState.update {
+                    it.copy(
+                        isValidating = false,
+                        isProductFound = false, // false dispara la pantalla de error roja
+                        shouldNavigate = true,
+                        navigationTarget = ScannerNavigationTarget.ScanReview,
+                        validationError = R.string.error_order_not_found_for_part
+                    )
+                }
+                return@launch
+            }
+
+            // 2. Validar el estado del lote para bloquear visualmente el escáner
+            runCatching { scannerRepository.validateRework(lotNumber) }
+                .onSuccess { response ->
+                    val status = parseWipStatus(response.status)
+
+                    if (taskType == TaskType.ProductAdvance) {
+                        // REGLA: Si quiere avanzar pero está Terminada, Cancelada (Scrapped) o en Retrabajo (Hold)
+                        if (status == WipStatus.FINISHED || status == WipStatus.SCRAPPED || status == WipStatus.HOLD) {
+                            _uiState.update {
+                                it.copy(
+                                    isValidating = false,
+                                    isProductFound = false, // Bloquea el avance y lanza sonido de error
+                                    shouldNavigate = true,
+                                    navigationTarget = ScannerNavigationTarget.ScanReview,
+                                    customValidationMessage = "No se puede avanzar. La orden está en estado: $status"
+                                )
+                            }
+                            return@onSuccess
+                        }
+                    } else if (taskType == TaskType.CancelOrder) {
+                        // REGLA: Si quiere desechar pero ya estaba Terminada o Desechada
+                        if (status == WipStatus.FINISHED || status == WipStatus.SCRAPPED) {
+                            _uiState.update {
+                                it.copy(
+                                    isValidating = false,
+                                    isProductFound = false,
+                                    shouldNavigate = true,
+                                    navigationTarget = ScannerNavigationTarget.ScanReview,
+                                    customValidationMessage = "No se puede cancelar una orden terminada o ya desechada."
+                                )
+                            }
+                            return@onSuccess
+                        }
+                    }
+
+                    // Si todo está bien (ej. status ACTIVE), la dejamos pasar a la pantalla de captura
+                    _uiState.update {
+                        it.copy(
+                            isValidating = false,
+                            isProductFound = true,
+                            shouldNavigate = true,
+                            navigationTarget = ScannerNavigationTarget.ScanReview
+                        )
+                    }
+                }
+                .onFailure {
+                    // IMPORTANTE: Si cae aquí (error 404), la orden AÚN NO EMPIEZA.
+                    if (taskType == TaskType.ProductAdvance) {
+                        // Para Avanzar Producto, ESTO ES CORRECTO, porque es una orden nueva. La dejamos pasar.
+                        _uiState.update {
+                            it.copy(
+                                isValidating = false,
+                                isProductFound = true,
+                                shouldNavigate = true,
+                                navigationTarget = ScannerNavigationTarget.ScanReview
+                            )
+                        }
+                    } else if (taskType == TaskType.CancelOrder) {
+                        // Para Scrap, NO PUEDES desechar algo que no ha empezado. Se bloquea.
+                        _uiState.update {
+                            it.copy(
+                                isValidating = false,
+                                isProductFound = false, // Bloquea el avance
+                                shouldNavigate = true,
+                                navigationTarget = ScannerNavigationTarget.ScanReview,
+                                customValidationMessage = "No se puede cancelar una orden que aún no empieza."
+                            )
+                        }
+                    }
+                }
+        }
     }
 
     private fun validatePartExists(partNumber: String) {

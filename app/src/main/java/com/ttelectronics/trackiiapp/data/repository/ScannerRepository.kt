@@ -69,8 +69,13 @@ class ScannerRepository(
         return api.validateRework(workOrderNumber)
     }
 
-    suspend fun releaseWipItem(workOrderNumber: String): ReleaseWipItemResponse {
-        return api.releaseWipItem(ReleaseWipItemRequest(workOrderNumber = workOrderNumber))
+    suspend fun releaseWipItem(workOrderNumber: String, isRelease: Boolean = true): ReleaseWipItemResponse {
+        return api.releaseWipItem(
+            ReleaseWipItemRequest(
+                workOrderNumber = workOrderNumber,
+                isRelease = isRelease
+            )
+        )
     }
 
     suspend fun validatePartExists(partNumber: String): Boolean {

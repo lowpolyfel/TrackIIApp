@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.ttelectronics.trackiiapp.R
 import com.ttelectronics.trackiiapp.data.models.enums.WipStatus
+import com.ttelectronics.trackiiapp.data.network.ApiErrorParser
 import com.ttelectronics.trackiiapp.data.repository.ScannerRepository
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
 import kotlinx.coroutines.Dispatchers
@@ -186,20 +187,6 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
             }
             runCatching { scannerRepository.validateRework(workOrderNumber) }
                 .onSuccess { response ->
-                    val exists = response.exists ?: false
-                    if (!exists) {
-                        _uiState.update {
-                            it.copy(
-                                isValidating = false,
-                                isProductFound = false,
-                                shouldNavigate = true,
-                                navigationTarget = ScannerNavigationTarget.ScanReview,
-                                customValidationMessage = "Esta orden aún no empieza"
-                            )
-                        }
-                        return@onSuccess
-                    }
-
                     when (parseWipStatus(response.status)) {
                         WipStatus.ACTIVE -> {
                             _uiState.update {
@@ -223,6 +210,17 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                             }
                         }
 
+                        WipStatus.FINISHED, WipStatus.SCRAPPED -> {
+                            _uiState.update {
+                                it.copy(
+                                    isValidating = false,
+                                    shouldNavigate = true,
+                                    navigationTarget = ScannerNavigationTarget.ScanReview,
+                                    customValidationMessage = "No se puede retrabajar una orden terminada o cancelada."
+                                )
+                            }
+                        }
+
                         else -> {
                             _uiState.update {
                                 it.copy(
@@ -235,15 +233,20 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                         }
                     }
                 }
-                .onFailure {
+                .onFailure { ex ->
+                    val errorMessage = ApiErrorParser.readableError(ex)
                     _uiState.update {
                         it.copy(
                             isValidating = false,
                             shouldNavigate = true,
                             navigationTarget = ScannerNavigationTarget.ScanReview,
                             isProductFound = false,
-                            validationError = R.string.error_generic_validation,
-                            customValidationMessage = "No se pudo validar la orden. Revisa conexión/API."
+                            validationError = null,
+                            customValidationMessage = if (errorMessage.contains("no empieza", ignoreCase = true)) {
+                                "Esta orden aún no empieza."
+                            } else {
+                                "No se pudo validar la orden."
+                            }
                         )
                     }
                 }
@@ -255,6 +258,8 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
         return when (normalized) {
             "ACTIVE" -> WipStatus.ACTIVE
             "HOLD" -> WipStatus.HOLD
+            "FINISHED" -> WipStatus.FINISHED
+            "SCRAPPED" -> WipStatus.SCRAPPED
             else -> WipStatus.ERROR
         }
     }

@@ -33,11 +33,12 @@ class ReworkReleaseViewModel(
             _uiState.update { it.copy(isSubmitting = true, message = null, releaseSuccess = false) }
             runCatching { scannerRepository.releaseWipItem(workOrderNumber) }
                 .onSuccess { response ->
+                    val isSuccess = response.success == true || response.success == null
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
-                            releaseSuccess = response.success == true,
-                            message = response.message ?: if (response.success == true) "Producto liberado correctamente." else "No fue posible liberar el producto."
+                            releaseSuccess = isSuccess,
+                            message = response.message ?: if (isSuccess) "Producto liberado correctamente." else "No fue posible liberar el producto."
                         )
                     }
                 }

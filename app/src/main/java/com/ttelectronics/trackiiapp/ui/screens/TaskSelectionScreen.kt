@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.HighlightOff
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,6 +46,7 @@ fun TaskSelectionScreen(
     onTaskSelected: (TaskType) -> Unit,
     onHome: () -> Unit,
     onAccount: () -> Unit,
+    onLogout: () -> Unit,
     username: String,
     locationName: String,
     deviceName: String
@@ -85,6 +87,14 @@ fun TaskSelectionScreen(
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Dispositivo", color = TTTextSecondary)
                             Text(deviceName)
+                        }
+                        Button(
+                            onClick = onLogout,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp)
+                        ) {
+                            Text("Cerrar sesión")
                         }
                     }
                 }

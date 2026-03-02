@@ -24,7 +24,8 @@ data class RegisterUiState(
     val selectedLocationId: Int? = null,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val successMessage: String? = null
+    val successMessage: String? = null,
+    val nextDestination: String? = null
 )
 
 class RegisterViewModel(private val authRepository: AuthRepository) : ViewModel() {
@@ -39,6 +40,7 @@ class RegisterViewModel(private val authRepository: AuthRepository) : ViewModel(
     fun onLocationChange(locationId: Int) = _uiState.update { it.copy(selectedLocationId = locationId, errorMessage = null) }
     fun clearError() = _uiState.update { it.copy(errorMessage = null) }
     fun clearSuccessMessage() = _uiState.update { it.copy(successMessage = null) }
+    fun consumeNextDestination() = _uiState.update { it.copy(nextDestination = null) }
 
     fun preloadDeviceUid(androidId: String?) {
         if (_uiState.value.deviceUid.isBlank()) {
@@ -94,7 +96,10 @@ class RegisterViewModel(private val authRepository: AuthRepository) : ViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        successMessage = response.message.ifBlank { "Registro completado" }
+                        successMessage = response.message.ifBlank { "Registro completado" },
+                        nextDestination = response.nextDestination?.trim()?.takeIf { destination ->
+                            destination.isNotBlank()
+                        }
                     )
                 }
             }.onFailure { ex ->

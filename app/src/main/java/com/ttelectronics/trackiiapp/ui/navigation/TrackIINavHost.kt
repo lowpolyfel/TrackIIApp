@@ -22,6 +22,28 @@ import com.ttelectronics.trackiiapp.ui.screens.TaskDetailScreen
 import com.ttelectronics.trackiiapp.ui.screens.TaskSelectionScreen
 import com.ttelectronics.trackiiapp.ui.screens.WelcomeScreen
 
+private fun resolvePostRegisterRoute(nextDestination: String?, isLoggedIn: Boolean): String {
+    val destination = nextDestination?.trim().orEmpty()
+    if (destination.isBlank()) {
+        return if (isLoggedIn) TrackIIRoute.Tasks else TrackIIRoute.Welcome
+    }
+
+    return when {
+        destination == TrackIIRoute.Welcome || destination == TrackIIRoute.Tasks -> destination
+        destination.startsWith("scanner/") ||
+            destination.startsWith("scan-review/") ||
+            destination.startsWith("task/") ||
+            destination.startsWith("rework-release") ||
+            destination.startsWith("scrap-order") ||
+            destination.startsWith("partial-scrap") -> destination
+        destination == TaskType.ProductAdvance.route -> TrackIIRoute.scannerRoute(TaskType.ProductAdvance)
+        destination == TaskType.TravelSheet.route -> TrackIIRoute.scannerRoute(TaskType.TravelSheet)
+        destination == TaskType.CancelOrder.route -> TrackIIRoute.scannerRoute(TaskType.CancelOrder)
+        destination == TaskType.Rework.route -> TrackIIRoute.scannerRoute(TaskType.Rework)
+        else -> if (isLoggedIn) TrackIIRoute.Tasks else TrackIIRoute.Welcome
+    }
+}
+
 object TrackIIRoute {
     const val Login = "login"
     const val RegisterToken = "register-token"
@@ -98,7 +120,14 @@ fun TrackIINavHost(
         ) { backStackEntry ->
             RegisterScreen(
                 tokenCode = backStackEntry.arguments?.getString("token").orEmpty(),
-                onCreateAccount = { navController.popBackStack(TrackIIRoute.Login, inclusive = false) },
+                onCreateAccount = { nextDestination ->
+                    val currentSession = authRepository.sessionSnapshot()
+                    val destination = resolvePostRegisterRoute(nextDestination, currentSession.isLoggedIn)
+                    navController.navigate(destination) {
+                        popUpTo(TrackIIRoute.RegisterToken) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
                 onBackToLogin = { navController.popBackStack(TrackIIRoute.Login, inclusive = false) },
                 onHome = navigateHome
             )

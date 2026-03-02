@@ -36,7 +36,9 @@ data class RegisterRequest(
 data class RegisterResponse(
     @SerializedName("userId") val userId: Int = 0,
     @SerializedName("username") val username: String = "",
-    @SerializedName("message") val message: String = "Registro completado"
+    @SerializedName("message") val message: String = "Registro completado",
+    @SerializedName(value = "nextDestination", alternate = ["nextRoute", "contextRoute", "postRegisterRoute"])
+    val nextDestination: String? = null
 )
 
 

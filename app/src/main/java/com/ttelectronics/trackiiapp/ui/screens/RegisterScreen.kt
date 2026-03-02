@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -54,6 +56,7 @@ fun RegisterScreen(
     val vm: RegisterViewModel = viewModel(factory = RegisterViewModelFactory(ServiceLocator.authRepository(context)))
     val uiState by vm.uiState.collectAsState()
     var showSuccessDialog by remember { mutableStateOf(false) }
+    var showErrorDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(tokenCode) {
         vm.setToken(tokenCode)
@@ -68,6 +71,12 @@ fun RegisterScreen(
             showSuccessDialog = false
             vm.clearSuccessMessage()
             onCreateAccount()
+        }
+    }
+
+    LaunchedEffect(uiState.errorMessage) {
+        if (!uiState.errorMessage.isNullOrBlank()) {
+            showErrorDialog = true
         }
     }
 
@@ -122,10 +131,6 @@ fun RegisterScreen(
                             }
                         )
 
-                        uiState.errorMessage?.let {
-                            Text(text = it, color = TTRed, style = MaterialTheme.typography.bodySmall)
-                        }
-
                         PrimaryGlowButton(
                             text = if (uiState.isLoading) "Registrando..." else "Registrar",
                             onClick = vm::register,
@@ -151,6 +156,33 @@ fun RegisterScreen(
                 message = uiState.successMessage.orEmpty(),
                 show = showSuccessDialog
             )
+
+            if (showErrorDialog && !uiState.errorMessage.isNullOrBlank()) {
+                AlertDialog(
+                    onDismissRequest = {
+                        showErrorDialog = false
+                        vm.clearError()
+                    },
+                    title = { Text("Error de registro") },
+                    text = {
+                        Text(
+                            text = uiState.errorMessage.orEmpty(),
+                            color = TTRed,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                showErrorDialog = false
+                                vm.clearError()
+                            }
+                        ) {
+                            Text("Cerrar")
+                        }
+                    }
+                )
+            }
         }
     }
 }

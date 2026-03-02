@@ -37,6 +37,7 @@ class RegisterViewModel(private val authRepository: AuthRepository) : ViewModel(
     fun onUsernameChange(value: String) = _uiState.update { it.copy(username = value, errorMessage = null) }
     fun onPasswordChange(value: String) = _uiState.update { it.copy(password = value, errorMessage = null) }
     fun onLocationChange(locationId: Int) = _uiState.update { it.copy(selectedLocationId = locationId, errorMessage = null) }
+    fun clearError() = _uiState.update { it.copy(errorMessage = null) }
     fun clearSuccessMessage() = _uiState.update { it.copy(successMessage = null) }
 
     fun preloadDeviceUid(androidId: String?) {

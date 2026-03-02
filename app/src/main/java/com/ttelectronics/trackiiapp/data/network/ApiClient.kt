@@ -12,8 +12,12 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 class ApiClient(tokenStore: SecureTokenStore) {
     private val authInterceptor = Interceptor { chain ->
+        val path = chain.request().url.encodedPath
+        val isPublicAuthEndpoint = path == "/api/auth/login" ||
+            path == "/api/auth/register" ||
+            path == "/api/auth/validate-token"
         val token = tokenStore.getAccessToken()
-        val request = if (!token.isNullOrBlank()) {
+        val request = if (!isPublicAuthEndpoint && !token.isNullOrBlank()) {
             chain.request().newBuilder()
                 .addHeader("Authorization", "Bearer $token")
                 .build()

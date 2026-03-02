@@ -83,6 +83,7 @@ fun TaskDetailScreen(
     partNumber: String,
     onBack: () -> Unit,
     onComplete: () -> Unit,
+    onPartialScrap: (lotNumber: String, partNumber: String, difference: Int) -> Unit,
     onHome: () -> Unit
 ) {
     val context = LocalContext.current
@@ -100,7 +101,7 @@ fun TaskDetailScreen(
     LaunchedEffect(partNumber, lotNumber, auth.deviceId) {
         vm.loadData(partNumber, lotNumber, auth.deviceId)
     }
-    LaunchedEffect(uiState.saveSuccess) {
+    LaunchedEffect(uiState.saveSuccess, uiState.partialScrapNavigation) {
         if (uiState.saveSuccess) {
             rightSoundPlayer.play()
             Toast.makeText(
@@ -108,7 +109,13 @@ fun TaskDetailScreen(
                 "¡Registro completado correctamente!",
                 Toast.LENGTH_LONG
             ).show()
-            onComplete()
+            val partialScrap = uiState.partialScrapNavigation
+            if (partialScrap != null) {
+                vm.consumePartialScrapNavigation()
+                onPartialScrap(partialScrap.lotNumber, partialScrap.partNumber, partialScrap.difference)
+            } else {
+                onComplete()
+            }
         }
     }
 

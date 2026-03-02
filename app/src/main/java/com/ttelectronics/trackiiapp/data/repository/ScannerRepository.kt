@@ -59,6 +59,10 @@ class ScannerRepository(
         return api.scrapOrder(request)
     }
 
+    suspend fun partialScrap(request: ScrapOrderRequest): ScrapResponse {
+        return api.partialScrap(request)
+    }
+
     suspend fun reworkOrder(
         workOrderNumber: String,
         partNumber: String,

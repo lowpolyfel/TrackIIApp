@@ -103,7 +103,11 @@ fun TrackIINavHost(
                         popUpTo(TrackIIRoute.Login) { inclusive = true }
                     }
                 },
-                onRegister = { navController.navigate(TrackIIRoute.RegisterToken) },
+                onRegister = {
+                    // Registro siempre corre como flujo anónimo sin bearer o sesión previa.
+                    authRepository.logout()
+                    navController.navigate(TrackIIRoute.RegisterToken)
+                },
                 onHome = navigateHome
             )
         }

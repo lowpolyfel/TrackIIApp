@@ -67,6 +67,11 @@ class AuthRepository(
         deviceId = appSession.deviceId
     )
 
+    /**
+     * Clears persisted auth context (secure token + in-memory/local app session).
+     *
+     * Registration flow should always start as anonymous, without reusing a previous bearer.
+     */
     fun logout() {
         tokenStore.clear()
         appSession.clear()

@@ -2,7 +2,6 @@
 
 package com.ttelectronics.trackiiapp.ui.screens
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +37,7 @@ import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
 import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.ScannerHeader
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
+import com.ttelectronics.trackiiapp.ui.components.SuccessOverlayDialog
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.viewmodel.PartialScrapViewModel
 import com.ttelectronics.trackiiapp.ui.viewmodel.PartialScrapViewModelFactory
@@ -60,12 +60,15 @@ fun PartialScrapScreen(
     val uiState by vm.uiState.collectAsState()
     var categoryExpanded by remember { mutableStateOf(false) }
     var codeExpanded by remember { mutableStateOf(false) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(lotNumber, partNumber, difference) { vm.initialize(lotNumber, partNumber, difference) }
 
     LaunchedEffect(uiState.saveSuccess) {
         if (uiState.saveSuccess) {
-            Toast.makeText(context, "Scrap parcial registrado", Toast.LENGTH_LONG).show()
+            showSuccessDialog = true
+            kotlinx.coroutines.delay(1400)
+            showSuccessDialog = false
             onComplete()
         }
     }
@@ -162,6 +165,12 @@ fun PartialScrapScreen(
             }
 
             FloatingHomeButton(onClick = onHome, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp))
+
+            SuccessOverlayDialog(
+                title = "Registro exitoso",
+                message = "Scrap parcial registrado correctamente.",
+                show = showSuccessDialog
+            )
         }
     }
 }

@@ -239,8 +239,11 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                     _uiState.update {
                         it.copy(
                             isValidating = false,
-                            shouldNavigate = false,
-                            validationError = R.string.error_generic_validation
+                            shouldNavigate = true,
+                            navigationTarget = ScannerNavigationTarget.ScanReview,
+                            isProductFound = false,
+                            validationError = R.string.error_generic_validation,
+                            customValidationMessage = "No se pudo validar la orden. Revisa conexión/API."
                         )
                     }
                 }

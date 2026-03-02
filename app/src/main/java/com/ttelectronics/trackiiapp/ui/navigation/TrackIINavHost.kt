@@ -192,8 +192,8 @@ fun TrackIINavHost(
             ReworkReleaseScreen(
                 lotNumber = lot,
                 onReleaseSuccess = {
-                    navController.navigate(TrackIIRoute.scannerRoute(TaskType.Rework)) {
-                        popUpTo(TrackIIRoute.Tasks) { inclusive = false }
+                    navController.navigate(TrackIIRoute.Welcome) {
+                        popUpTo(TrackIIRoute.Welcome) { inclusive = false }
                         launchSingleTop = true
                     }
                 },

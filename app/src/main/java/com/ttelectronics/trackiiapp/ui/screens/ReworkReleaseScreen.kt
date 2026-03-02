@@ -18,6 +18,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -29,12 +32,14 @@ import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
 import com.ttelectronics.trackiiapp.ui.components.GlassCard
 import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
+import com.ttelectronics.trackiiapp.ui.components.SuccessOverlayDialog
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.theme.TTGreen
 import com.ttelectronics.trackiiapp.ui.theme.TTRed
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
 import com.ttelectronics.trackiiapp.ui.viewmodel.ReworkReleaseViewModel
 import com.ttelectronics.trackiiapp.ui.viewmodel.ReworkReleaseViewModelFactory
+import kotlinx.coroutines.delay
 
 @Composable
 fun ReworkReleaseScreen(
@@ -46,9 +51,13 @@ fun ReworkReleaseScreen(
     val scannerRepository = ServiceLocator.scannerRepository(androidx.compose.ui.platform.LocalContext.current)
     val viewModel: ReworkReleaseViewModel = viewModel(factory = ReworkReleaseViewModelFactory(scannerRepository))
     val uiState by viewModel.uiState.collectAsState()
+    var showSuccessDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.releaseSuccess) {
         if (uiState.releaseSuccess) {
+            showSuccessDialog = true
+            delay(1400)
+            showSuccessDialog = false
             onReleaseSuccess()
         }
     }
@@ -117,6 +126,12 @@ fun ReworkReleaseScreen(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(20.dp)
+            )
+
+            SuccessOverlayDialog(
+                title = "Liberación exitosa",
+                message = "Producto liberado correctamente.",
+                show = showSuccessDialog
             )
         }
     }

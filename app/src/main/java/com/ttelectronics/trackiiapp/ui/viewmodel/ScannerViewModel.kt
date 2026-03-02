@@ -242,11 +242,7 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                             navigationTarget = ScannerNavigationTarget.ScanReview,
                             isProductFound = false,
                             validationError = null,
-                            customValidationMessage = if (errorMessage.contains("no empieza", ignoreCase = true)) {
-                                "Esta orden aún no empieza."
-                            } else {
-                                "No se pudo validar la orden."
-                            }
+                            customValidationMessage = "Esta orden aún no empieza o no existe."
                         )
                     }
                 }

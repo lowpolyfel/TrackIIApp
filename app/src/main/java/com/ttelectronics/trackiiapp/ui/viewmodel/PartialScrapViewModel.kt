@@ -127,8 +127,9 @@ class PartialScrapViewModel(
                     )
                 )
             }.onSuccess { response ->
-                if (response.success == true) {
-                    _uiState.update { it.copy(isSubmitting = false, saveSuccess = true) }
+                val isSuccess = response.success == true || response.success == null
+                if (isSuccess) {
+                    _uiState.update { it.copy(isSubmitting = false, saveSuccess = true, errorMessage = null) }
                 } else {
                     _uiState.update {
                         it.copy(

@@ -93,8 +93,14 @@ fun ScannerControlsPanel(
 ) {
     val statusText = when {
         isValidating -> "Validando en BD..."
-        canValidate -> "Escaneo listo, validando..."
+        canValidate -> "Escaneo listo"
         else -> "Escanea lote y parte para continuar"
+    }
+
+    val statusColor = when {
+        isValidating -> TTGreen
+        canValidate -> TTTextSecondary
+        else -> TTTextSecondary
     }
 
     Column(
@@ -141,13 +147,13 @@ fun ScannerControlsPanel(
                     Icon(
                         imageVector = if (canValidate) Icons.Rounded.CheckCircle else Icons.Rounded.DocumentScanner,
                         contentDescription = null,
-                        tint = if (canValidate) TTGreen else TTTextSecondary,
+                        tint = statusColor,
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
                         text = statusText,
                         style = MaterialTheme.typography.labelMedium,
-                        color = if (canValidate) TTGreen else TTTextSecondary,
+                        color = statusColor,
                         modifier = Modifier.padding(start = 6.dp)
                     )
                 }

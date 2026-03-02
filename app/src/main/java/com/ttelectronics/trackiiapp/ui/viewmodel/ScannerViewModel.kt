@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.ttelectronics.trackiiapp.R
 import com.ttelectronics.trackiiapp.data.models.enums.WipStatus
+import com.ttelectronics.trackiiapp.data.network.ApiErrorParser
 import com.ttelectronics.trackiiapp.data.repository.ScannerRepository
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
 import kotlinx.coroutines.Dispatchers
@@ -232,7 +233,8 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                         }
                     }
                 }
-                .onFailure {
+                .onFailure { ex ->
+                    val errorMessage = ApiErrorParser.readableError(ex)
                     _uiState.update {
                         it.copy(
                             isValidating = false,

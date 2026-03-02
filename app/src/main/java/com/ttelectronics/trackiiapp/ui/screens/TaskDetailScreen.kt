@@ -53,6 +53,7 @@ import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.components.TrackIIDropdownField
+import com.ttelectronics.trackiiapp.ui.components.SuccessOverlay
 import com.ttelectronics.trackiiapp.ui.components.TrackIITextField
 import com.ttelectronics.trackiiapp.ui.components.rememberRawSoundPlayer
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
@@ -83,7 +84,7 @@ fun TaskDetailScreen(
     partNumber: String,
     onBack: () -> Unit,
     onComplete: () -> Unit,
-    onPartialScrap: (lotNumber: String, partNumber: String, difference: Int) -> Unit,
+    onNavigateToPartialScrap: (Int) -> Unit,
     onHome: () -> Unit
 ) {
     val context = LocalContext.current
@@ -104,15 +105,10 @@ fun TaskDetailScreen(
     LaunchedEffect(uiState.saveSuccess, uiState.partialScrapNavigation) {
         if (uiState.saveSuccess) {
             rightSoundPlayer.play()
-            Toast.makeText(
-                context,
-                "¡Registro completado correctamente!",
-                Toast.LENGTH_LONG
-            ).show()
-            val partialScrap = uiState.partialScrapNavigation
-            if (partialScrap != null) {
-                vm.consumePartialScrapNavigation()
-                onPartialScrap(partialScrap.lotNumber, partialScrap.partNumber, partialScrap.difference)
+            kotlinx.coroutines.delay(1800)
+
+            if (uiState.piecesDifference > 0) {
+                onNavigateToPartialScrap(uiState.piecesDifference)
             } else {
                 onComplete()
             }
@@ -246,6 +242,10 @@ fun TaskDetailScreen(
                 }
             }
             FloatingHomeButton(onClick = onHome, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp))
+
+            if (uiState.saveSuccess) {
+                SuccessOverlay(message = "¡Registro completado exitosamente!")
+            }
         }
     }
 }

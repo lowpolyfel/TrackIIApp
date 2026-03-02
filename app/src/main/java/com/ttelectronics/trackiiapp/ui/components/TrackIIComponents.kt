@@ -59,6 +59,7 @@ import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -175,6 +176,44 @@ fun GlassCard(content: @Composable () -> Unit) {
                 .padding(24.dp)
         ) {
             content()
+        }
+    }
+}
+
+
+
+@Composable
+fun SuccessOverlay(message: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.6f))
+            .clickable(enabled = false) {},
+        contentAlignment = Alignment.Center
+    ) {
+        androidx.compose.material3.Card(
+            shape = RoundedCornerShape(24.dp),
+            colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = Color.White),
+            modifier = Modifier.padding(32.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.CheckCircle,
+                    contentDescription = "Éxito",
+                    tint = TTGreen,
+                    modifier = Modifier.size(72.dp)
+                )
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = TTBlueDark,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }

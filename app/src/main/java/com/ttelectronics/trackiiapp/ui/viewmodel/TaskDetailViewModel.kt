@@ -30,14 +30,9 @@ data class TaskDetailUiState(
     val selectedReworkLocation: LocationDto? = null,
     val isSubmitting: Boolean = false,
     val saveSuccess: Boolean = false,
-    val partialScrapNavigation: PartialScrapNavigation? = null
+    val piecesDifference: Int = 0
 )
 
-data class PartialScrapNavigation(
-    val lotNumber: String,
-    val partNumber: String,
-    val difference: Int
-)
 
 class TaskDetailViewModel(
     private val scannerRepository: ScannerRepository,
@@ -70,7 +65,7 @@ class TaskDetailViewModel(
                     partInfo = null,
                     contextInfo = null,
                     saveSuccess = false,
-                    partialScrapNavigation = null,
+                    piecesDifference = 0,
                     isSubmitting = false
                 )
             }
@@ -152,7 +147,7 @@ class TaskDetailViewModel(
         }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, isSubmitting = true, errorMessage = null, saveSuccess = false, partialScrapNavigation = null) }
+            _uiState.update { it.copy(isLoading = true, isSubmitting = true, errorMessage = null, saveSuccess = false, piecesDifference = 0) }
             runCatching {
                 if (taskType == TaskType.Rework) {
                     scannerRepository.reworkOrder(
@@ -197,24 +192,16 @@ class TaskDetailViewModel(
                     return@onSuccess
                 }
 
-                val previousQuantity = state.contextInfo?.previousQuantity ?: 0
-                val currentQuantityIngresada = if (taskType == TaskType.ProductAdvance) (decision?.qtyIn ?: 0) else (qtyFromInput ?: 0)
-                val difference = previousQuantity - currentQuantityIngresada
+                val previousQty = state.contextInfo?.previousQuantity ?: 0
+                val inputQty = qtyFromInput ?: 0
+                val diff = if (taskType == TaskType.ProductAdvance) previousQty - inputQty else 0
 
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         isSubmitting = false,
                         saveSuccess = true,
-                        partialScrapNavigation = if (taskType == TaskType.ProductAdvance && difference > 0) {
-                            PartialScrapNavigation(
-                                lotNumber = workOrderNumber,
-                                partNumber = partNumber,
-                                difference = difference
-                            )
-                        } else {
-                            null
-                        }
+                        piecesDifference = if (diff > 0) diff else 0
                     )
                 }
             }.onFailure { ex ->
@@ -223,9 +210,6 @@ class TaskDetailViewModel(
         }
     }
 
-    fun consumePartialScrapNavigation() {
-        _uiState.update { it.copy(partialScrapNavigation = null) }
-    }
 }
 
 class TaskDetailViewModelFactory(

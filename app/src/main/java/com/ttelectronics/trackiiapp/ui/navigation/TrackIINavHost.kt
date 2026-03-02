@@ -269,8 +269,8 @@ fun TrackIINavHost(
                     }
                 },
                 onComplete = navigateHome,
-                onPartialScrap = { partialLot, partialPart, difference ->
-                    navController.navigate(TrackIIRoute.partialScrapRoute(partialLot, partialPart, difference))
+                onNavigateToPartialScrap = { difference ->
+                    navController.navigate(TrackIIRoute.partialScrapRoute(lot, part, difference))
                 },
                 onHome = navigateHome
             )

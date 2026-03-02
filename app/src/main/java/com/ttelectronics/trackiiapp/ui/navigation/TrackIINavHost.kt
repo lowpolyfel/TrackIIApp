@@ -151,6 +151,13 @@ fun TrackIINavHost(
                 },
                 onHome = navigateHome,
                 onAccount = { navController.navigate(TrackIIRoute.Login) },
+                onLogout = {
+                    authRepository.logout()
+                    navController.navigate(TrackIIRoute.Login) {
+                        popUpTo(TrackIIRoute.Login) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
                 username = current.username,
                 locationName = current.locationName,
                 deviceName = current.deviceName

@@ -6,7 +6,6 @@ import com.ttelectronics.trackiiapp.data.models.scanner.ErrorCodeResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.PartLookupResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.RegisterScanRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.RegisterScanResponse
-import com.ttelectronics.trackiiapp.data.models.scanner.ReleaseWipItemRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.ReleaseWipItemResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.ReworkRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.ReworkResponse
@@ -60,8 +59,28 @@ class ScannerRepository(
         return api.scrapOrder(request)
     }
 
-    suspend fun reworkOrder(workOrderNumber: String, partNumber: String, deviceId: Int, location: String, reason: String?): ReworkResponse {
-        return api.rework(ReworkRequest(workOrderNumber, partNumber, deviceId, location, reason))
+    suspend fun reworkOrder(
+        workOrderNumber: String,
+        partNumber: String,
+        quantity: Int,
+        locationId: Int,
+        isRelease: Boolean,
+        reason: String?,
+        userId: Int,
+        deviceId: Int
+    ): ReworkResponse {
+        return api.rework(
+            ReworkRequest(
+                workOrderNumber = workOrderNumber,
+                partNumber = partNumber,
+                quantity = quantity,
+                locationId = locationId,
+                isRelease = isRelease,
+                reason = reason,
+                userId = userId,
+                deviceId = deviceId
+            )
+        )
     }
 
 
@@ -69,13 +88,8 @@ class ScannerRepository(
         return api.validateRework(workOrderNumber)
     }
 
-    suspend fun releaseWipItem(workOrderNumber: String, isRelease: Boolean = true): ReleaseWipItemResponse {
-        return api.releaseWipItem(
-            ReleaseWipItemRequest(
-                workOrderNumber = workOrderNumber,
-                isRelease = isRelease
-            )
-        )
+    suspend fun releaseWipItem(workOrderNumber: String): ReleaseWipItemResponse {
+        return api.releaseWipItem(workOrderNumber)
     }
 
     suspend fun validatePartExists(partNumber: String): Boolean {

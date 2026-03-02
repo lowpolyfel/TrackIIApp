@@ -83,9 +83,12 @@ data class ScrapOrderRequest(
 data class ReworkRequest(
     @SerializedName("workOrderNumber") val workOrderNumber: String,
     @SerializedName("partNumber") val partNumber: String,
-    @SerializedName("deviceId") val deviceId: Int,
-    @SerializedName("location") val location: String,
-    @SerializedName("reason") val reason: String? = null
+    @SerializedName("quantity") val quantity: Int,
+    @SerializedName("locationId") val locationId: Int,
+    @SerializedName("isRelease") val isRelease: Boolean,
+    @SerializedName("reason") val reason: String? = null,
+    @SerializedName("userId") val userId: Int,
+    @SerializedName("deviceId") val deviceId: Int
 )
 
 data class ReworkResponse(
@@ -100,10 +103,6 @@ data class ReworkValidationResponse(
     @SerializedName("message") val message: String? = null
 )
 
-data class ReleaseWipItemRequest(
-    @SerializedName("workOrderNumber") val workOrderNumber: String,
-    @SerializedName("isRelease") val isRelease: Boolean = true
-)
 
 data class ReleaseWipItemResponse(
     @SerializedName("success") val success: Boolean? = null,

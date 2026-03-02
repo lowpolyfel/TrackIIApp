@@ -102,7 +102,17 @@ class TaskDetailViewModel(private val scannerRepository: ScannerRepository) : Vi
             _uiState.update { it.copy(isLoading = true, errorMessage = null, saveSuccess = false) }
             runCatching {
                 if (taskType == TaskType.Rework) {
-                    scannerRepository.releaseWipItem(workOrderNumber = workOrderNumber, isRelease = false)
+                    val locationId = state.contextInfo?.nextSteps?.firstOrNull()?.locationId ?: 0
+                    scannerRepository.reworkOrder(
+                        workOrderNumber = workOrderNumber,
+                        partNumber = partNumber,
+                        quantity = qtyFromInput ?: 0,
+                        locationId = locationId,
+                        isRelease = false,
+                        reason = null,
+                        userId = userId,
+                        deviceId = deviceId
+                    )
                 } else {
                     scannerRepository.registerScan(
                         workOrderNumber = workOrderNumber,

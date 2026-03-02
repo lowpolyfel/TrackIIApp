@@ -11,6 +11,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.ttelectronics.trackiiapp.core.ServiceLocator
 import com.ttelectronics.trackiiapp.ui.screens.LoginScreen
+import com.ttelectronics.trackiiapp.ui.screens.PartialScrapScreen
 import com.ttelectronics.trackiiapp.ui.screens.RegisterScreen
 import com.ttelectronics.trackiiapp.ui.screens.RegisterTokenScreen
 import com.ttelectronics.trackiiapp.ui.screens.ReworkReleaseScreen
@@ -32,6 +33,7 @@ object TrackIIRoute {
     const val Task = "task/{task}?lot={lot}&part={part}"
     const val ReworkRelease = "rework-release?lot={lot}&part={part}"
     const val ScrapOrder = "scrap-order?lot={lot}&part={part}"
+    const val PartialScrap = "partial-scrap?lot={lot}&part={part}&difference={difference}"
 
     fun scannerRoute(task: TaskType) = "scanner/${task.route}"
 
@@ -45,6 +47,10 @@ object TrackIIRoute {
 
     fun reworkReleaseRoute(lot: String, part: String): String {
         return "rework-release?lot=${Uri.encode(lot)}&part=${Uri.encode(part)}"
+    }
+
+    fun partialScrapRoute(lot: String, part: String, difference: Int): String {
+        return "partial-scrap?lot=${Uri.encode(lot)}&part=${Uri.encode(part)}&difference=$difference"
     }
 }
 
@@ -221,6 +227,25 @@ fun TrackIINavHost(
             )
         }
         composable(
+            route = TrackIIRoute.PartialScrap,
+            arguments = listOf(
+                navArgument("lot") { defaultValue = "" },
+                navArgument("part") { defaultValue = "" },
+                navArgument("difference") { defaultValue = 0 }
+            )
+        ) { backStackEntry ->
+            val lot = backStackEntry.arguments?.getString("lot").orEmpty()
+            val part = backStackEntry.arguments?.getString("part").orEmpty()
+            val difference = backStackEntry.arguments?.getInt("difference") ?: 0
+            PartialScrapScreen(
+                lotNumber = lot,
+                partNumber = part,
+                difference = difference,
+                onComplete = navigateHome,
+                onHome = navigateHome
+            )
+        }
+        composable(
             route = TrackIIRoute.Task,
             arguments = listOf(
                 navArgument("task") { nullable = false },
@@ -244,6 +269,9 @@ fun TrackIINavHost(
                     }
                 },
                 onComplete = navigateHome,
+                onNavigateToPartialScrap = { difference ->
+                    navController.navigate(TrackIIRoute.partialScrapRoute(lot, part, difference))
+                },
                 onHome = navigateHome
             )
         }

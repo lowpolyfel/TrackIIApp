@@ -46,6 +46,9 @@ interface ScannerApiService {
     @POST("api/scanner/scrap")
     suspend fun scrapOrder(@Body request: ScrapOrderRequest): ScrapResponse
 
+    @POST("api/scanner/partial-scrap")
+    suspend fun partialScrap(@Body request: ScrapOrderRequest): ScrapResponse
+
     @POST("api/scanner/rework")
     suspend fun rework(@Body request: ReworkRequest): ReworkResponse
 

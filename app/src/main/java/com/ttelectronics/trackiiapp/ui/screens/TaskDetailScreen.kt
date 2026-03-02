@@ -53,6 +53,7 @@ import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.components.TrackIIDropdownField
+import com.ttelectronics.trackiiapp.ui.components.SuccessOverlay
 import com.ttelectronics.trackiiapp.ui.components.TrackIITextField
 import com.ttelectronics.trackiiapp.ui.components.rememberRawSoundPlayer
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
@@ -83,6 +84,7 @@ fun TaskDetailScreen(
     partNumber: String,
     onBack: () -> Unit,
     onComplete: () -> Unit,
+    onNavigateToPartialScrap: (Int) -> Unit,
     onHome: () -> Unit
 ) {
     val context = LocalContext.current
@@ -103,12 +105,13 @@ fun TaskDetailScreen(
     LaunchedEffect(uiState.saveSuccess) {
         if (uiState.saveSuccess) {
             rightSoundPlayer.play()
-            Toast.makeText(
-                context,
-                "¡Registro completado correctamente!",
-                Toast.LENGTH_LONG
-            ).show()
-            onComplete()
+            kotlinx.coroutines.delay(1800)
+
+            if (uiState.piecesDifference > 0) {
+                onNavigateToPartialScrap(uiState.piecesDifference)
+            } else {
+                onComplete()
+            }
         }
     }
 
@@ -232,13 +235,17 @@ fun TaskDetailScreen(
                                 )
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = !uiState.isLoading
+                            enabled = !uiState.isLoading && !uiState.isSubmitting
                         )
                         SoftActionButton(text = "Volver", onClick = onBack, modifier = Modifier.fillMaxWidth())
                     }
                 }
             }
             FloatingHomeButton(onClick = onHome, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp))
+
+            if (uiState.saveSuccess) {
+                SuccessOverlay(message = "¡Registro completado exitosamente!")
+            }
         }
     }
 }

@@ -28,6 +28,7 @@ data class TaskDetailUiState(
     val reworkReason: String = "",
     val reworkLocations: List<LocationDto> = emptyList(),
     val selectedReworkLocation: LocationDto? = null,
+    val isSubmitting: Boolean = false,
     val saveSuccess: Boolean = false,
     val partialScrapNavigation: PartialScrapNavigation? = null
 )
@@ -69,7 +70,8 @@ class TaskDetailViewModel(
                     partInfo = null,
                     contextInfo = null,
                     saveSuccess = false,
-                    partialScrapNavigation = null
+                    partialScrapNavigation = null,
+                    isSubmitting = false
                 )
             }
             val partResult = runCatching { scannerRepository.lookupPart(partNumber.trim()) }
@@ -114,6 +116,11 @@ class TaskDetailViewModel(
     ) {
         val state = _uiState.value
 
+        // 1. REGLA DE ORO: Prevenir el doble toque (Double Submit)
+        if (state.isLoading || state.isSubmitting || state.saveSuccess) {
+            return
+        }
+
         val qtyFromInput = state.qtyInput.toIntOrNull()
         val decision = if (taskType == TaskType.ProductAdvance) {
             productAdvanceScanPolicy.evaluate(
@@ -145,7 +152,7 @@ class TaskDetailViewModel(
         }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null, saveSuccess = false, partialScrapNavigation = null) }
+            _uiState.update { it.copy(isLoading = true, isSubmitting = true, errorMessage = null, saveSuccess = false, partialScrapNavigation = null) }
             runCatching {
                 if (taskType == TaskType.Rework) {
                     scannerRepository.reworkOrder(
@@ -183,6 +190,7 @@ class TaskDetailViewModel(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
+                            isSubmitting = false,
                             errorMessage = responseMessage ?: "No fue posible guardar el registro."
                         )
                     }
@@ -196,6 +204,7 @@ class TaskDetailViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
+                        isSubmitting = false,
                         saveSuccess = true,
                         partialScrapNavigation = if (taskType == TaskType.ProductAdvance && difference > 0) {
                             PartialScrapNavigation(
@@ -209,7 +218,7 @@ class TaskDetailViewModel(
                     )
                 }
             }.onFailure { ex ->
-                _uiState.update { it.copy(isLoading = false, errorMessage = ApiErrorParser.readableError(ex)) }
+                _uiState.update { it.copy(isLoading = false, isSubmitting = false, errorMessage = ApiErrorParser.readableError(ex)) }
             }
         }
     }

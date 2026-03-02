@@ -239,7 +239,7 @@ fun TaskDetailScreen(
                                 )
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = !uiState.isLoading
+                            enabled = !uiState.isLoading && !uiState.isSubmitting
                         )
                         SoftActionButton(text = "Volver", onClick = onBack, modifier = Modifier.fillMaxWidth())
                     }

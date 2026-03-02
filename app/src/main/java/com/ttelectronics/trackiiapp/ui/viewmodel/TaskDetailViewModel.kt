@@ -101,13 +101,27 @@ class TaskDetailViewModel(private val scannerRepository: ScannerRepository) : Vi
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, saveSuccess = false) }
             runCatching {
-                scannerRepository.registerScan(
-                    workOrderNumber = workOrderNumber,
-                    partNumber = partNumber,
-                    userId = userId,
-                    deviceId = deviceId,
-                    qtyIn = if (taskType == TaskType.ProductAdvance) (decision?.qtyIn ?: 0) else (qtyFromInput ?: 0)
-                )
+                if (taskType == TaskType.Rework) {
+                    val locationId = state.contextInfo?.nextSteps?.firstOrNull()?.locationId ?: 0
+                    scannerRepository.reworkOrder(
+                        workOrderNumber = workOrderNumber,
+                        partNumber = partNumber,
+                        quantity = qtyFromInput ?: 0,
+                        locationId = locationId,
+                        isRelease = false,
+                        reason = null,
+                        userId = userId,
+                        deviceId = deviceId
+                    )
+                } else {
+                    scannerRepository.registerScan(
+                        workOrderNumber = workOrderNumber,
+                        partNumber = partNumber,
+                        userId = userId,
+                        deviceId = deviceId,
+                        qtyIn = if (taskType == TaskType.ProductAdvance) (decision?.qtyIn ?: 0) else (qtyFromInput ?: 0)
+                    )
+                }
             }.onSuccess {
                 _uiState.update {
                     it.copy(

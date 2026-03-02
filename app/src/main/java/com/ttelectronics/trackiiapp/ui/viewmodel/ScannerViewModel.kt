@@ -186,20 +186,6 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
             }
             runCatching { scannerRepository.validateRework(workOrderNumber) }
                 .onSuccess { response ->
-                    val exists = response.exists ?: false
-                    if (!exists) {
-                        _uiState.update {
-                            it.copy(
-                                isValidating = false,
-                                isProductFound = false,
-                                shouldNavigate = true,
-                                navigationTarget = ScannerNavigationTarget.ScanReview,
-                                customValidationMessage = "Esta orden aún no empieza"
-                            )
-                        }
-                        return@onSuccess
-                    }
-
                     when (parseWipStatus(response.status)) {
                         WipStatus.ACTIVE -> {
                             _uiState.update {
@@ -223,6 +209,17 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                             }
                         }
 
+                        WipStatus.FINISHED, WipStatus.SCRAPPED -> {
+                            _uiState.update {
+                                it.copy(
+                                    isValidating = false,
+                                    shouldNavigate = true,
+                                    navigationTarget = ScannerNavigationTarget.ScanReview,
+                                    customValidationMessage = "No se puede retrabajar una orden terminada o cancelada."
+                                )
+                            }
+                        }
+
                         else -> {
                             _uiState.update {
                                 it.copy(
@@ -242,8 +239,8 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                             shouldNavigate = true,
                             navigationTarget = ScannerNavigationTarget.ScanReview,
                             isProductFound = false,
-                            validationError = R.string.error_generic_validation,
-                            customValidationMessage = "No se pudo validar la orden. Revisa conexión/API."
+                            validationError = null,
+                            customValidationMessage = "Esta orden aún no empieza o no existe."
                         )
                     }
                 }
@@ -255,6 +252,8 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
         return when (normalized) {
             "ACTIVE" -> WipStatus.ACTIVE
             "HOLD" -> WipStatus.HOLD
+            "FINISHED" -> WipStatus.FINISHED
+            "SCRAPPED" -> WipStatus.SCRAPPED
             else -> WipStatus.ERROR
         }
     }

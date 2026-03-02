@@ -5,7 +5,6 @@ import com.ttelectronics.trackiiapp.data.models.scanner.ErrorCodeResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.PartLookupResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.RegisterScanRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.RegisterScanResponse
-import com.ttelectronics.trackiiapp.data.models.scanner.ReleaseWipItemRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.ReleaseWipItemResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.ReworkRequest
 import com.ttelectronics.trackiiapp.data.models.scanner.ReworkResponse
@@ -17,6 +16,7 @@ import com.ttelectronics.trackiiapp.data.models.scanner.WorkOrderContextResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -49,9 +49,9 @@ interface ScannerApiService {
     @POST("api/scanner/rework")
     suspend fun rework(@Body request: ReworkRequest): ReworkResponse
 
-    @GET("api/scanner/rework/validate")
-    suspend fun validateRework(@Query("workOrderNumber") workOrderNumber: String): ReworkValidationResponse
+    @GET("api/scanner/ValidateRework/{workOrderNumber}")
+    suspend fun validateRework(@Path("workOrderNumber") workOrderNumber: String): ReworkValidationResponse
 
-    @POST("api/scanner/rework/release")
-    suspend fun releaseWipItem(@Body request: ReleaseWipItemRequest): ReleaseWipItemResponse
+    @PUT("api/scanner/ReleaseWipItem/{workOrderNumber}")
+    suspend fun releaseWipItem(@Path("workOrderNumber") workOrderNumber: String): ReleaseWipItemResponse
 }

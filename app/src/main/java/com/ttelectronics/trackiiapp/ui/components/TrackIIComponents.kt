@@ -143,7 +143,10 @@ private fun BoxScope.DecorativeGlow(glowOffsetX: Dp, glowOffsetY: Dp) {
 }
 
 @Composable
-fun GlassCard(content: @Composable () -> Unit) {
+fun GlassCard(
+    modifier: Modifier = Modifier.fillMaxWidth(),
+    content: @Composable () -> Unit
+) {
     val transition = rememberInfiniteTransition(label = "glassShift")
     val shift by transition.animateFloat(
         initialValue = 0f,
@@ -165,8 +168,7 @@ fun GlassCard(content: @Composable () -> Unit) {
         tileMode = TileMode.Mirror
     )
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .graphicsLayer(shadowElevation = 18f, shape = RoundedCornerShape(28.dp), clip = false),
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.88f))

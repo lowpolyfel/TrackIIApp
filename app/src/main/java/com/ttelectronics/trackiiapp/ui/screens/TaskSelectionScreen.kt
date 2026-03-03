@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.Description
@@ -145,7 +146,7 @@ fun TaskSelectionScreen(
                     .align(Alignment.TopEnd)
                     .padding(top = 20.dp, end = 20.dp)
             ) {
-                GlassCard {
+                GlassCard(modifier = Modifier.widthIn(max = 220.dp)) {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
                             text = "Localidad",

@@ -3,7 +3,7 @@ package com.ttelectronics.trackiiapp.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -12,6 +12,8 @@ import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.HighlightOff
 import androidx.compose.material.icons.rounded.Logout
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -30,6 +32,7 @@ import com.ttelectronics.trackiiapp.ui.navigation.TaskType
 import com.ttelectronics.trackiiapp.ui.theme.TTBlue
 import com.ttelectronics.trackiiapp.ui.theme.TTBlueDark
 import com.ttelectronics.trackiiapp.ui.theme.TTBlueTint
+import com.ttelectronics.trackiiapp.ui.theme.TTBlueLight
 import com.ttelectronics.trackiiapp.ui.theme.TTGreen
 import com.ttelectronics.trackiiapp.ui.theme.TTGreenDark
 import com.ttelectronics.trackiiapp.ui.theme.TTGreenTint
@@ -41,6 +44,7 @@ import com.ttelectronics.trackiiapp.ui.theme.TTYellow
 import com.ttelectronics.trackiiapp.ui.theme.TTYellowDark
 import com.ttelectronics.trackiiapp.ui.theme.TTYellowTint
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun TaskSelectionScreen(
     onTaskSelected: (TaskType) -> Unit,
@@ -115,12 +119,26 @@ fun TaskSelectionScreen(
                 }
             }
 
-            TopAccountButton(
-                onClick = onAccount,
+            Row(
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .padding(20.dp)
-            )
+                    .padding(20.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TopAccountButton(onClick = onAccount)
+                FloatingActionButton(
+                    onClick = onLogout,
+                    modifier = Modifier.size(52.dp),
+                    containerColor = TTBlueLight,
+                    contentColor = TTBlueDark
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Logout,
+                        contentDescription = "Cerrar sesión"
+                    )
+                }
+            }
 
             Box(
                 modifier = Modifier
@@ -128,7 +146,7 @@ fun TaskSelectionScreen(
                     .padding(top = 20.dp, end = 20.dp)
             ) {
                 GlassCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
                             text = "Localidad",
                             style = MaterialTheme.typography.labelSmall,
@@ -139,16 +157,6 @@ fun TaskSelectionScreen(
                             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                             color = TTBlueDark
                         )
-                        OutlinedButton(onClick = onLogout) {
-                            androidx.compose.material3.Icon(
-                                imageVector = Icons.Rounded.Logout,
-                                contentDescription = "Cerrar sesión",
-                                modifier = Modifier.size(16.dp),
-                                tint = TTBlue
-                            )
-                            Spacer(modifier = Modifier.size(6.dp))
-                            Text(text = "Cerrar")
-                        }
                     }
                 }
             }

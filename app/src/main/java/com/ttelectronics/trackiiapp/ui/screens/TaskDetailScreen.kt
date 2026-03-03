@@ -45,6 +45,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ttelectronics.trackiiapp.core.ServiceLocator
 import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
@@ -153,8 +154,15 @@ fun TaskDetailScreen(
                 Text(text = "Información capturada desde API.", style = MaterialTheme.typography.bodyMedium, color = TTTextSecondary, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp, bottom = 22.dp))
 
                 uiState.errorMessage?.let { Text(it, color = TTRed, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 8.dp)) }
+            }
 
-                GlassCard {
+            GlassCard(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 120.dp, end = 24.dp)
+                    .fillMaxWidth(0.9f)
+                    .zIndex(1f)
+            ) {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         InfoGrid(items = infoItems)
                         ProductRouteDashboard(status = routeStatus)
@@ -240,7 +248,7 @@ fun TaskDetailScreen(
                         SoftActionButton(text = "Volver", onClick = onBack, modifier = Modifier.fillMaxWidth())
                     }
                 }
-            }
+
             FloatingHomeButton(onClick = onHome, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp))
 
             if (uiState.saveSuccess) {

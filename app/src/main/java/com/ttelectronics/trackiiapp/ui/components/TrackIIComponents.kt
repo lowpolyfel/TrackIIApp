@@ -479,6 +479,7 @@ fun SuccessOverlayDialog(title: String, message: String, show: Boolean) {
 @Composable
 fun TaskCard(
     title: String,
+    description: String = "Flujo inteligente de alta precisión.",
     icon: ImageVector,
     onClick: () -> Unit,
     accentColor: Color = TTBlue,
@@ -540,7 +541,7 @@ fun TaskCard(
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
                 )
                 Text(
-                    text = "Flujo inteligente de alta precisión.",
+                    text = description,
                     style = MaterialTheme.typography.bodySmall,
                     color = TTTextSecondary
                 )

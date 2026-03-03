@@ -171,7 +171,8 @@ class TaskDetailViewModel(
                 }
             }.onSuccess { response ->
                 val responseSuccess = when (response) {
-                    is RegisterScanResponse -> response.success == true
+                    // Si llegó aquí sin lanzar excepción, el registro de avance fue exitoso
+                    is RegisterScanResponse -> true
                     is ReworkResponse -> response.success == true
                     else -> true
                 }

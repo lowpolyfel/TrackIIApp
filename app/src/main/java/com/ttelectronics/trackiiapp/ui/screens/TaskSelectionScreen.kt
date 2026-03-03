@@ -3,17 +3,17 @@ package com.ttelectronics.trackiiapp.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.HighlightOff
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.rounded.Logout
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -57,54 +57,27 @@ fun TaskSelectionScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 24.dp, vertical = 88.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Spacer(modifier = Modifier.weight(1f))
                 Text(
                     text = "Selecciona una tarea",
                     style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = "Procesos optimizados para TT Electronics.",
+                    text = "Elige el flujo que necesitas ejecutar en esta estación.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = TTTextSecondary,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 6.dp, bottom = 12.dp)
+                    modifier = Modifier.padding(top = 6.dp, bottom = 20.dp)
                 )
 
                 GlassCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Sesión activa", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Usuario", color = TTTextSecondary)
-                            Text(username)
-                        }
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Localidad", color = TTTextSecondary)
-                            Text(locationName)
-                        }
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Dispositivo", color = TTTextSecondary)
-                            Text(deviceName)
-                        }
-                        Button(
-                            onClick = onLogout,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp)
-                        ) {
-                            Text("Cerrar sesión")
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.padding(vertical = 6.dp))
-
-                GlassCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         TaskCard(
                             title = "Seguimiento de hojas viajeras",
+                            description = "Consulta y registra el estatus del viajero durante su recorrido.",
                             icon = Icons.Rounded.Description,
                             onClick = { onTaskSelected(TaskType.TravelSheet) },
                             accentColor = TTGreen,
@@ -113,6 +86,7 @@ fun TaskSelectionScreen(
                         )
                         TaskCard(
                             title = "Avanzar producto",
+                            description = "Registra piezas completadas y mueve la orden al siguiente paso.",
                             icon = Icons.Rounded.Description,
                             onClick = { onTaskSelected(TaskType.ProductAdvance) },
                             accentColor = TTBlue,
@@ -120,7 +94,8 @@ fun TaskSelectionScreen(
                             accentTint = TTBlueTint
                         )
                         TaskCard(
-                            title = "Cancelar Orden",
+                            title = "Cancelar orden",
+                            description = "Detén una orden activa y registra su cierre de forma controlada.",
                             icon = Icons.Rounded.HighlightOff,
                             onClick = { onTaskSelected(TaskType.CancelOrder) },
                             accentColor = TTRed,
@@ -129,6 +104,7 @@ fun TaskSelectionScreen(
                         )
                         TaskCard(
                             title = "Retrabajo",
+                            description = "Envía piezas a retrabajo o gestiona su liberación según la localidad.",
                             icon = Icons.Rounded.Build,
                             onClick = { onTaskSelected(TaskType.Rework) },
                             accentColor = TTYellow,
@@ -137,14 +113,46 @@ fun TaskSelectionScreen(
                         )
                     }
                 }
-                Spacer(modifier = Modifier.weight(1f))
             }
+
             TopAccountButton(
                 onClick = onAccount,
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .padding(20.dp)
             )
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 20.dp, end = 20.dp)
+            ) {
+                GlassCard {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "Localidad",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TTTextSecondary
+                        )
+                        Text(
+                            text = locationName,
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = TTBlueDark
+                        )
+                        OutlinedButton(onClick = onLogout) {
+                            androidx.compose.material3.Icon(
+                                imageVector = Icons.Rounded.Logout,
+                                contentDescription = "Cerrar sesión",
+                                modifier = Modifier.size(16.dp),
+                                tint = TTBlue
+                            )
+                            Spacer(modifier = Modifier.size(6.dp))
+                            Text(text = "Cerrar")
+                        }
+                    }
+                }
+            }
+
             FloatingHomeButton(
                 onClick = onHome,
                 modifier = Modifier

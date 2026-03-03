@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutorService
 class CameraManager(private val context: Context) {
     fun createPreviewView(): PreviewView = PreviewView(context).apply {
         scaleType = PreviewView.ScaleType.FILL_CENTER
+        implementationMode = PreviewView.ImplementationMode.COMPATIBLE
     }
 
     fun bind(

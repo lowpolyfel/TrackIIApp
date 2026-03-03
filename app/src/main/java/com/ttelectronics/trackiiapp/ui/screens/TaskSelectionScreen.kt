@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Build
@@ -143,11 +145,14 @@ fun TaskSelectionScreen(
 
             Box(
                 modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(top = 86.dp, start = 20.dp)
+                    .align(Alignment.TopEnd)
+                    .padding(top = 20.dp, end = 20.dp)
             ) {
-                GlassCard(modifier = Modifier.widthIn(max = 220.dp)) {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                GlassCard(modifier = Modifier.width(200.dp)) { // Aquí ajustas el ancho
+                    Column(
+                        modifier = Modifier.height(50.dp), // <-- AQUÍ AJUSTAS EL ALTO DEL CONTENIDO
+                        verticalArrangement = Arrangement.Center // Esto centrará los textos verticalmente en ese nuevo alto
+                    ) {
                         Text(
                             text = "Localidad",
                             style = MaterialTheme.typography.labelSmall,

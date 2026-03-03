@@ -127,12 +127,18 @@ fun TaskDetailScreen(
         ctx?.nextSteps?.firstOrNull()?.locationName?.trim()?.equals(userLocation, ignoreCase = true) ?: false
     }
 
+    val nextLoc = if (ctx?.isNew == true) {
+        ctx.nextSteps?.firstOrNull { it.stepNumber == 2 }?.locationName ?: "Paso 2"
+    } else {
+        ctx?.nextSteps?.firstOrNull()?.locationName ?: "Fin de ruta"
+    }
+
     val routeStatus = ProductRouteStatus(
         isStarted = ctx?.isNew == false,
         isEligible = isEligible,
         currentLocationName = ctx?.currentStepName ?: "Localidad desconocida",
         previousLocationName = ctx?.currentStepName ?: "Sin localidad previa",
-        nextLocationName = ctx?.nextSteps?.firstOrNull()?.locationName ?: "Fin de ruta"
+        nextLocationName = nextLoc // <- Usamos la nueva variable aquí
     )
 
     val infoItems = listOf(
@@ -268,18 +274,21 @@ private fun ProductRouteDashboard(status: ProductRouteStatus) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(
-                imageVector = if (status.isEligible) Icons.Rounded.CheckCircle else Icons.Rounded.Error,
-                contentDescription = null,
-                tint = if (status.isEligible) TTGreen else TTRed,
-                modifier = Modifier.size(22.dp)
-            )
-            Text(
-                text = if (status.isEligible) "Producto en ruta correcta" else "Fuera de ruta / Acción inválida",
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                color = if (status.isEligible) TTGreen else TTRed
-            )
+        // Envolvemos el Row en un if para que no se muestre si la orden no ha empezado (salvo que ya sea elegible)
+        if (status.isStarted || status.isEligible) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(
+                    imageVector = if (status.isEligible) Icons.Rounded.CheckCircle else Icons.Rounded.Error,
+                    contentDescription = null,
+                    tint = if (status.isEligible) TTGreen else TTRed,
+                    modifier = Modifier.size(22.dp)
+                )
+                Text(
+                    text = if (status.isEligible) "Producto en ruta correcta" else "Fuera de ruta / Acción inválida",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = if (status.isEligible) TTGreen else TTRed
+                )
+            }
         }
 
         if (!status.isStarted) {

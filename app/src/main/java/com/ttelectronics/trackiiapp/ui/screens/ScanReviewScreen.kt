@@ -119,10 +119,24 @@ fun ScanReviewScreen(
                                 InfoLine("Subfamilia", partInfo?.subfamilyName ?: "Sin subfamilia", Icons.Rounded.Inventory2)
                                 InfoLine("Versión de ruta", workContext?.routeName ?: partInfo?.activeRouteId?.toString() ?: "Sin ruta activa", Icons.Rounded.Route)
 
+                                // Validación corregida del estatus de la ruta
+                                val hasRoute = !workContext?.routeName.isNullOrBlank() || partInfo?.activeRouteId != null
+                                val isDentroDeRuta = workContext?.isNew == true || hasRoute
+
+                                InfoLine(
+                                    label = "Estatus de ruta",
+                                    value = if (isDentroDeRuta) "Dentro de ruta" else "Fuera de ruta",
+                                    icon = if (isDentroDeRuta) Icons.Rounded.CheckCircle else Icons.Rounded.Error
+                                )
+
                                 if (workContext?.isNew == true) {
-                                    InfoLine("Ruta actual", "Orden no empezada", Icons.Rounded.Route)
-                                    InfoLine("Siguiente localidad", workContext.currentStepName ?: "Paso 1", Icons.Rounded.Route)
+                                    // Como la API manda toda la ruta en órdenes nuevas, buscamos explícitamente el Paso 2
+                                    val pasoDestino = workContext.nextSteps?.firstOrNull { it.stepNumber == 2 }?.locationName ?: "Paso 2"
+
+                                    InfoLine("Localidad inicial", workContext.currentStepName ?: "Desconocida", Icons.Rounded.Route)
+                                    InfoLine("Siguiente localidad", pasoDestino, Icons.Rounded.Route)
                                 } else {
+                                    // Para órdenes en curso, la API ya manda la lista filtrada correctamente
                                     InfoLine("Localidad actual", workContext?.currentStepName ?: "Desconocida", Icons.Rounded.Route)
                                     InfoLine("Siguiente localidad", workContext?.nextSteps?.firstOrNull()?.locationName ?: "Fin de ruta", Icons.Rounded.Route)
                                 }

@@ -42,8 +42,11 @@ data class RegisterScanRequest(
 )
 
 data class RegisterScanResponse(
-    @SerializedName("success") val success: Boolean? = null,
-    @SerializedName("message") val message: String? = null
+    @SerializedName("message") val message: String? = null,
+    @SerializedName("workOrderId") val workOrderId: Int? = null,
+    @SerializedName("wipItemId") val wipItemId: Int? = null,
+    @SerializedName("routeStepId") val routeStepId: Int? = null,
+    @SerializedName("isFinalStep") val isFinalStep: Boolean? = null
 )
 
 data class ScrapRequest(

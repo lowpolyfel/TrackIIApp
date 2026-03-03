@@ -78,12 +78,7 @@ fun WelcomeScreen(
         ),
         label = "arrowThree"
     )
-    var leafAlpha by remember { mutableFloatStateOf(1f) }
 
-    LaunchedEffect(Unit) {
-        delay(WELCOME_JOURNEY_DURATION_MS)
-        leafAlpha = 0f
-    }
 
     TrackIIBackground(glowOffsetX = (-10).dp, glowOffsetY = (-20).dp) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -105,24 +100,17 @@ fun WelcomeScreen(
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.size(24.dp))
-                Box(modifier = Modifier.size(360.dp), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier.size(500.dp), // <-- AQUÍ PUEDES CAMBIAR EL TAMAÑO DEL CONTENEDOR DEL LOGO
+                    contentAlignment = Alignment.Center
+                ) {
                     Image(
                         painter = painterResource(id = R.drawable.logo_trackii),
                         contentDescription = "TrackII logo",
-                        modifier = Modifier.size(360.dp),
+                        modifier = Modifier.size(500.dp), // <-- AQUÍ CAMBIAS EL TAMAÑO DE LA IMAGEN (Mantén el mismo valor que el Box de arriba)
                         contentScale = ContentScale.Fit
                     )
-                    this@Column.AnimatedVisibility(
-                        visible = leafAlpha > 0f,
-                        exit = fadeOut(animationSpec = tween(durationMillis = 260))
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.logofondo_a),
-                            contentDescription = "Hoja del logo",
-                            modifier = Modifier.size(360.dp).graphicsLayer { alpha = leafAlpha },
-                            contentScale = ContentScale.Fit
-                        )
-                    }
+
                 }
                 Spacer(modifier = Modifier.size(20.dp))
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {

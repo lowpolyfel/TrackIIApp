@@ -21,7 +21,9 @@ import com.ttelectronics.trackiiapp.ui.screens.ScannerScreen
 import com.ttelectronics.trackiiapp.ui.screens.TaskDetailScreen
 import com.ttelectronics.trackiiapp.ui.screens.TaskSelectionScreen
 import com.ttelectronics.trackiiapp.ui.screens.WelcomeScreen
-
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 private fun resolvePostRegisterRoute(nextDestination: String?, isLoggedIn: Boolean): String {
     val destination = nextDestination?.trim().orEmpty()
     if (destination.isBlank()) {
@@ -88,7 +90,12 @@ fun TrackIINavHost(
     NavHost(
         navController = navController,
         startDestination = if (session.isLoggedIn) TrackIIRoute.Welcome else TrackIIRoute.Login,
-        modifier = modifier
+        modifier = modifier,
+        // Agregamos estas 4 líneas con la duración de 800 milisegundos
+        enterTransition = { fadeIn(animationSpec = tween(800)) },
+        exitTransition = { fadeOut(animationSpec = tween(800)) },
+        popEnterTransition = { fadeIn(animationSpec = tween(800)) },
+        popExitTransition = { fadeOut(animationSpec = tween(800)) }
     ) {
         val navigateHome = {
             navController.navigate(TrackIIRoute.Welcome) {

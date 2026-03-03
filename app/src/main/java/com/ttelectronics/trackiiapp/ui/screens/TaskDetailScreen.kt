@@ -164,9 +164,9 @@ fun TaskDetailScreen(
 
             GlassCard(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 120.dp, end = 24.dp)
-                    .fillMaxWidth(0.9f)
+                    .align(Alignment.TopCenter) // 1. Cambiamos de TopEnd a TopCenter
+                    .padding(top = 120.dp) // 2. Quitamos el 'end = 24.dp' para que no lo empuje a la izquierda
+                    .fillMaxWidth(0.9f) // Esto asegura que ocupe el 90% de la pantalla y quede perfectamente centrado
                     .zIndex(1f)
             ) {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {

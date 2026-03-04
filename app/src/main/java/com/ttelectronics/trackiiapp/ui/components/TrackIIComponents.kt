@@ -3,6 +3,7 @@ package com.ttelectronics.trackiiapp.ui.components
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -169,7 +170,13 @@ fun GlassCard(
     )
     Card(
         modifier = modifier
-            .graphicsLayer(shadowElevation = 18f, shape = RoundedCornerShape(28.dp), clip = false),
+            .graphicsLayer(
+                shadowElevation = 18f,
+                shape = RoundedCornerShape(28.dp),
+                clip = false,
+                // Cambiamos 'HasLayer' por 'Offscreen' que es el nombre correcto
+                compositingStrategy = CompositingStrategy.Offscreen
+            ),
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.88f))
     ) {

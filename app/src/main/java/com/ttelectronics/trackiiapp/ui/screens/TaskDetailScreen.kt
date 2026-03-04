@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -167,7 +168,7 @@ fun TaskDetailScreen(
                     .align(Alignment.TopCenter) // 1. Cambiamos de TopEnd a TopCenter
                     .padding(top = 120.dp) // 2. Quitamos el 'end = 24.dp' para que no lo empuje a la izquierda
                     .fillMaxWidth(0.9f) // Esto asegura que ocupe el 90% de la pantalla y quede perfectamente centrado
-                    .zIndex(1f)
+
             ) {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         InfoGrid(items = infoItems)
@@ -267,14 +268,17 @@ fun TaskDetailScreen(
 @Composable
 private fun ProductRouteDashboard(status: ProductRouteStatus) {
     val breath = rememberInfiniteTransition(label = "breath")
-    val scale = breath.animateFloat(initialValue = 1f, targetValue = 1.08f, animationSpec = infiniteRepeatable(animation = tween(900), repeatMode = RepeatMode.Reverse), label = "breathScale").value
+    val scale = breath.animateFloat(initialValue = 1f,
+        targetValue = 1.50f,
+        animationSpec = infiniteRepeatable(animation = tween(900),
+            repeatMode = RepeatMode.Reverse),
+        label = "breathScale").value
 
     Column(
         modifier = Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(TTBlueTint.copy(alpha = 0.5f), Color.White)), shape = RoundedCornerShape(20.dp)).padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Envolvemos el Row en un if para que no se muestre si la orden no ha empezado (salvo que ya sea elegible)
         if (status.isStarted || status.isEligible) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(
@@ -291,12 +295,11 @@ private fun ProductRouteDashboard(status: ProductRouteStatus) {
             }
         }
 
-        if (!status.isStarted) {
+        val showNewOrder = !status.isStarted
+
+        // Textos superiores de la ruta
+        if (showNewOrder) {
             Text("Esta orden se abrirá por primera vez", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold), color = TTTextSecondary, textAlign = TextAlign.Center)
-            Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                RouteNode(label = "Localidad inicial", value = status.currentLocationName, isCurrent = true, scale = scale)
-                RouteNode(label = "Localidad destino", value = status.nextLocationName, isCurrent = false, scale = 0.85f)
-            }
         } else {
             androidx.compose.material3.Card(shape = RoundedCornerShape(12.dp), colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = TTBlue.copy(alpha = 0.1f))) {
                 Text(
@@ -306,27 +309,105 @@ private fun ProductRouteDashboard(status: ProductRouteStatus) {
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
-            Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                RouteNode(label = "Localidad previa", value = status.previousLocationName, isCurrent = false, scale = 0.85f)
-                RouteNode(label = "Siguiente localidad", value = status.nextLocationName, isCurrent = true, scale = scale)
+        }
+
+        // Asignación inteligente de variables según si empezó o no
+        val node1Label = if (showNewOrder) "Localidad inicial" else "Localidad previa"
+        val node1Value = if (showNewOrder) status.currentLocationName else status.previousLocationName
+        val node1Current = showNewOrder
+
+        val node2Label = if (showNewOrder) "Localidad destino" else "Siguiente localidad"
+        val node2Value = status.nextLocationName
+        val node2Current = !showNewOrder
+
+        // Renderizado de la barra de progreso
+        Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+
+                // 1. Línea conectora base dibujada primero (atrás)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.5f) // Ocupa el 50% conectando ambos centros geométricos
+                        .height(4.dp)
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    if (node1Current) TTGreen.copy(alpha = 0.6f) else TTBlue.copy(alpha = 0.3f),
+                                    if (node2Current) TTGreen.copy(alpha = 0.6f) else TTBlue.copy(alpha = 0.3f)
+                                )
+                            ),
+                            shape = RoundedCornerShape(2.dp)
+                        )
+                )
+
+                // 2. Círculos dibujados sobre la línea
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        RouteCircle(value = node1Value, isCurrent = node1Current, scale = if (node1Current) scale else 0.85f)
+                    }
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        RouteCircle(value = node2Value, isCurrent = node2Current, scale = if (node2Current) scale else 0.85f)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 3. Textos informativos alineados debidamente debajo de sus círculos
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+                Text(text = node1Label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = TTTextSecondary, textAlign = TextAlign.Center)
+                Text(text = node2Label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = TTTextSecondary, textAlign = TextAlign.Center)
             }
         }
     }
 }
 
+
 @Composable
-private fun RouteNode(label: String, value: String, isCurrent: Boolean, scale: Float = 1f) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+private fun RouteCircle(value: String, isCurrent: Boolean, scale: Float = 1f) {
+    val size = if (isCurrent) 84.dp else 56.dp
+
+    Box(contentAlignment = Alignment.Center) {
+        // 1. Capa de Animación (Respiro) - Está al fondo de todo
+        // Solo se muestra y anima si es el nodo actual
+        if (isCurrent) {
+            Box(
+                modifier = Modifier
+                    .size(size)
+                    .scale(scale) // El respiro solo afecta a esta capa
+                    .background(
+                        color = TTGreen.copy(alpha = 0.25f),
+                        shape = CircleShape
+                    )
+            )
+        }
+
+        // 2. Capa Sólida Principal - Está encima de la línea y de la animación
+        // El color blanco sólido asegura que la línea conectora no se vea a través del círculo
         Box(
-            modifier = Modifier.size(if (isCurrent) 84.dp else 56.dp).scale(if (isCurrent) scale else 1f).background(color = if (isCurrent) TTGreen.copy(alpha = 0.24f) else TTBlue.copy(alpha = 0.14f), shape = CircleShape),
+            modifier = Modifier
+                .size(size)
+                .background(
+                    color = Color.White,
+                    shape = CircleShape
+                )
+                .border(
+                    width = if (isCurrent) 2.dp else 1.dp,
+                    color = if (isCurrent) TTGreen else TTBlue.copy(alpha = 0.3f),
+                    shape = CircleShape
+                ),
             contentAlignment = Alignment.Center
         ) {
-            Text(text = value, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = if (isCurrent) TTGreen else TTBlue, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 8.dp))
+            Text(
+                text = value,
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = if (isCurrent) TTGreen else TTBlue,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
         }
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = TTTextSecondary)
     }
 }
-
 @Composable
 private fun InfoGrid(items: List<InfoItem>) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {

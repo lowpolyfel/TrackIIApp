@@ -11,6 +11,8 @@ import androidx.annotation.OptIn
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -204,12 +206,21 @@ fun ScannerScreen(
 
             Crossfade(
                 targetState = showInstructions,
-                animationSpec = tween(durationMillis = 800), // <-- Duración del desvanecimiento (0.8 segundos)
+                animationSpec = tween(durationMillis = 800),
                 modifier = Modifier.weight(1f),
                 label = "scanner_transition"
             ) { isShowingInstructions ->
                 if (isShowingInstructions) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null, // Esto elimina por completo la animación gris de clic
+                                onClick = { showInstructions = false }
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
                         ScannerInstructionsScreen()
                     }
                 } else {

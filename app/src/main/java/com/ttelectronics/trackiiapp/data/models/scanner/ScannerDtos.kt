@@ -18,11 +18,15 @@ data class PartLookupResponse(
 
 data class WorkOrderContextResponse(
     @SerializedName("isNew") val isNew: Boolean? = null,
+    @SerializedName("orderStatus") val orderStatus: String? = null,
+    @SerializedName("wipStatus") val wipStatus: String? = null,
+    @SerializedName("statusUpdatedAt") val statusUpdatedAt: String? = null,
     @SerializedName("previousQuantity") val previousQuantity: Int? = null,
     @SerializedName("currentStepNumber") val currentStepNumber: Int? = null,
     @SerializedName("currentStepName") val currentStepName: String? = null,
     @SerializedName("routeName") val routeName: String? = null,
-    @SerializedName("nextSteps") val nextSteps: List<NextRouteStepResponse>? = null
+    @SerializedName("nextSteps") val nextSteps: List<NextRouteStepResponse>? = null,
+    @SerializedName("timeline") val timeline: List<TimelineStepResponse>? = null
 )
 
 data class NextRouteStepResponse(
@@ -33,6 +37,13 @@ data class NextRouteStepResponse(
     @SerializedName("locationName") val locationName: String
 )
 
+data class TimelineStepResponse(
+    @SerializedName("stepOrder") val stepOrder: Int,
+    @SerializedName("locationName") val locationName: String,
+    @SerializedName("state") val state: String,
+    @SerializedName("pieces") val pieces: String,
+    @SerializedName("scrap") val scrap: String
+)
 data class RegisterScanRequest(
     @SerializedName("WorkOrderNumber") val workOrderNumber: String,
     @SerializedName("PartNumber") val partNumber: String,

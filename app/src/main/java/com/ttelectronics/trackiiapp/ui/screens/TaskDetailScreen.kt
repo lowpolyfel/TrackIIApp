@@ -1,34 +1,44 @@
 package com.ttelectronics.trackiiapp.ui.screens
 
-import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Category
 import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.Factory
 import androidx.compose.material.icons.rounded.Error
+import androidx.compose.material.icons.rounded.Factory
 import androidx.compose.material.icons.rounded.Inventory2
 import androidx.compose.material.icons.rounded.QrCode
+import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.Route
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -46,16 +56,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ttelectronics.trackiiapp.core.ServiceLocator
 import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
 import com.ttelectronics.trackiiapp.ui.components.GlassCard
 import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
 import com.ttelectronics.trackiiapp.ui.components.SoftActionButton
+import com.ttelectronics.trackiiapp.ui.components.SuccessOverlay
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.components.TrackIIDropdownField
-import com.ttelectronics.trackiiapp.ui.components.SuccessOverlay
 import com.ttelectronics.trackiiapp.ui.components.TrackIITextField
 import com.ttelectronics.trackiiapp.ui.components.rememberRawSoundPlayer
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
@@ -77,6 +87,17 @@ data class ProductRouteStatus(
     val currentLocationName: String,
     val previousLocationName: String,
     val nextLocationName: String
+)
+
+// Modelos para la Línea de Tiempo
+enum class StepState { DONE, CURRENT, PENDING }
+
+data class TimelineStepData(
+    val locationName: String,
+    val statusText: String,
+    val pieces: String,
+    val scrap: String,
+    val state: StepState
 )
 
 @Composable
@@ -139,7 +160,7 @@ fun TaskDetailScreen(
         isEligible = isEligible,
         currentLocationName = ctx?.currentStepName ?: "Localidad desconocida",
         previousLocationName = ctx?.currentStepName ?: "Sin localidad previa",
-        nextLocationName = nextLoc // <- Usamos la nueva variable aquí
+        nextLocationName = nextLoc
     )
 
     val infoItems = listOf(
@@ -165,13 +186,66 @@ fun TaskDetailScreen(
 
             GlassCard(
                 modifier = Modifier
-                    .align(Alignment.TopCenter) // 1. Cambiamos de TopEnd a TopCenter
-                    .padding(top = 120.dp) // 2. Quitamos el 'end = 24.dp' para que no lo empuje a la izquierda
-                    .fillMaxWidth(0.9f) // Esto asegura que ocupe el 90% de la pantalla y quede perfectamente centrado
-
+                    .align(Alignment.TopCenter)
+                    .padding(top = 120.dp, bottom = 100.dp)
+                    .fillMaxWidth(0.9f)
             ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        InfoGrid(items = infoItems)
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    InfoGrid(items = infoItems)
+
+                    // 🔴 Lógica de Bloqueo de Estados
+                    val isBlocked = ctx?.orderStatus == "Cancelled" || ctx?.wipStatus == "Hold" || ctx?.wipStatus == "Scrapped" || ctx?.orderStatus == "Finished" || ctx?.wipStatus == "Finished"
+
+                    if (isBlocked && taskType != TaskType.TravelSheet) {
+                        // Si está bloqueada y quieren avanzar/scrap, no los deja. Muestra el banner y botón de regreso.
+                        OrderStatusBanner(ctx?.orderStatus, ctx?.wipStatus, ctx?.statusUpdatedAt, ctx?.currentStepName)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        SoftActionButton(text = "Volver al Menú", onClick = onBack, modifier = Modifier.fillMaxWidth())
+
+                    } else if (taskType == TaskType.TravelSheet) {
+                        // MODO VISOR: Si está bloqueada, muestra el banner, pero TAMBIÉN permite ver el Timeline abajo
+                        if (isBlocked) {
+                            OrderStatusBanner(ctx?.orderStatus, ctx?.wipStatus, ctx?.statusUpdatedAt, ctx?.currentStepName)
+                        }
+
+                        // ========================================================
+                        Text(
+                            text = "Historial de Ruta",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = TTBlueDark,
+                            modifier = Modifier.padding(horizontal = 8.dp).padding(top = 8.dp) // <-- Encadenados
+                        )
+
+                        // Mapeamos directamente la respuesta de la base de datos (API) al componente visual
+                        val timelineSteps = ctx?.timeline?.map { dto ->
+                            TimelineStepData(
+                                locationName = dto.locationName,
+                                statusText = when (dto.state) {
+                                    "DONE" -> "Completado"
+                                    "CURRENT" -> "En proceso"
+                                    else -> "Pendiente"
+                                },
+                                pieces = dto.pieces,
+                                scrap = dto.scrap,
+                                state = when (dto.state) {
+                                    "DONE" -> StepState.DONE
+                                    "CURRENT" -> StepState.CURRENT
+                                    else -> StepState.PENDING
+                                }
+                            )
+                        } ?: emptyList() // Si la API aún no carga o manda null, se muestra vacío
+                        TravelSheetTimeline(steps = timelineSteps)
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                        SoftActionButton(text = "Volver al Menú", onClick = onBack, modifier = Modifier.fillMaxWidth())
+
+                    } else {
+                        // ========================================================
+                        // MODO OPERATIVO NORMAL (REGISTROS Y AVANCES)
+                        // ========================================================
                         ProductRouteDashboard(status = routeStatus)
 
                         when (taskType) {
@@ -255,6 +329,7 @@ fun TaskDetailScreen(
                         SoftActionButton(text = "Volver", onClick = onBack, modifier = Modifier.fillMaxWidth())
                     }
                 }
+            }
 
             FloatingHomeButton(onClick = onHome, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp))
 
@@ -265,12 +340,146 @@ fun TaskDetailScreen(
     }
 }
 
+// =========================================================================================
+// NUEVO COMPONENTE: LÍNEA DE TIEMPO (TIMELINE) DE HOJA VIAJERA
+// =========================================================================================
+@Composable
+private fun TravelSheetTimeline(steps: List<TimelineStepData>) {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
+        steps.forEachIndexed { index, step ->
+            val isFirst = index == 0
+            val isLast = index == steps.size - 1
+
+            // IntrinsicSize permite que la línea vertical mida exactamente lo que mide la tarjeta
+            Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+
+                // --- LADO IZQUIERDO: CONECTORES Y CÍRCULOS ---
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxHeight().width(32.dp)
+                ) {
+                    // Línea Superior
+                    Box(
+                        modifier = Modifier
+                            .width(2.dp)
+                            .height(24.dp)
+                            .background(if (isFirst) Color.Transparent else if (step.state == StepState.PENDING) Color.LightGray else TTBlue.copy(alpha = 0.5f))
+                    )
+
+                    // Círculo de Estado
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .background(
+                                color = when (step.state) {
+                                    StepState.DONE -> TTGreen.copy(alpha = 0.2f)
+                                    StepState.CURRENT -> TTBlue.copy(alpha = 0.2f)
+                                    StepState.PENDING -> Color.White
+                                },
+                                shape = CircleShape
+                            )
+                            .border(
+                                width = 2.dp,
+                                color = when (step.state) {
+                                    StepState.DONE -> TTGreen
+                                    StepState.CURRENT -> TTBlue
+                                    StepState.PENDING -> Color.LightGray
+                                },
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (step.state == StepState.DONE) {
+                            Icon(imageVector = Icons.Rounded.CheckCircle, contentDescription = null, tint = TTGreen, modifier = Modifier.size(16.dp))
+                        } else if (step.state == StepState.CURRENT) {
+                            // Círculo interno animado para la localidad actual
+                            val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+                            val pulse by infiniteTransition.animateFloat(initialValue = 0.6f, targetValue = 1f, animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "pulse")
+                            Box(modifier = Modifier.size(10.dp).scale(pulse).background(TTBlue, CircleShape))
+                        }
+                    }
+
+                    // Línea Inferior (Toma todo el espacio sobrante hacia abajo)
+                    Box(
+                        modifier = Modifier
+                            .width(2.dp)
+                            .weight(1f)
+                            .background(if (isLast) Color.Transparent else if (step.state == StepState.DONE) TTBlue.copy(alpha = 0.5f) else Color.LightGray)
+                    )
+                }
+
+// --- LADO DERECHO: TARJETA DE INFORMACIÓN ---
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 12.dp, bottom = 16.dp),
+                    shape = RoundedCornerShape(20.dp), // ⬅️ Esquinas mucho más redondeadas y modernas
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = if (step.state == StepState.CURRENT) 6.dp else 1.dp),
+                    border = if (step.state == StepState.CURRENT) BorderStroke(2.dp, TTGreen.copy(alpha = 0.6f)) else BorderStroke(1.dp, Color.Black.copy(alpha = 0.05f))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                // ⬅️ Degradado verde hermoso solo para el paso actual
+                                if (step.state == StepState.CURRENT)
+                                    Brush.linearGradient(listOf(TTGreenTint, Color.White))
+                                else
+                                    Brush.linearGradient(listOf(Color.White, Color.White))
+                            )
+                            .padding(16.dp), // ⬅️ Un poco más de espacio interno para que no se vea apretado
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = step.locationName,
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                // El texto resalta en verde si es el actual
+                                color = if (step.state == StepState.CURRENT) TTGreen else MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = step.statusText,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = if (step.state == StepState.CURRENT) FontWeight.Bold else FontWeight.Normal
+                                ),
+                                color = when (step.state) {
+                                    StepState.DONE -> TTGreen
+                                    StepState.CURRENT -> TTGreen
+                                    StepState.PENDING -> Color.Gray
+                                }
+                            )
+                        }
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column {
+                                Text("Piezas procesadas", style = MaterialTheme.typography.labelSmall, color = TTTextSecondary)
+                                Text(step.pieces, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text("Scrap", style = MaterialTheme.typography.labelSmall, color = TTTextSecondary)
+                                Text(
+                                    text = step.scrap,
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                    color = if (step.scrap != "0" && step.scrap != "-") TTRed else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// =========================================================================================
+
 @Composable
 private fun ProductRouteDashboard(status: ProductRouteStatus) {
     val breath = rememberInfiniteTransition(label = "breath")
     val scale = breath.animateFloat(initialValue = 1f,
-        targetValue = 1.50f,
-        animationSpec = infiniteRepeatable(animation = tween(900),
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(animation = tween(1500),
             repeatMode = RepeatMode.Reverse),
         label = "breathScale").value
 
@@ -297,7 +506,6 @@ private fun ProductRouteDashboard(status: ProductRouteStatus) {
 
         val showNewOrder = !status.isStarted
 
-        // Textos superiores de la ruta
         if (showNewOrder) {
             Text("Esta orden se abrirá por primera vez", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold), color = TTTextSecondary, textAlign = TextAlign.Center)
         } else {
@@ -311,7 +519,6 @@ private fun ProductRouteDashboard(status: ProductRouteStatus) {
             }
         }
 
-        // Asignación inteligente de variables según si empezó o no
         val node1Label = if (showNewOrder) "Localidad inicial" else "Localidad previa"
         val node1Value = if (showNewOrder) status.currentLocationName else status.previousLocationName
         val node1Current = showNewOrder
@@ -320,14 +527,12 @@ private fun ProductRouteDashboard(status: ProductRouteStatus) {
         val node2Value = status.nextLocationName
         val node2Current = !showNewOrder
 
-        // Renderizado de la barra de progreso
         Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
 
-                // 1. Línea conectora base dibujada primero (atrás)
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.5f) // Ocupa el 50% conectando ambos centros geométricos
+                        .fillMaxWidth(0.5f)
                         .height(4.dp)
                         .background(
                             brush = Brush.horizontalGradient(
@@ -340,7 +545,6 @@ private fun ProductRouteDashboard(status: ProductRouteStatus) {
                         )
                 )
 
-                // 2. Círculos dibujados sobre la línea
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                         RouteCircle(value = node1Value, isCurrent = node1Current, scale = if (node1Current) scale else 0.85f)
@@ -353,7 +557,6 @@ private fun ProductRouteDashboard(status: ProductRouteStatus) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 3. Textos informativos alineados debidamente debajo de sus círculos
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                 Text(text = node1Label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = TTTextSecondary, textAlign = TextAlign.Center)
                 Text(text = node2Label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = TTTextSecondary, textAlign = TextAlign.Center)
@@ -362,19 +565,16 @@ private fun ProductRouteDashboard(status: ProductRouteStatus) {
     }
 }
 
-
 @Composable
 private fun RouteCircle(value: String, isCurrent: Boolean, scale: Float = 1f) {
     val size = if (isCurrent) 84.dp else 56.dp
 
     Box(contentAlignment = Alignment.Center) {
-        // 1. Capa de Animación (Respiro) - Está al fondo de todo
-        // Solo se muestra y anima si es el nodo actual
         if (isCurrent) {
             Box(
                 modifier = Modifier
                     .size(size)
-                    .scale(scale) // El respiro solo afecta a esta capa
+                    .scale(scale)
                     .background(
                         color = TTGreen.copy(alpha = 0.25f),
                         shape = CircleShape
@@ -382,8 +582,6 @@ private fun RouteCircle(value: String, isCurrent: Boolean, scale: Float = 1f) {
             )
         }
 
-        // 2. Capa Sólida Principal - Está encima de la línea y de la animación
-        // El color blanco sólido asegura que la línea conectora no se vea a través del círculo
         Box(
             modifier = Modifier
                 .size(size)
@@ -408,6 +606,7 @@ private fun RouteCircle(value: String, isCurrent: Boolean, scale: Float = 1f) {
         }
     }
 }
+
 @Composable
 private fun InfoGrid(items: List<InfoItem>) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -435,13 +634,55 @@ private fun InfoTile(title: String, value: String, icon: ImageVector, modifier: 
     }
 }
 
-
 private fun formatRouteName(rawRouteName: String?): String? {
     val routeName = rawRouteName?.trim().orEmpty()
     if (routeName.isBlank()) return null
-
     val looksLikeNumericId = routeName.matches(Regex("^\\d+$"))
     val looksLikeStepPlaceholder = routeName.matches(Regex("^paso\\s*\\d+$", RegexOption.IGNORE_CASE))
-
     return if (looksLikeNumericId || looksLikeStepPlaceholder) null else routeName
+}
+
+@Composable
+private fun OrderStatusBanner(orderStatus: String?, wipStatus: String?, updatedAt: String?, stepName: String?) {
+    val isScrapped = orderStatus == "Cancelled" || wipStatus == "Scrapped"
+    val isHold = wipStatus == "Hold"
+    val isFinished = orderStatus == "Finished" || wipStatus == "Finished"
+
+    val statusColor = when {
+        isScrapped -> TTRed
+        isHold -> Color(0xFFFFB300) // Amarillo de Alerta
+        isFinished -> TTGreen
+        else -> TTBlue
+    }
+
+    val statusTitle = when {
+        orderStatus == "Cancelled" -> "Orden Cancelada"
+        wipStatus == "Scrapped" -> "Orden Rechazada (Scrap Total)"
+        wipStatus == "Hold" -> "Orden en Retrabajo (Hold)"
+        isFinished -> "Orden Finalizada"
+        else -> "Estado Bloqueado"
+    }
+
+    val statusIcon = when {
+        isScrapped -> Icons.Rounded.Error
+        isHold -> Icons.Rounded.Warning
+        isFinished -> Icons.Rounded.CheckCircle
+        else -> Icons.Rounded.Info
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = statusColor.copy(alpha = 0.1f)),
+        border = BorderStroke(1.dp, statusColor.copy(alpha = 0.3f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(imageVector = statusIcon, contentDescription = null, tint = statusColor, modifier = Modifier.size(24.dp))
+                Text(text = statusTitle, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = statusColor)
+            }
+            Text(text = "Fecha de movimiento: ${updatedAt ?: "Sin registro"}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+            Text(text = "Paso en el que se detuvo: ${stepName ?: "Desconocido"}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+        }
+    }
 }

@@ -19,11 +19,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Inventory2
 import androidx.compose.material.icons.rounded.QrCode
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -82,6 +84,8 @@ fun ScrapOrderScreen(
     val rightSoundPlayer = rememberRawSoundPlayer("right")
 
     var showSuccessOverlay by remember { mutableStateOf(false) }
+    // 🔥 Variable para mostrar el diálogo intermedio
+    var showConfirmDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(lotNumber, partNumber) {
         viewModel.initialize(lotNumber, partNumber)
@@ -102,6 +106,32 @@ fun ScrapOrderScreen(
         ScrapInfoItem("No. Parte", uiState.partNumber, Icons.Rounded.QrCode)
     )
 
+    // 🔥 PANTALLA INTERMEDIA (DIÁLOGO DE CONFIRMACIÓN)
+    if (showConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDialog = false },
+            title = { Text("¿Está seguro?", fontWeight = FontWeight.Bold) },
+            text = { Text("Una vez cancelada la orden, no volverá a estar activa y se registrará como scrap total.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showConfirmDialog = false
+                    keyboardController?.hide()
+                    viewModel.submit() // Se guarda hasta que confirman aquí
+                }) {
+                    Text("Sí, Cancelar", color = TTRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDialog = false }) {
+                    Text("Volver", color = TTTextSecondary)
+                }
+            },
+            containerColor = Color.White,
+            titleContentColor = TTRed,
+            textContentColor = TTTextSecondary
+        )
+    }
+
     TrackIIBackground(glowOffsetX = 24.dp, glowOffsetY = 120.dp) {
         Box(modifier = Modifier.fillMaxSize()) {
 
@@ -111,96 +141,99 @@ fun ScrapOrderScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 ScannerHeader(taskTitle = "Cancelar Orden")
+            }
+
+            // Contenedor Central
+            Column(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Text(
                     text = "Proceso de cancelación y registro de scrap.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = TTTextSecondary,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 6.dp, bottom = 22.dp)
+                    modifier = Modifier.padding(bottom = 16.dp)
                 )
-            }
 
-            // GlassCard Central (Estilo TaskDetailScreen)
-            GlassCard(
-                modifier = Modifier
-                    .align(Alignment.Center) // 1. Cambiamos TopCenter por Center
-                    // 2. Borramos la línea del padding(top = 135.dp)
-                    .fillMaxWidth(0.9f)
-                    .zIndex(1f)
-            ) {
-                Column(
+                GlassCard(
                     modifier = Modifier
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                        .fillMaxWidth(0.9f)
+                        .zIndex(1f) // Esto causaba el solapamiento, pero ya lo arreglamos abajo
                 ) {
+                    Column(
+                        modifier = Modifier
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
 
-                    // Tarjetas verdes de información
-                    ScrapInfoGrid(items = infoItems)
+                        ScrapInfoGrid(items = infoItems)
 
-                    // Campos de texto y selectores modernos
-                    TrackIITextField(
-                        label = "Piezas a cancelar",
-                        value = uiState.qtyInput,
-                        onValueChange = { newValue ->
-                            if (newValue.all { it.isDigit() }) viewModel.onQtyChange(newValue)
+                        TrackIITextField(
+                            label = "Piezas a cancelar",
+                            value = uiState.qtyInput,
+                            onValueChange = { newValue ->
+                                if (newValue.all { it.isDigit() }) viewModel.onQtyChange(newValue)
+                            }
+                        )
+
+                        TrackIIDropdownField(
+                            label = "Categoría de falla",
+                            options = uiState.categories.map { it.name },
+                            helper = "Selecciona una categoría",
+                            selectedOption = uiState.selectedCategory?.name.orEmpty(),
+                            onOptionSelected = { selectedName ->
+                                val cat = uiState.categories.find { it.name == selectedName }
+                                if (cat != null) viewModel.onCategorySelected(cat)
+                            }
+                        )
+
+                        TrackIIDropdownField(
+                            label = "Código de falla",
+                            options = uiState.codes.map { "${it.code} - ${it.description}" },
+                            helper = "Selecciona un código",
+                            selectedOption = uiState.selectedCode?.let { "${it.code} - ${it.description}" }.orEmpty(),
+                            onOptionSelected = { selectedString ->
+                                val code = uiState.codes.find { "${it.code} - ${it.description}" == selectedString }
+                                if (code != null) viewModel.onCodeSelected(code)
+                            }
+                        )
+
+                        TrackIITextField(
+                            label = "Comentarios del operador",
+                            value = uiState.comments,
+                            onValueChange = viewModel::onCommentsChange
+                        )
+
+                        if (uiState.isLoadingCategories || uiState.isLoadingCodes || uiState.isSubmitting) {
+                            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator()
+                            }
                         }
-                    )
 
-                    TrackIIDropdownField(
-                        label = "Categoría de falla",
-                        options = uiState.categories.map { it.name },
-                        helper = "Selecciona una categoría",
-                        selectedOption = uiState.selectedCategory?.name.orEmpty(),
-                        onOptionSelected = { selectedName ->
-                            val cat = uiState.categories.find { it.name == selectedName }
-                            if (cat != null) viewModel.onCategorySelected(cat)
+                        uiState.errorMessage?.let {
+                            Text(it, color = TTRed, style = MaterialTheme.typography.bodySmall)
                         }
-                    )
 
-                    TrackIIDropdownField(
-                        label = "Código de falla",
-                        options = uiState.codes.map { "${it.code} - ${it.description}" },
-                        helper = "Selecciona un código",
-                        selectedOption = uiState.selectedCode?.let { "${it.code} - ${it.description}" }.orEmpty(),
-                        onOptionSelected = { selectedString ->
-                            val code = uiState.codes.find { "${it.code} - ${it.description}" == selectedString }
-                            if (code != null) viewModel.onCodeSelected(code)
-                        }
-                    )
+                        PrimaryGlowButton(
+                            text = if (uiState.isSubmitting) "Guardando..." else "Confirmar Cancelación",
+                            onClick = {
+                                keyboardController?.hide()
+                                showConfirmDialog = true // 🔥 AHORA ABRE EL DIÁLOGO EN LUGAR DE GUARDAR DIRECTO
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !uiState.isSubmitting
+                        )
 
-                    TrackIITextField(
-                        label = "Comentarios del operador",
-                        value = uiState.comments,
-                        onValueChange = viewModel::onCommentsChange
-                    )
-
-                    if (uiState.isLoadingCategories || uiState.isLoadingCodes || uiState.isSubmitting) {
-                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
-                        }
+                        SoftActionButton(
+                            text = "Volver",
+                            onClick = onBack,
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !uiState.isSubmitting
+                        )
                     }
-
-                    uiState.errorMessage?.let {
-                        Text(it, color = TTRed, style = MaterialTheme.typography.bodySmall)
-                    }
-
-                    // Botones consistentes
-                    PrimaryGlowButton(
-                        text = if (uiState.isSubmitting) "Guardando..." else "Confirmar Cancelación",
-                        onClick = {
-                            keyboardController?.hide()
-                            viewModel.submit()
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !uiState.isSubmitting
-                    )
-
-                    SoftActionButton(
-                        text = "Volver",
-                        onClick = onBack,
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !uiState.isSubmitting
-                    )
                 }
             }
 
@@ -209,14 +242,13 @@ fun ScrapOrderScreen(
                 modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp)
             )
 
-            ScanResultOverlay(visible = showSuccessOverlay, success = true, message = "Cancelación exitosa")
+            // 🔥 SOLUCIÓN DEL SOLAPAMIENTO: Le ponemos zIndex(10f) para que SIEMPRE tape al GlassCard
+            Box(modifier = Modifier.fillMaxSize().zIndex(10f)) {
+                ScanResultOverlay(visible = showSuccessOverlay, success = true, message = "Cancelación exitosa")
+            }
         }
     }
 }
-
-// =========================================================================
-// Componentes visuales replicados de TaskDetailScreen para mantener el diseño
-// =========================================================================
 
 private data class ScrapInfoItem(val title: String, val value: String, val icon: ImageVector)
 

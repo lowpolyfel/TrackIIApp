@@ -42,7 +42,9 @@ data class TimelineStepResponse(
     @SerializedName("locationName") val locationName: String,
     @SerializedName("state") val state: String,
     @SerializedName("pieces") val pieces: String,
-    @SerializedName("scrap") val scrap: String
+    @SerializedName("scrap") val scrap: String,
+    @SerializedName("errorCode") val errorCode: String? = null, // NUEVO
+    @SerializedName("comments") val comments: String? = null    // NUEVO
 )
 data class RegisterScanRequest(
     @SerializedName("WorkOrderNumber") val workOrderNumber: String,

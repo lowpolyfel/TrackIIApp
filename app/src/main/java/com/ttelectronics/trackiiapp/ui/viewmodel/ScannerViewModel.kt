@@ -149,7 +149,10 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
             }
 
             // 1. Validar que la parte (Product) sí exista en el catálogo primero
-            val partFound = runCatching { scannerRepository.validatePartExists(partNumber) }.getOrElse { false }
+// 1. Validar que la parte (Product) sí exista en el catálogo primero
+            val lookupResult = runCatching { scannerRepository.lookupPart(partNumber) }.getOrNull()
+            val partFound = lookupResult?.found == true
+
             if (!partFound) {
                 _uiState.update {
                     it.copy(
@@ -157,7 +160,12 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                         isProductFound = false, // false dispara la pantalla de error roja
                         shouldNavigate = true,
                         navigationTarget = ScannerNavigationTarget.ScanReview,
-                        validationError = R.string.error_order_not_found_for_part
+                        // Quitamos el validationError genérico para usar el mensaje del Backend
+                        validationError = R.string.error_order_not_found_for_part,
+                        // Mostramos el mensaje del API o uno por defecto
+                        customValidationMessage = lookupResult?.message ?: "Producto no registrado. Se reportó al servidor.",
+
+
                     )
                 }
                 return@launch

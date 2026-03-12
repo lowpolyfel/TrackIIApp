@@ -45,16 +45,17 @@ class PartialScrapViewModel(
                 lotNumber = lotNumber,
                 partNumber = partNumber,
                 difference = difference,
-                shouldRegister = null,
+                shouldRegister = true, // Forzamos a true para que la función submit() no se bloquee
                 selectedCategory = null,
                 selectedCode = null,
                 comments = "",
                 errorMessage = null,
-                saveSuccess = false,
-                categories = emptyList(),
-                codes = emptyList()
+                saveSuccess = false
+                // Eliminamos la limpieza de categories y codes para evitar parpadeos si ya se están cargando
             )
         }
+        // Llamamos a la API inmediatamente al iniciar la pantalla
+        loadCategories()
     }
 
     fun answerShouldRegister(shouldRegister: Boolean) {
@@ -109,6 +110,12 @@ class PartialScrapViewModel(
         if (state.shouldRegister != true) return
         if (code == null) {
             _uiState.update { it.copy(errorMessage = "Selecciona un código de falla.") }
+            return
+        }
+
+        // NUEVA VALIDACIÓN: Hacer los comentarios obligatorios
+        if (state.comments.trim().isEmpty()) {
+            _uiState.update { it.copy(errorMessage = "Los comentarios son obligatorios.") }
             return
         }
 

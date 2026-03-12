@@ -81,7 +81,10 @@ fun PartialScrapScreen(
     val uiState by viewModel.uiState.collectAsState()
     val rightSoundPlayer = rememberRawSoundPlayer("right")
 
+
     var showSuccessOverlay by remember { mutableStateOf(false) }
+    // NUEVA VARIABLE: Controla la visibilidad de la pantalla de transición inicial
+    var showTransitionMessage by remember { mutableStateOf(true) }
 
     LaunchedEffect(lotNumber, partNumber, difference) {
         viewModel.initialize(lotNumber, partNumber, difference)

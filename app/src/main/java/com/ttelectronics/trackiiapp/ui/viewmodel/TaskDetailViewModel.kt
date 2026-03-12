@@ -30,7 +30,9 @@ data class TaskDetailUiState(
     val selectedReworkLocation: LocationDto? = null,
     val isSubmitting: Boolean = false,
     val saveSuccess: Boolean = false,
-    val piecesDifference: Int = 0
+    val piecesDifference: Int = 0,
+    val pendingQtyIn: Int = 0,
+    val pendingReady: Boolean = false
 )
 
 
@@ -44,6 +46,13 @@ class TaskDetailViewModel(
 
     fun onQtyChange(value: String) {
         _uiState.update { it.copy(qtyInput = value.filter { ch -> ch.isDigit() }, errorMessage = null) }
+    }
+
+    fun setInitialQtyInput(value: String) {
+        if (value.isBlank()) return
+        _uiState.update {
+            if (it.qtyInput.isBlank()) it.copy(qtyInput = value.filter { ch -> ch.isDigit() }) else it
+        }
     }
 
     fun onReworkReasonChange(value: String) {
@@ -209,6 +218,39 @@ class TaskDetailViewModel(
                 _uiState.update { it.copy(isLoading = false, isSubmitting = false, errorMessage = ApiErrorParser.readableError(ex)) }
             }
         }
+    }
+
+    fun prepareProductAdvanceRegistration(workOrderNumber: String, locationName: String) {
+        val state = _uiState.value
+        val decision = productAdvanceScanPolicy.evaluate(
+            workOrderNumber = workOrderNumber,
+            qtyInput = state.qtyInput,
+            locationName = locationName,
+            partInfo = state.partInfo,
+            context = state.contextInfo
+        )
+
+        if (!decision.canRegister) {
+            _uiState.update { it.copy(errorMessage = decision.localMessage, pendingReady = false) }
+            return
+        }
+
+        val qtyFromInput = state.qtyInput.toIntOrNull() ?: 0
+        val previousQty = state.contextInfo?.previousQuantity ?: 0
+        val diff = previousQty - qtyFromInput
+
+        _uiState.update {
+            it.copy(
+                errorMessage = null,
+                pendingQtyIn = decision.qtyIn,
+                piecesDifference = if (diff > 0) diff else 0,
+                pendingReady = true
+            )
+        }
+    }
+
+    fun clearPendingRegistration() {
+        _uiState.update { it.copy(pendingReady = false) }
     }
 
 }

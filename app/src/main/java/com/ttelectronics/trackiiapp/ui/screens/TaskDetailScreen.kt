@@ -112,7 +112,9 @@ fun TaskDetailScreen(
     partNumber: String,
     onBack: () -> Unit,
     onComplete: () -> Unit,
-    onNavigateToPartialScrap: (Int) -> Unit,
+    onNavigateToPartialScrap: (Int, Int) -> Unit,
+    onNavigateToFinalReview: (Int, Int) -> Unit,
+    initialQty: String = "",
     onHome: () -> Unit
 ) {
     val context = LocalContext.current
@@ -123,12 +125,21 @@ fun TaskDetailScreen(
     val uiState by vm.uiState.collectAsState()
 
     LaunchedEffect(partNumber, lotNumber, auth.deviceId) { vm.loadData(partNumber, lotNumber, auth.deviceId) }
+    LaunchedEffect(initialQty) { vm.setInitialQtyInput(initialQty) }
+
+    LaunchedEffect(uiState.pendingReady, uiState.piecesDifference, uiState.pendingQtyIn) {
+        if (taskType == TaskType.ProductAdvance && uiState.pendingReady) {
+            if (uiState.piecesDifference > 0) onNavigateToPartialScrap(uiState.piecesDifference, uiState.pendingQtyIn)
+            else onNavigateToFinalReview(uiState.pendingQtyIn, 0)
+            vm.clearPendingRegistration()
+        }
+    }
 
     LaunchedEffect(uiState.saveSuccess) {
-        if (uiState.saveSuccess) {
+        if (uiState.saveSuccess && taskType != TaskType.ProductAdvance) {
             rightSoundPlayer.play()
             kotlinx.coroutines.delay(1800)
-            if (uiState.piecesDifference > 0) onNavigateToPartialScrap(uiState.piecesDifference) else onComplete()
+            onComplete()
         }
     }
 
@@ -220,7 +231,13 @@ fun TaskDetailScreen(
                             TaskType.TravelSheet -> Unit
                         }
 
-                        PrimaryGlowButton(text = if (uiState.isLoading) "Guardando..." else "Guardar", onClick = { vm.saveScan(taskType = taskType, workOrderNumber = lotNumber, partNumber = partNumber, userId = auth.userId, deviceId = auth.deviceId, locationName = auth.locationName) }, modifier = Modifier.fillMaxWidth(), enabled = !uiState.isLoading && !uiState.isSubmitting)
+                        PrimaryGlowButton(text = if (uiState.isLoading) "Guardando..." else "Guardar", onClick = {
+                            if (taskType == TaskType.ProductAdvance) {
+                                vm.prepareProductAdvanceRegistration(workOrderNumber = lotNumber, locationName = auth.locationName)
+                            } else {
+                                vm.saveScan(taskType = taskType, workOrderNumber = lotNumber, partNumber = partNumber, userId = auth.userId, deviceId = auth.deviceId, locationName = auth.locationName)
+                            }
+                        }, modifier = Modifier.fillMaxWidth(), enabled = !uiState.isLoading && !uiState.isSubmitting)
                         SoftActionButton(text = "Volver", onClick = onBack, modifier = Modifier.fillMaxWidth())
                     }
                 }

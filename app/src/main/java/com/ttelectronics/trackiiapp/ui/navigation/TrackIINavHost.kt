@@ -12,6 +12,7 @@ import androidx.navigation.navArgument
 import com.ttelectronics.trackiiapp.core.ServiceLocator
 import com.ttelectronics.trackiiapp.ui.screens.LoginScreen
 import com.ttelectronics.trackiiapp.ui.screens.PartialScrapScreen
+import com.ttelectronics.trackiiapp.ui.screens.ProductAdvanceFinalReviewScreen
 import com.ttelectronics.trackiiapp.ui.screens.RegisterScreen
 import com.ttelectronics.trackiiapp.ui.screens.RegisterTokenScreen
 import com.ttelectronics.trackiiapp.ui.screens.ReworkReleaseScreen
@@ -37,7 +38,8 @@ private fun resolvePostRegisterRoute(nextDestination: String?, isLoggedIn: Boole
             destination.startsWith("task/") ||
             destination.startsWith("rework-release") ||
             destination.startsWith("scrap-order") ||
-            destination.startsWith("partial-scrap") -> destination
+            destination.startsWith("partial-scrap") ||
+            destination.startsWith("product-advance-final-review") -> destination
         destination == TaskType.ProductAdvance.route -> TrackIIRoute.scannerRoute(TaskType.ProductAdvance)
         destination == TaskType.TravelSheet.route -> TrackIIRoute.scannerRoute(TaskType.TravelSheet)
         destination == TaskType.CancelOrder.route -> TrackIIRoute.scannerRoute(TaskType.CancelOrder)
@@ -54,10 +56,11 @@ object TrackIIRoute {
     const val Tasks = "tasks"
     const val Scanner = "scanner/{task}"
     const val ScanReview = "scan-review/{task}?lot={lot}&part={part}&ok={ok}&error={error}"
-    const val Task = "task/{task}?lot={lot}&part={part}"
+    const val Task = "task/{task}?lot={lot}&part={part}&qty={qty}"
     const val ReworkRelease = "rework-release?lot={lot}&part={part}"
     const val ScrapOrder = "scrap-order?lot={lot}&part={part}"
-    const val PartialScrap = "partial-scrap?lot={lot}&part={part}&difference={difference}"
+    const val PartialScrap = "partial-scrap?lot={lot}&part={part}&difference={difference}&qtyIn={qtyIn}"
+    const val ProductAdvanceFinalReview = "product-advance-final-review?lot={lot}&part={part}&qtyIn={qtyIn}&scrap={scrap}&errorCodeId={errorCodeId}&errorCodeName={errorCodeName}&comments={comments}"
 
     fun scannerRoute(task: TaskType) = "scanner/${task.route}"
 
@@ -65,16 +68,28 @@ object TrackIIRoute {
         return "scan-review/${task.route}?lot=${Uri.encode(lot)}&part=${Uri.encode(part)}&ok=$ok&error=${Uri.encode(error)}"
     }
 
-    fun taskRoute(task: TaskType, lot: String, part: String): String {
-        return "task/${task.route}?lot=${Uri.encode(lot)}&part=${Uri.encode(part)}"
+    fun taskRoute(task: TaskType, lot: String, part: String, qty: String = ""): String {
+        return "task/${task.route}?lot=${Uri.encode(lot)}&part=${Uri.encode(part)}&qty=${Uri.encode(qty)}"
     }
 
     fun reworkReleaseRoute(lot: String, part: String): String {
         return "rework-release?lot=${Uri.encode(lot)}&part=${Uri.encode(part)}"
     }
 
-    fun partialScrapRoute(lot: String, part: String, difference: Int): String {
-        return "partial-scrap?lot=${Uri.encode(lot)}&part=${Uri.encode(part)}&difference=$difference"
+    fun partialScrapRoute(lot: String, part: String, difference: Int, qtyIn: Int): String {
+        return "partial-scrap?lot=${Uri.encode(lot)}&part=${Uri.encode(part)}&difference=$difference&qtyIn=$qtyIn"
+    }
+
+    fun productAdvanceFinalReviewRoute(
+        lot: String,
+        part: String,
+        qtyIn: Int,
+        scrap: Int,
+        errorCodeId: Int = 0,
+        errorCodeName: String = "",
+        comments: String = ""
+    ): String {
+        return "product-advance-final-review?lot=${Uri.encode(lot)}&part=${Uri.encode(part)}&qtyIn=$qtyIn&scrap=$scrap&errorCodeId=$errorCodeId&errorCodeName=${Uri.encode(errorCodeName)}&comments=${Uri.encode(comments)}"
     }
 }
 
@@ -275,11 +290,95 @@ fun TrackIINavHost(
         }
 
         composable(
+            route = TrackIIRoute.PartialScrap,
+            arguments = listOf(
+                navArgument("lot") { defaultValue = "" },
+                navArgument("part") { defaultValue = "" },
+                navArgument("difference") { defaultValue = 0 },
+                navArgument("qtyIn") { defaultValue = 0 }
+            )
+        ) { backStackEntry ->
+            val lot = backStackEntry.arguments?.getString("lot").orEmpty()
+            val part = backStackEntry.arguments?.getString("part").orEmpty()
+            val difference = backStackEntry.arguments?.getInt("difference") ?: 0
+            val qtyIn = backStackEntry.arguments?.getInt("qtyIn") ?: 0
+            PartialScrapScreen(
+                lotNumber = lot,
+                partNumber = part,
+                difference = difference,
+                qtyIn = qtyIn,
+                onNavigateToReview = { codeId, codeName, comments ->
+                    navController.navigate(
+                        TrackIIRoute.productAdvanceFinalReviewRoute(
+                            lot = lot,
+                            part = part,
+                            qtyIn = qtyIn,
+                            scrap = difference,
+                            errorCodeId = codeId,
+                            errorCodeName = codeName,
+                            comments = comments
+                        )
+                    )
+                },
+                onBackToEdit = {
+                    navController.navigate(TrackIIRoute.taskRoute(TaskType.ProductAdvance, lot, part, qtyIn.toString())) {
+                        popUpTo(TrackIIRoute.Task) { inclusive = true }
+                    }
+                },
+                onHome = navigateHome
+            )
+        }
+
+        composable(
+            route = TrackIIRoute.ProductAdvanceFinalReview,
+            arguments = listOf(
+                navArgument("lot") { defaultValue = "" },
+                navArgument("part") { defaultValue = "" },
+                navArgument("qtyIn") { defaultValue = 0 },
+                navArgument("scrap") { defaultValue = 0 },
+                navArgument("errorCodeId") { defaultValue = 0 },
+                navArgument("errorCodeName") { defaultValue = "" },
+                navArgument("comments") { defaultValue = "" }
+            )
+        ) { backStackEntry ->
+            val lot = backStackEntry.arguments?.getString("lot").orEmpty()
+            val part = backStackEntry.arguments?.getString("part").orEmpty()
+            val qtyIn = backStackEntry.arguments?.getInt("qtyIn") ?: 0
+            val scrap = backStackEntry.arguments?.getInt("scrap") ?: 0
+            val errorCodeId = backStackEntry.arguments?.getInt("errorCodeId") ?: 0
+            val errorCodeName = backStackEntry.arguments?.getString("errorCodeName").orEmpty()
+            val comments = backStackEntry.arguments?.getString("comments").orEmpty()
+            ProductAdvanceFinalReviewScreen(
+                lotNumber = lot,
+                partNumber = part,
+                qtyIn = qtyIn,
+                scrap = scrap,
+                errorCodeId = errorCodeId,
+                errorCodeName = errorCodeName,
+                comments = comments,
+                onCancel = {
+                    navController.navigate(TrackIIRoute.Tasks) {
+                        popUpTo(TrackIIRoute.Tasks) { inclusive = false }
+                        launchSingleTop = true
+                    }
+                },
+                onEdit = {
+                    navController.navigate(TrackIIRoute.taskRoute(TaskType.ProductAdvance, lot, part, qtyIn.toString())) {
+                        popUpTo(TrackIIRoute.Task) { inclusive = true }
+                    }
+                },
+                onComplete = navigateHome,
+                onHome = navigateHome
+            )
+        }
+
+        composable(
             route = TrackIIRoute.Task,
             arguments = listOf(
                 navArgument("task") { nullable = false },
                 navArgument("lot") { defaultValue = "" },
                 navArgument("part") { defaultValue = "" },
+                navArgument("qty") { defaultValue = "" },
                 navArgument("ok") { defaultValue = true },
                 navArgument("error") { defaultValue = "" }
             )
@@ -287,6 +386,7 @@ fun TrackIINavHost(
             val taskType = TaskType.fromRoute(backStackEntry.arguments?.getString("task"))
             val lot = backStackEntry.arguments?.getString("lot").orEmpty()
             val part = backStackEntry.arguments?.getString("part").orEmpty()
+            val qty = backStackEntry.arguments?.getString("qty").orEmpty()
             TaskDetailScreen(
                 taskType = taskType,
                 lotNumber = lot,
@@ -298,9 +398,13 @@ fun TrackIINavHost(
                     }
                 },
                 onComplete = navigateHome,
-                onNavigateToPartialScrap = { difference ->
-                    navController.navigate(TrackIIRoute.partialScrapRoute(lot, part, difference))
+                onNavigateToPartialScrap = { difference, qtyIn ->
+                    navController.navigate(TrackIIRoute.partialScrapRoute(lot, part, difference, qtyIn))
                 },
+                onNavigateToFinalReview = { qtyIn, scrap ->
+                    navController.navigate(TrackIIRoute.productAdvanceFinalReviewRoute(lot, part, qtyIn, scrap))
+                },
+                initialQty = qty,
                 onHome = navigateHome
             )
         }

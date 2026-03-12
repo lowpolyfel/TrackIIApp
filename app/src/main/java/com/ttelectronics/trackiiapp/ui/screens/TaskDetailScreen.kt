@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -42,6 +43,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -112,7 +115,9 @@ fun TaskDetailScreen(
     partNumber: String,
     onBack: () -> Unit,
     onComplete: () -> Unit,
-    onNavigateToPartialScrap: (Int) -> Unit,
+    onNavigateToPartialScrap: (Int, Int) -> Unit,
+    onNavigateToFinalReview: (Int, Int) -> Unit,
+    initialQty: String = "",
     onHome: () -> Unit
 ) {
     val context = LocalContext.current
@@ -122,13 +127,27 @@ fun TaskDetailScreen(
     val vm: TaskDetailViewModel = viewModel(factory = TaskDetailViewModelFactory(ServiceLocator.scannerRepository(context), authRepository))
     val uiState by vm.uiState.collectAsState()
 
+    var manualQtyInput by remember { mutableStateOf(false) }
+
     LaunchedEffect(partNumber, lotNumber, auth.deviceId) { vm.loadData(partNumber, lotNumber, auth.deviceId) }
+    LaunchedEffect(initialQty) { vm.setInitialQtyInput(initialQty) }
+    LaunchedEffect(uiState.contextInfo?.previousQuantity, taskType) {
+        if (taskType == TaskType.ProductAdvance) vm.ensureDefaultQtyFromPrevious()
+    }
+
+    LaunchedEffect(uiState.pendingReady, uiState.piecesDifference, uiState.pendingQtyIn) {
+        if (taskType == TaskType.ProductAdvance && uiState.pendingReady) {
+            if (uiState.piecesDifference > 0) onNavigateToPartialScrap(uiState.piecesDifference, uiState.pendingQtyIn)
+            else onNavigateToFinalReview(uiState.pendingQtyIn, 0)
+            vm.clearPendingRegistration()
+        }
+    }
 
     LaunchedEffect(uiState.saveSuccess) {
-        if (uiState.saveSuccess) {
+        if (uiState.saveSuccess && taskType != TaskType.ProductAdvance) {
             rightSoundPlayer.play()
             kotlinx.coroutines.delay(1800)
-            if (uiState.piecesDifference > 0) onNavigateToPartialScrap(uiState.piecesDifference) else onComplete()
+            onComplete()
         }
     }
 
@@ -205,10 +224,86 @@ fun TaskDetailScreen(
                             TaskType.ProductAdvance -> {
                                 val infiniteTransition = rememberInfiniteTransition(label = "glow")
                                 val glowAlpha by infiniteTransition.animateFloat(initialValue = 0.2f, targetValue = 0.8f, animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "glowAlpha")
+                                val maxQty = (uiState.contextInfo?.previousQuantity ?: 0).coerceAtLeast(0)
                                 Box(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).border(2.dp, TTBlueDark.copy(alpha = glowAlpha), RoundedCornerShape(12.dp)).background(TTBlueDark.copy(alpha = 0.05f), RoundedCornerShape(12.dp)).padding(8.dp)) {
-                                    TrackIITextField(label = "Piezas", value = uiState.qtyInput, onValueChange = vm::onQtyChange)
+                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(text = "Piezas", style = MaterialTheme.typography.labelLarge, color = TTTextSecondary)
+                                            TextButton(onClick = { manualQtyInput = !manualQtyInput }) {
+                                                Text(text = if (manualQtyInput) "Usar slider" else "Ingresar manual")
+                                            }
+                                        }
+
+                                        if (manualQtyInput) {
+                                            androidx.compose.material3.TextField(
+                                                value = uiState.qtyInput,
+                                                onValueChange = vm::onProductAdvanceQtyChange,
+                                                modifier = Modifier.fillMaxWidth(),
+                                                singleLine = true,
+                                                label = { Text(text = "Piezas") },
+                                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                                                ),
+                                                colors = androidx.compose.material3.TextFieldDefaults.colors(
+                                                    focusedContainerColor = TTBlueTint,
+                                                    unfocusedContainerColor = TTBlueTint,
+                                                    disabledContainerColor = TTBlueTint,
+                                                    focusedIndicatorColor = Color.Transparent,
+                                                    unfocusedIndicatorColor = Color.Transparent
+                                                ),
+                                                shape = RoundedCornerShape(18.dp)
+                                            )
+                                        } else {
+                                            val sliderRangeMax = maxQty.toFloat().coerceAtLeast(1f)
+                                            val sliderValue = (uiState.qtyInput.toFloatOrNull() ?: maxQty.toFloat())
+                                                .coerceIn(0f, sliderRangeMax)
+
+                                            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                                                val controlWidth = maxWidth * 0.18f
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                ) {
+                                                    SoftActionButton(
+                                                        text = "-",
+                                                        onClick = { vm.adjustProductAdvanceQty(delta = -1) },
+                                                        modifier = Modifier.width(controlWidth)
+                                                    )
+
+                                                    Column(
+                                                        modifier = Modifier.weight(1f),
+                                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = uiState.qtyInput.ifBlank { "0" },
+                                                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                                                            color = TTBlueDark,
+                                                            textAlign = TextAlign.Center
+                                                        )
+                                                        Slider(
+                                                            value = sliderValue,
+                                                            onValueChange = vm::onProductAdvanceSliderChange,
+                                                            valueRange = 0f..sliderRangeMax
+                                                        )
+                                                    }
+
+                                                    SoftActionButton(
+                                                        text = "+",
+                                                        onClick = { vm.adjustProductAdvanceQty(delta = 1) },
+                                                        modifier = Modifier.width(controlWidth)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
-                                Text(text = "No mayor a piezas del paso anterior si aplica.", style = MaterialTheme.typography.bodySmall, color = TTTextSecondary)
+                                Text(text = "Máximo permitido: $maxQty piezas.", style = MaterialTheme.typography.bodySmall, color = TTTextSecondary)
                             }
                             TaskType.CancelOrder -> TrackIIDropdownField(label = "Motivo de cancelación", options = listOf("Error de calidad", "Material incorrecto", "Orden duplicada"), helper = "Selecciona un motivo")
                             TaskType.Rework -> {
@@ -220,7 +315,13 @@ fun TaskDetailScreen(
                             TaskType.TravelSheet -> Unit
                         }
 
-                        PrimaryGlowButton(text = if (uiState.isLoading) "Guardando..." else "Guardar", onClick = { vm.saveScan(taskType = taskType, workOrderNumber = lotNumber, partNumber = partNumber, userId = auth.userId, deviceId = auth.deviceId, locationName = auth.locationName) }, modifier = Modifier.fillMaxWidth(), enabled = !uiState.isLoading && !uiState.isSubmitting)
+                        PrimaryGlowButton(text = if (uiState.isLoading) "Guardando..." else "Guardar", onClick = {
+                            if (taskType == TaskType.ProductAdvance) {
+                                vm.prepareProductAdvanceRegistration(workOrderNumber = lotNumber, locationName = auth.locationName)
+                            } else {
+                                vm.saveScan(taskType = taskType, workOrderNumber = lotNumber, partNumber = partNumber, userId = auth.userId, deviceId = auth.deviceId, locationName = auth.locationName)
+                            }
+                        }, modifier = Modifier.fillMaxWidth(), enabled = !uiState.isLoading && !uiState.isSubmitting)
                         SoftActionButton(text = "Volver", onClick = onBack, modifier = Modifier.fillMaxWidth())
                     }
                 }

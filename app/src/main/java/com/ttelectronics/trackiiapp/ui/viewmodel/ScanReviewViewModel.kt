@@ -74,19 +74,7 @@ class ScanReviewViewModel(
             _uiState.update { it.copy(isSubmitting = true, errorMessage = null) }
 
             try {
-                // 1. Registrar la orden principal
-                val scanResponse = scannerRepository.registerScan(
-                    workOrderNumber = lotNumber,
-                    partNumber = partNumber,
-                    userId = appSession.userId,
-                    deviceId = appSession.deviceId,
-                    qtyIn = qtyIn
-                )
 
-                if (scanResponse.success != true) {
-                    _uiState.update { it.copy(isSubmitting = false, errorMessage = scanResponse.message ?: "Error al registrar la orden.") }
-                    return@launch
-                }
 
                 // 2. Si hay scrap, registrarlo justo después
                 if (hasScrap && difference > 0 && errorCodeId > 0) {

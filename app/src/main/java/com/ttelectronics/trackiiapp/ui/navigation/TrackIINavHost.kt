@@ -273,25 +273,7 @@ fun TrackIINavHost(
                 onHome = navigateHome
             )
         }
-        composable(
-            route = TrackIIRoute.PartialScrap,
-            arguments = listOf(
-                navArgument("lot") { defaultValue = "" },
-                navArgument("part") { defaultValue = "" },
-                navArgument("difference") { defaultValue = 0 }
-            )
-        ) { backStackEntry ->
-            val lot = backStackEntry.arguments?.getString("lot").orEmpty()
-            val part = backStackEntry.arguments?.getString("part").orEmpty()
-            val difference = backStackEntry.arguments?.getInt("difference") ?: 0
-            PartialScrapScreen(
-                lotNumber = lot,
-                partNumber = part,
-                difference = difference,
-                onComplete = navigateHome,
-                onHome = navigateHome
-            )
-        }
+
         composable(
             route = TrackIIRoute.Task,
             arguments = listOf(

@@ -45,16 +45,16 @@ class PartialScrapViewModel(
                 lotNumber = lotNumber,
                 partNumber = partNumber,
                 difference = difference,
-                shouldRegister = true, // Forzamos a true para que la función submit() no se bloquee
+                shouldRegister = true,
                 selectedCategory = null,
                 selectedCode = null,
                 comments = "",
                 errorMessage = null,
                 saveSuccess = false
-                // Eliminamos la limpieza de categories y codes para evitar parpadeos si ya se están cargando
+
             )
         }
-        // Llamamos a la API inmediatamente al iniciar la pantalla
+
         loadCategories()
     }
 

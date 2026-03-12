@@ -48,10 +48,37 @@ class TaskDetailViewModel(
         _uiState.update { it.copy(qtyInput = value.filter { ch -> ch.isDigit() }, errorMessage = null) }
     }
 
+    fun onProductAdvanceQtyChange(value: String) {
+        val digits = value.filter { ch -> ch.isDigit() }
+        val typedQty = digits.toIntOrNull() ?: 0
+        val maxQty = (_uiState.value.contextInfo?.previousQuantity ?: 0).coerceAtLeast(0)
+        val boundedQty = if (typedQty > maxQty) maxQty else typedQty
+        _uiState.update { it.copy(qtyInput = boundedQty.toString(), errorMessage = null) }
+    }
+
+    fun onProductAdvanceSliderChange(value: Float) {
+        val maxQty = (_uiState.value.contextInfo?.previousQuantity ?: 0).coerceAtLeast(0)
+        val boundedQty = value.toInt().coerceIn(0, maxQty)
+        _uiState.update { it.copy(qtyInput = boundedQty.toString(), errorMessage = null) }
+    }
+
+    fun ensureDefaultQtyFromPrevious() {
+        val previousQty = (_uiState.value.contextInfo?.previousQuantity ?: 0).coerceAtLeast(0)
+        if (_uiState.value.qtyInput.isBlank()) {
+            _uiState.update { it.copy(qtyInput = previousQty.toString()) }
+        }
+    }
+
     fun setInitialQtyInput(value: String) {
         if (value.isBlank()) return
         _uiState.update {
-            if (it.qtyInput.isBlank()) it.copy(qtyInput = value.filter { ch -> ch.isDigit() }) else it
+            if (it.qtyInput.isBlank()) {
+                val maxQty = it.contextInfo?.previousQuantity?.coerceAtLeast(0) ?: Int.MAX_VALUE
+                val parsed = value.filter { ch -> ch.isDigit() }.toIntOrNull() ?: 0
+                it.copy(qtyInput = parsed.coerceAtMost(maxQty).toString())
+            } else {
+                it
+            }
         }
     }
 

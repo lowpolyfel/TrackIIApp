@@ -67,7 +67,7 @@ fun PartialScrapScreen(
     lotNumber: String,
     partNumber: String,
     difference: Int,
-    onComplete: () -> Unit,
+    onNavigateToReview: (categoryId: Int, categoryName: String, codeId: Int, codeName: String, comments: String) -> Unit,
     onHome: () -> Unit
 ) {
     val context = LocalContext.current
@@ -92,11 +92,19 @@ fun PartialScrapScreen(
 
     LaunchedEffect(uiState.saveSuccess) {
         if (uiState.saveSuccess) {
-            showSuccessOverlay = true
-            rightSoundPlayer.play()
-            Toast.makeText(context, "Scrap registrado con éxito", Toast.LENGTH_LONG).show()
-            kotlinx.coroutines.delay(1200)
-            onComplete()
+            // Ya no registramos ni mostramos el éxito aquí, avanzamos directo llevando los datos
+            val state = viewModel.uiState.value
+            state.selectedCategory?.let { cat ->
+                state.selectedCode?.let { code ->
+                    onNavigateToReview(
+                        cat.id,
+                        cat.name,
+                        code.id,
+                        "${code.code} - ${code.description}",
+                        state.comments
+                    )
+                }
+            }
         }
     }
 

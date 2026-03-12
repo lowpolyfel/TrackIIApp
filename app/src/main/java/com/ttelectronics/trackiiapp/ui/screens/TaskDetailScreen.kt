@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -257,12 +258,48 @@ fun TaskDetailScreen(
                                                 shape = RoundedCornerShape(18.dp)
                                             )
                                         } else {
-                                            Slider(
-                                                value = (uiState.qtyInput.toFloatOrNull() ?: maxQty.toFloat()).coerceIn(0f, maxQty.toFloat().coerceAtLeast(1f)),
-                                                onValueChange = vm::onProductAdvanceSliderChange,
-                                                valueRange = 0f..maxQty.toFloat().coerceAtLeast(1f)
-                                            )
-                                            TrackIITextField(label = "Piezas", value = uiState.qtyInput)
+                                            val sliderRangeMax = maxQty.toFloat().coerceAtLeast(1f)
+                                            val sliderValue = (uiState.qtyInput.toFloatOrNull() ?: maxQty.toFloat())
+                                                .coerceIn(0f, sliderRangeMax)
+
+                                            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                                                val controlWidth = maxWidth * 0.18f
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                ) {
+                                                    SoftActionButton(
+                                                        text = "-",
+                                                        onClick = { vm.adjustProductAdvanceQty(delta = -1) },
+                                                        modifier = Modifier.width(controlWidth)
+                                                    )
+
+                                                    Column(
+                                                        modifier = Modifier.weight(1f),
+                                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = uiState.qtyInput.ifBlank { "0" },
+                                                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                                                            color = TTBlueDark,
+                                                            textAlign = TextAlign.Center
+                                                        )
+                                                        Slider(
+                                                            value = sliderValue,
+                                                            onValueChange = vm::onProductAdvanceSliderChange,
+                                                            valueRange = 0f..sliderRangeMax
+                                                        )
+                                                    }
+
+                                                    SoftActionButton(
+                                                        text = "+",
+                                                        onClick = { vm.adjustProductAdvanceQty(delta = 1) },
+                                                        modifier = Modifier.width(controlWidth)
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 }

@@ -62,6 +62,13 @@ class TaskDetailViewModel(
         _uiState.update { it.copy(qtyInput = boundedQty.toString(), errorMessage = null) }
     }
 
+    fun adjustProductAdvanceQty(delta: Int) {
+        val maxQty = (_uiState.value.contextInfo?.previousQuantity ?: 0).coerceAtLeast(0)
+        val currentQty = _uiState.value.qtyInput.toIntOrNull() ?: 0
+        val boundedQty = (currentQty + delta).coerceIn(0, maxQty)
+        _uiState.update { it.copy(qtyInput = boundedQty.toString(), errorMessage = null) }
+    }
+
     fun ensureDefaultQtyFromPrevious() {
         val previousQty = (_uiState.value.contextInfo?.previousQuantity ?: 0).coerceAtLeast(0)
         if (_uiState.value.qtyInput.isBlank()) {

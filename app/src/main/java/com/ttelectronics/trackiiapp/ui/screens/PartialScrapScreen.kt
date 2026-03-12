@@ -2,7 +2,6 @@
 
 package com.ttelectronics.trackiiapp.ui.screens
 
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,9 +28,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -45,16 +41,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ttelectronics.trackiiapp.core.ServiceLocator
-import com.ttelectronics.trackiiapp.data.local.AppSession
 import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
 import com.ttelectronics.trackiiapp.ui.components.GlassCard
 import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
-import com.ttelectronics.trackiiapp.ui.components.ScanResultOverlay
 import com.ttelectronics.trackiiapp.ui.components.ScannerHeader
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.components.TrackIIDropdownField
 import com.ttelectronics.trackiiapp.ui.components.TrackIITextField
-import com.ttelectronics.trackiiapp.ui.components.rememberRawSoundPlayer
 import com.ttelectronics.trackiiapp.ui.theme.TTGreen
 import com.ttelectronics.trackiiapp.ui.theme.TTGreenTint
 import com.ttelectronics.trackiiapp.ui.theme.TTRed
@@ -67,25 +60,19 @@ fun PartialScrapScreen(
     lotNumber: String,
     partNumber: String,
     difference: Int,
-    onNavigateToReview: (categoryId: Int, categoryName: String, codeId: Int, codeName: String, comments: String) -> Unit,
+    qtyIn: Int,
+    onNavigateToReview: (codeId: Int, codeName: String, comments: String) -> Unit,
+    onBackToEdit: () -> Unit,
     onHome: () -> Unit
 ) {
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val viewModel: PartialScrapViewModel = viewModel(
         factory = PartialScrapViewModelFactory(
-            ServiceLocator.scannerRepository(context),
-            AppSession(context)
+            ServiceLocator.scannerRepository(context)
         )
     )
     val uiState by viewModel.uiState.collectAsState()
-    val rightSoundPlayer = rememberRawSoundPlayer("right")
-
-
-    var showSuccessOverlay by remember { mutableStateOf(false) }
-    // NUEVA VARIABLE: Controla la visibilidad de la pantalla de transición inicial
-    var showTransitionMessage by remember { mutableStateOf(true) }
-
     LaunchedEffect(lotNumber, partNumber, difference) {
         viewModel.initialize(lotNumber, partNumber, difference)
     }
@@ -94,16 +81,12 @@ fun PartialScrapScreen(
         if (uiState.saveSuccess) {
             // Ya no registramos ni mostramos el éxito aquí, avanzamos directo llevando los datos
             val state = viewModel.uiState.value
-            state.selectedCategory?.let { cat ->
-                state.selectedCode?.let { code ->
-                    onNavigateToReview(
-                        cat.id,
-                        cat.name,
-                        code.id,
-                        "${code.code} - ${code.description}",
-                        state.comments
-                    )
-                }
+            state.selectedCode?.let { code ->
+                onNavigateToReview(
+                    code.id,
+                    "${code.code} - ${code.description}",
+                    state.comments
+                )
             }
         }
     }
@@ -111,6 +94,7 @@ fun PartialScrapScreen(
     val infoItems = listOf(
         PartialScrapInfoItem("No. Lote", uiState.lotNumber, Icons.Rounded.Inventory2),
         PartialScrapInfoItem("No. Parte", uiState.partNumber, Icons.Rounded.QrCode),
+        PartialScrapInfoItem("Piezas", "$qtyIn piezas", Icons.Rounded.Warning),
         PartialScrapInfoItem("Faltantes", "${uiState.difference} piezas", Icons.Rounded.Warning)
     )
 
@@ -179,7 +163,7 @@ fun PartialScrapScreen(
                         )
 
                         TrackIITextField(
-                            label = "Comentarios (Opcional)",
+                            label = "Comentarios",
                             value = uiState.comments,
                             onValueChange = viewModel::onCommentsChange
                         )
@@ -203,6 +187,13 @@ fun PartialScrapScreen(
                             modifier = Modifier.fillMaxWidth(),
                             enabled = !uiState.isSubmitting
                         )
+
+                        androidx.compose.material3.TextButton(
+                            onClick = onBackToEdit,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(text = "Editar piezas", color = TTTextSecondary)
+                        }
                     }
                 }
             }
@@ -212,7 +203,6 @@ fun PartialScrapScreen(
                 modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp)
             )
 
-            ScanResultOverlay(visible = showSuccessOverlay, success = true, message = "Scrap registrado")
         }
     }
 }

@@ -3,10 +3,8 @@ package com.ttelectronics.trackiiapp.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.ttelectronics.trackiiapp.data.local.AppSession
 import com.ttelectronics.trackiiapp.data.models.scanner.ErrorCategoryResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.ErrorCodeResponse
-import com.ttelectronics.trackiiapp.data.models.scanner.ScrapOrderRequest
 import com.ttelectronics.trackiiapp.data.network.ApiErrorParser
 import com.ttelectronics.trackiiapp.data.repository.ScannerRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,8 +31,7 @@ data class PartialScrapUiState(
 )
 
 class PartialScrapViewModel(
-    private val scannerRepository: ScannerRepository,
-    private val appSession: AppSession
+    private val scannerRepository: ScannerRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(PartialScrapUiState())
     val uiState: StateFlow<PartialScrapUiState> = _uiState.asStateFlow()
@@ -56,13 +53,6 @@ class PartialScrapViewModel(
         }
 
         loadCategories()
-    }
-
-    fun answerShouldRegister(shouldRegister: Boolean) {
-        _uiState.update { it.copy(shouldRegister = shouldRegister, errorMessage = null) }
-        if (shouldRegister && _uiState.value.categories.isEmpty()) {
-            loadCategories()
-        }
     }
 
     private fun loadCategories() {
@@ -106,55 +96,23 @@ class PartialScrapViewModel(
 
     fun submit() {
         val state = _uiState.value
-        val code = state.selectedCode
         if (state.shouldRegister != true) return
-        if (code == null) {
+        if (state.selectedCode == null) {
             _uiState.update { it.copy(errorMessage = "Selecciona un código de falla.") }
             return
         }
 
-        // NUEVA VALIDACIÓN: Hacer los comentarios obligatorios
         if (state.comments.trim().isEmpty()) {
             _uiState.update { it.copy(errorMessage = "Los comentarios son obligatorios.") }
             return
         }
 
-        viewModelScope.launch {
-            _uiState.update { it.copy(isSubmitting = true, errorMessage = null, saveSuccess = false) }
-            runCatching {
-                scannerRepository.partialScrap(
-                    ScrapOrderRequest(
-                        workOrderNumber = state.lotNumber,
-                        partNumber = state.partNumber,
-                        quantity = state.difference,
-                        errorCodeId = code.id,
-                        comments = state.comments,
-                        userId = appSession.userId,
-                        deviceId = appSession.deviceId
-                    )
-                )
-            }.onSuccess { response ->
-                val isSuccess = response.success == true || response.success == null
-                if (isSuccess) {
-                    _uiState.update { it.copy(isSubmitting = false, saveSuccess = true, errorMessage = null) }
-                } else {
-                    _uiState.update {
-                        it.copy(
-                            isSubmitting = false,
-                            errorMessage = response.message ?: "No fue posible registrar el scrap parcial."
-                        )
-                    }
-                }
-            }.onFailure { ex ->
-                _uiState.update { it.copy(isSubmitting = false, errorMessage = ApiErrorParser.readableError(ex)) }
-            }
-        }
+        _uiState.update { it.copy(saveSuccess = true, errorMessage = null) }
     }
 }
 
 class PartialScrapViewModelFactory(
-    private val scannerRepository: ScannerRepository,
-    private val appSession: AppSession
+    private val scannerRepository: ScannerRepository
 ) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T = PartialScrapViewModel(scannerRepository, appSession) as T
+    override fun <T : ViewModel> create(modelClass: Class<T>): T = PartialScrapViewModel(scannerRepository) as T
 }

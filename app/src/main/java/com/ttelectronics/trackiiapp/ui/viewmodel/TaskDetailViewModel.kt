@@ -107,6 +107,7 @@ class TaskDetailViewModel(
                     errorMessage = null,
                     partInfo = null,
                     contextInfo = null,
+                    qtyInput = "",
                     saveSuccess = false,
                     piecesDifference = 0,
                     isSubmitting = false
@@ -119,14 +120,6 @@ class TaskDetailViewModel(
                 ?: ctxResult.exceptionOrNull()?.let { ApiErrorParser.readableError(it) }
                 ?: locationResult.exceptionOrNull()?.let { ApiErrorParser.readableError(it) }
 
-            val normalizedContext = ctxResult.getOrNull()?.let { context ->
-                if (context.isNew == true) {
-                    context.copy(previousQuantity = 0)
-                } else {
-                    context
-                }
-            }
-
             _uiState.update {
                 val locations = locationResult.getOrNull().orEmpty()
                 val selectedLocation = it.selectedReworkLocation
@@ -136,7 +129,7 @@ class TaskDetailViewModel(
                     isLoading = false,
                     errorMessage = err,
                     partInfo = partResult.getOrNull(),
-                    contextInfo = normalizedContext,
+                    contextInfo = ctxResult.getOrNull(),
                     reworkLocations = locations,
                     selectedReworkLocation = selectedLocation
                 )

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.ttelectronics.trackiiapp.data.local.AppSession
+import com.ttelectronics.trackiiapp.data.models.scanner.PartLookupResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.ScrapOrderRequest
 import com.ttelectronics.trackiiapp.data.network.ApiErrorParser
 import com.ttelectronics.trackiiapp.data.repository.ScannerRepository
@@ -16,7 +17,8 @@ import kotlinx.coroutines.launch
 data class ProductAdvanceFinalReviewUiState(
     val isSubmitting: Boolean = false,
     val isSuccess: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val partInfo: PartLookupResponse? = null
 )
 
 class ProductAdvanceFinalReviewViewModel(
@@ -25,6 +27,16 @@ class ProductAdvanceFinalReviewViewModel(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ProductAdvanceFinalReviewUiState())
     val uiState: StateFlow<ProductAdvanceFinalReviewUiState> = _uiState.asStateFlow()
+
+    fun loadPartInfo(partNumber: String) {
+        if (partNumber.isBlank()) return
+        viewModelScope.launch {
+            runCatching { scannerRepository.lookupPart(partNumber.trim()) }
+                .onSuccess { part ->
+                    _uiState.update { it.copy(partInfo = part) }
+                }
+        }
+    }
 
     fun submitAll(
         lotNumber: String,

@@ -107,6 +107,7 @@ class TaskDetailViewModel(
                     errorMessage = null,
                     partInfo = null,
                     contextInfo = null,
+                    qtyInput = "",
                     saveSuccess = false,
                     piecesDifference = 0,
                     isSubmitting = false

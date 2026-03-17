@@ -51,24 +51,27 @@ class TaskDetailViewModel(
     fun onProductAdvanceQtyChange(value: String) {
         val digits = value.filter { ch -> ch.isDigit() }
         val typedQty = digits.toIntOrNull() ?: 0
-        val maxQty = (_uiState.value.contextInfo?.previousQuantity ?: 0).coerceAtLeast(0)
+        val isNewOrder = _uiState.value.contextInfo?.isNew == true
+        // Si es nueva, no hay límite. Si no, el límite es la cantidad anterior.
+        val maxQty = if (isNewOrder) Int.MAX_VALUE else (_uiState.value.contextInfo?.previousQuantity ?: 0).coerceAtLeast(0)
         val boundedQty = if (typedQty > maxQty) maxQty else typedQty
         _uiState.update { it.copy(qtyInput = boundedQty.toString(), errorMessage = null) }
     }
 
     fun onProductAdvanceSliderChange(value: Float) {
-        val maxQty = (_uiState.value.contextInfo?.previousQuantity ?: 0).coerceAtLeast(0)
+        val isNewOrder = _uiState.value.contextInfo?.isNew == true
+        val maxQty = if (isNewOrder) 10000 else (_uiState.value.contextInfo?.previousQuantity ?: 0).coerceAtLeast(0) // 10,000 como límite visual del slider para órdenes nuevas
         val boundedQty = value.toInt().coerceIn(0, maxQty)
         _uiState.update { it.copy(qtyInput = boundedQty.toString(), errorMessage = null) }
     }
 
     fun adjustProductAdvanceQty(delta: Int) {
-        val maxQty = (_uiState.value.contextInfo?.previousQuantity ?: 0).coerceAtLeast(0)
+        val isNewOrder = _uiState.value.contextInfo?.isNew == true
+        val maxQty = if (isNewOrder) Int.MAX_VALUE else (_uiState.value.contextInfo?.previousQuantity ?: 0).coerceAtLeast(0)
         val currentQty = _uiState.value.qtyInput.toIntOrNull() ?: 0
         val boundedQty = (currentQty + delta).coerceIn(0, maxQty)
         _uiState.update { it.copy(qtyInput = boundedQty.toString(), errorMessage = null) }
     }
-
     fun ensureDefaultQtyFromPrevious() {
         val previousQty = (_uiState.value.contextInfo?.previousQuantity ?: 0).coerceAtLeast(0)
         if (_uiState.value.qtyInput.isBlank()) {

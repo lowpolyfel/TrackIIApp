@@ -221,7 +221,7 @@ fun TaskDetailScreen(
                             TaskType.ProductAdvance -> {
                                 val infiniteTransition = rememberInfiniteTransition(label = "glow")
                                 val glowAlpha by infiniteTransition.animateFloat(initialValue = 0.2f, targetValue = 0.8f, animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "glowAlpha")
-                                val maxQty = (uiState.contextInfo?.previousQuantity ?: 0).coerceAtLeast(0)
+                                val maxQty = if (uiState.contextInfo?.isNew == true) 20000 else (uiState.contextInfo?.previousQuantity ?: 0).coerceAtLeast(0)
                                 Box(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp).border(2.dp, TTBlueDark.copy(alpha = glowAlpha), RoundedCornerShape(14.dp)).background(TTBlueDark.copy(alpha = 0.05f), RoundedCornerShape(14.dp)).padding(horizontal = 12.dp, vertical = 14.dp)) {
                                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                         Row(

@@ -125,13 +125,20 @@ class TaskDetailViewModel(
                 val selectedLocation = it.selectedReworkLocation
                     ?.let { selected -> locations.firstOrNull { location -> location.id == selected.id } }
                     ?: locations.firstOrNull()
+
+                // NUEVO: Extraemos la cantidad máxima de piezas que arrojó el API
+                val fetchedContext = ctxResult.getOrNull()
+                val initialQty = (fetchedContext?.previousQuantity ?: 0).coerceAtLeast(0).toString()
+
                 it.copy(
                     isLoading = false,
                     errorMessage = err,
                     partInfo = partResult.getOrNull(),
-                    contextInfo = ctxResult.getOrNull(),
+                    contextInfo = fetchedContext,
                     reworkLocations = locations,
-                    selectedReworkLocation = selectedLocation
+                    selectedReworkLocation = selectedLocation,
+                    // NUEVO: Asignamos el valor máximo por defecto al input
+                    qtyInput = if (initialQty == "0" && it.qtyInput.isNotBlank()) it.qtyInput else initialQty
                 )
             }
         }

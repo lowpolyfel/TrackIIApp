@@ -148,8 +148,6 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                 it.copy(isValidating = true, validationError = null, customValidationMessage = null, shouldNavigate = false)
             }
 
-            // 1. Validar que la parte (Product) sí exista en el catálogo primero
-// 1. Validar que la parte (Product) sí exista en el catálogo primero
             val lookupResult = runCatching { scannerRepository.lookupPart(partNumber) }.getOrNull()
             val partFound = lookupResult?.found == true
 
@@ -160,21 +158,51 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                         isProductFound = false, // false dispara la pantalla de error roja
                         shouldNavigate = true,
                         navigationTarget = ScannerNavigationTarget.ScanReview,
-                        // Quitamos el validationError genérico para usar el mensaje del Backend
                         validationError = R.string.error_order_not_found_for_part,
-                        // Mostramos el mensaje del API o uno por defecto
-                        customValidationMessage = lookupResult?.message ?: "Producto no registrado. Se reportó al servidor.",
-
-
+                        customValidationMessage = lookupResult?.message ?: "Producto no registrado. Se reportó al servidor."
                     )
                 }
                 return@launch
+            }
+
+            // NUEVO: Validar localidad antes de avanzar producto
+            if (taskType == TaskType.ProductAdvance) {
+                // Obtenemos el ID real del dispositivo desde el repositorio
+                val deviceId = scannerRepository.getCurrentDeviceId()
+
+                runCatching { scannerRepository.validateAdvanceLocation(lotNumber, partNumber, deviceId) }
+                    .onFailure { ex ->
+                        _uiState.update {
+                            it.copy(
+                                isValidating = false,
+                                isProductFound = false, // Dispara la pantalla roja
+                                shouldNavigate = true,
+                                navigationTarget = ScannerNavigationTarget.ScanReview,
+                                customValidationMessage = ApiErrorParser.readableError(ex) ?: "La orden no pertenece a esta localidad."
+                            )
+                        }
+                        return@launch
+                    }
             }
 
             // 2. Validar el estado del lote para bloquear visualmente el escáner
             runCatching { scannerRepository.validateRework(lotNumber) }
                 .onSuccess { response ->
                     val status = parseWipStatus(response.status)
+
+                    // NUEVO: Bloquear Scrap si no ha empezado (status ERROR o no válido)
+                    if (taskType == TaskType.CancelOrder && status == WipStatus.ERROR) {
+                        _uiState.update {
+                            it.copy(
+                                isValidating = false,
+                                isProductFound = false,
+                                shouldNavigate = true,
+                                navigationTarget = ScannerNavigationTarget.ScanReview,
+                                customValidationMessage = response.message ?: "No se puede cancelar una orden que aún no empieza."
+                            )
+                        }
+                        return@onSuccess
+                    }
 
                     if (taskType == TaskType.ProductAdvance) {
                         // REGLA: Si quiere avanzar pero está Terminada, Cancelada (Scrapped) o en Retrabajo (Hold)

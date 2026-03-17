@@ -165,23 +165,11 @@ fun TaskDetailScreen(
         previousLocationName = ctx?.currentStepName ?: "Sin localidad previa", nextLocationName = nextLoc
     )
 
-    val infoItems = if (taskType == TaskType.ProductAdvance) {
-        listOf(
-            InfoItem("Área", part?.areaName ?: "Pendiente", Icons.Rounded.Factory),
-            InfoItem("Familia", part?.familyName ?: "Pendiente", Icons.Rounded.Category),
-            InfoItem("Subfamilia", part?.subfamilyName ?: "Pendiente", Icons.Rounded.Inventory2),
-            InfoItem("Versión Ruta", formatRouteName(ctx?.routeName) ?: part?.activeRouteId?.toString() ?: "Pendiente", Icons.Rounded.Route)
-        )
-    } else {
-        listOf(
-            InfoItem("No. Lote", lotNumber, Icons.Rounded.Inventory2),
-            InfoItem("No. Parte", partNumber, Icons.Rounded.QrCode),
-            InfoItem("Área", part?.areaName ?: "Pendiente", Icons.Rounded.Factory),
-            InfoItem("Familia", part?.familyName ?: "Pendiente", Icons.Rounded.Category),
-            InfoItem("Subfamilia", part?.subfamilyName ?: "Pendiente", Icons.Rounded.Inventory2),
-            InfoItem("Versión Ruta", formatRouteName(ctx?.routeName) ?: part?.activeRouteId?.toString() ?: "Pendiente", Icons.Rounded.Route)
-        )
-    }
+    // Mostrar siempre únicamente Lote y Número de Parte para ahorrar espacio
+    val infoItems = listOf(
+        InfoItem("No. Lote", lotNumber, Icons.Rounded.Inventory2),
+        InfoItem("No. Parte", partNumber, Icons.Rounded.QrCode)
+    )
 
     TrackIIBackground(glowOffsetX = 24.dp, glowOffsetY = 120.dp) {
         Box(modifier = Modifier.fillMaxSize()) {

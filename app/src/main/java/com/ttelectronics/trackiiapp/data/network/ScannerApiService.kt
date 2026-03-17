@@ -57,4 +57,11 @@ interface ScannerApiService {
 
     @PUT("api/scanner/ReleaseWipItem/{workOrderNumber}")
     suspend fun releaseWipItem(@Path("workOrderNumber") workOrderNumber: String): ReleaseWipItemResponse
+
+    @GET("api/scanner/ValidateAdvanceLocation/{noLote}")
+    suspend fun validateAdvanceLocation(
+        @Path("noLote") noLote: String,
+        @Query("partNumber") partNumber: String,
+        @Query("deviceId") deviceId: Int
+    ): Boolean
 }

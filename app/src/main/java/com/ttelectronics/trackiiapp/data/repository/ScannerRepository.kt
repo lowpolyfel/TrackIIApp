@@ -21,6 +21,9 @@ class ScannerRepository(
     private val api: ScannerApiService,
     private val appSession: AppSession
 ) {
+    // NUEVO: Exponemos el ID de la tableta para usarlo en el ViewModel
+    fun getCurrentDeviceId(): Int = appSession.deviceId
+
     suspend fun lookupPart(partNumber: String): PartLookupResponse = api.getPartInfo(partNumber)
 
     suspend fun getWorkOrderContext(workOrderNumber: String, deviceId: Int, partNumber: String?): WorkOrderContextResponse {
@@ -47,10 +50,10 @@ class ScannerRepository(
         )
     }
 
-
     suspend fun getErrorCategories(): List<ErrorCategoryResponse> = api.getErrorCategories()
 
     suspend fun getErrorCodes(categoryId: Int): List<ErrorCodeResponse> = api.getErrorCodes(categoryId)
+
     suspend fun scrapOrder(workOrderNumber: String, partNumber: String, deviceId: Int, qty: Int, reason: String): ScrapResponse {
         return api.scrap(ScrapRequest(workOrderNumber, partNumber, deviceId, qty, reason))
     }
@@ -87,7 +90,6 @@ class ScannerRepository(
         )
     }
 
-
     suspend fun validateRework(workOrderNumber: String): ReworkValidationResponse {
         return api.validateRework(workOrderNumber)
     }
@@ -103,5 +105,9 @@ class ScannerRepository(
         } catch (ex: HttpException) {
             if (ex.code() == 404) false else throw ex
         }
+    }
+
+    suspend fun validateAdvanceLocation(noLote: String, partNumber: String, deviceId: Int): Boolean {
+        return api.validateAdvanceLocation(noLote, partNumber, deviceId) // <-- AQUÍ ESTABA EL ERROR (api en lugar de apiService)
     }
 }

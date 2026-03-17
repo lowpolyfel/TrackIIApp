@@ -165,14 +165,23 @@ fun TaskDetailScreen(
         previousLocationName = ctx?.currentStepName ?: "Sin localidad previa", nextLocationName = nextLoc
     )
 
-    val infoItems = listOf(
-        InfoItem("No. Lote", lotNumber, Icons.Rounded.Inventory2),
-        InfoItem("No. Parte", partNumber, Icons.Rounded.QrCode),
-        InfoItem("Área", part?.areaName ?: "Pendiente", Icons.Rounded.Factory),
-        InfoItem("Familia", part?.familyName ?: "Pendiente", Icons.Rounded.Category),
-        InfoItem("Subfamilia", part?.subfamilyName ?: "Pendiente", Icons.Rounded.Inventory2),
-        InfoItem("Versión Ruta", formatRouteName(ctx?.routeName) ?: part?.activeRouteId?.toString() ?: "Pendiente", Icons.Rounded.Route)
-    )
+    val infoItems = if (taskType == TaskType.ProductAdvance) {
+        listOf(
+            InfoItem("Área", part?.areaName ?: "Pendiente", Icons.Rounded.Factory),
+            InfoItem("Familia", part?.familyName ?: "Pendiente", Icons.Rounded.Category),
+            InfoItem("Subfamilia", part?.subfamilyName ?: "Pendiente", Icons.Rounded.Inventory2),
+            InfoItem("Versión Ruta", formatRouteName(ctx?.routeName) ?: part?.activeRouteId?.toString() ?: "Pendiente", Icons.Rounded.Route)
+        )
+    } else {
+        listOf(
+            InfoItem("No. Lote", lotNumber, Icons.Rounded.Inventory2),
+            InfoItem("No. Parte", partNumber, Icons.Rounded.QrCode),
+            InfoItem("Área", part?.areaName ?: "Pendiente", Icons.Rounded.Factory),
+            InfoItem("Familia", part?.familyName ?: "Pendiente", Icons.Rounded.Category),
+            InfoItem("Subfamilia", part?.subfamilyName ?: "Pendiente", Icons.Rounded.Inventory2),
+            InfoItem("Versión Ruta", formatRouteName(ctx?.routeName) ?: part?.activeRouteId?.toString() ?: "Pendiente", Icons.Rounded.Route)
+        )
+    }
 
     TrackIIBackground(glowOffsetX = 24.dp, glowOffsetY = 120.dp) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -225,8 +234,8 @@ fun TaskDetailScreen(
                                 val infiniteTransition = rememberInfiniteTransition(label = "glow")
                                 val glowAlpha by infiniteTransition.animateFloat(initialValue = 0.2f, targetValue = 0.8f, animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "glowAlpha")
                                 val maxQty = (uiState.contextInfo?.previousQuantity ?: 0).coerceAtLeast(0)
-                                Box(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).border(2.dp, TTBlueDark.copy(alpha = glowAlpha), RoundedCornerShape(12.dp)).background(TTBlueDark.copy(alpha = 0.05f), RoundedCornerShape(12.dp)).padding(8.dp)) {
-                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Box(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp).border(2.dp, TTBlueDark.copy(alpha = glowAlpha), RoundedCornerShape(14.dp)).background(TTBlueDark.copy(alpha = 0.05f), RoundedCornerShape(14.dp)).padding(horizontal = 12.dp, vertical = 14.dp)) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -263,7 +272,7 @@ fun TaskDetailScreen(
                                                 .coerceIn(0f, sliderRangeMax)
 
                                             BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                                                val controlWidth = maxWidth * 0.18f
+                                                val controlWidth = maxWidth * 0.2f
                                                 Row(
                                                     modifier = Modifier.fillMaxWidth(),
                                                     verticalAlignment = Alignment.CenterVertically,
@@ -278,7 +287,7 @@ fun TaskDetailScreen(
                                                     Column(
                                                         modifier = Modifier.weight(1f),
                                                         horizontalAlignment = Alignment.CenterHorizontally,
-                                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                                        verticalArrangement = Arrangement.spacedBy(8.dp)
                                                     ) {
                                                         Text(
                                                             text = uiState.qtyInput.ifBlank { "0" },

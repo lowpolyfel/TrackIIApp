@@ -6,4 +6,5 @@
     <string name="order_found">Orden encontrada</string>
     <string name="error_token_mandatory">TokenCode es obligatorio</string>
     <string name="error_network_or_invalid_token">Error de red o token inválido</string>
+    <string name="app_version_label">v%1$s</string>
 </resources>

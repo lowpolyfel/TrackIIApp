@@ -1,8 +1,15 @@
 package com.ttelectronics.trackiiapp.ui.components
 
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.runtime.remember
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import com.ttelectronics.trackiiapp.ui.theme.TTBlue // AGREGAR ESTA LÍNEA
+import com.ttelectronics.trackiiapp.ui.theme.TTBlueDark
+import com.ttelectronics.trackiiapp.ui.theme.TTGreen
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -293,6 +300,39 @@ fun PermissionFallback(onRequest: () -> Unit) {
                     Icon(Icons.Rounded.CenterFocusStrong, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
                     Text("Permitir cámara")
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun LoadingOverlay(visible: Boolean) {
+    if (visible) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.6f))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = {} // Bloquea clics debajo del overlay
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                CircularProgressIndicator(
+                    color = com.ttelectronics.trackiiapp.ui.theme.TTBlue, // ← Llamado directo para evitar el error
+                    strokeWidth = 4.dp,
+                    modifier = Modifier.size(64.dp)
+                )
+                Text(
+                    text = "Validando información...",
+                    style = MaterialTheme.typography.titleMedium, // ← Quitamos el copy(fontWeight...) para evitar ambigüedad
+                    color = Color.White
+                )
             }
         }
     }

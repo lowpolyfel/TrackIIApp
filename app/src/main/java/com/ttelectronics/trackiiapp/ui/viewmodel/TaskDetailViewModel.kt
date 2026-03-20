@@ -32,7 +32,9 @@ data class TaskDetailUiState(
     val saveSuccess: Boolean = false,
     val piecesDifference: Int = 0,
     val pendingQtyIn: Int = 0,
-    val pendingReady: Boolean = false
+    val pendingReady: Boolean = false,
+    val showQtyErrorOverlay: Boolean = false,
+    val qtyErrorText: String = ""
 )
 
 
@@ -50,28 +52,55 @@ class TaskDetailViewModel(
 
     fun onProductAdvanceQtyChange(value: String) {
         val digits = value.filter { ch -> ch.isDigit() }
-        val typedQty = digits.toIntOrNull() ?: 0
-        val isNewOrder = _uiState.value.contextInfo?.isNew == true
-        // Si es nueva, no hay límite. Si no, el límite es la cantidad anterior.
-        val maxQty = if (isNewOrder) Int.MAX_VALUE else (_uiState.value.contextInfo?.previousQuantity ?: 0).coerceAtLeast(0)
-        val boundedQty = if (typedQty > maxQty) maxQty else typedQty
-        _uiState.update { it.copy(qtyInput = boundedQty.toString(), errorMessage = null) }
+        // Ya no limitamos mientras escribe, permitimos el texto libre para validar al final
+        _uiState.update { it.copy(qtyInput = digits, errorMessage = null) }
     }
 
     fun onProductAdvanceSliderChange(value: Float) {
         val isNewOrder = _uiState.value.contextInfo?.isNew == true
-        val maxQty = if (isNewOrder) 10000 else (_uiState.value.contextInfo?.previousQuantity ?: 0).coerceAtLeast(0) // 10,000 como límite visual del slider para órdenes nuevas
+        val maxQty = if (isNewOrder) 20000 else (_uiState.value.contextInfo?.previousQuantity ?: 0).coerceAtLeast(0)
         val boundedQty = value.toInt().coerceIn(0, maxQty)
         _uiState.update { it.copy(qtyInput = boundedQty.toString(), errorMessage = null) }
     }
 
     fun adjustProductAdvanceQty(delta: Int) {
         val isNewOrder = _uiState.value.contextInfo?.isNew == true
-        val maxQty = if (isNewOrder) Int.MAX_VALUE else (_uiState.value.contextInfo?.previousQuantity ?: 0).coerceAtLeast(0)
+        val maxQty = if (isNewOrder) 20000 else (_uiState.value.contextInfo?.previousQuantity ?: 0).coerceAtLeast(0)
         val currentQty = _uiState.value.qtyInput.toIntOrNull() ?: 0
         val boundedQty = (currentQty + delta).coerceIn(0, maxQty)
         _uiState.update { it.copy(qtyInput = boundedQty.toString(), errorMessage = null) }
     }
+
+    // NUEVA FUNCIÓN: Valida la cantidad al presionar Enter o Guardar
+    fun validateManualQty(): Boolean {
+        val state = _uiState.value
+        val typedQty = state.qtyInput.toIntOrNull() ?: 0
+        val isNewOrder = state.contextInfo?.isNew == true
+        val maxQty = if (isNewOrder) 20000 else (state.contextInfo?.previousQuantity ?: 0).coerceAtLeast(0)
+
+        if (typedQty > maxQty) {
+            _uiState.update {
+                it.copy(
+                    qtyInput = maxQty.toString(), // Autocorrige a la cantidad máxima permitida
+                    showQtyErrorOverlay = true,
+                    qtyErrorText = if (isNewOrder) "Cantidad inválida.\nEl máximo permitido es 20,000 piezas."
+                    else "Cantidad inválida.\nEl máximo es $maxQty piezas del paso anterior."
+                )
+            }
+            return false
+        }
+
+        // Si lo dejaron en blanco, lo restauramos a 0 o al máximo
+        if (state.qtyInput.isBlank()) {
+            _uiState.update { it.copy(qtyInput = if (isNewOrder) "0" else maxQty.toString()) }
+        }
+        return true
+    }
+
+    fun dismissQtyError() {
+        _uiState.update { it.copy(showQtyErrorOverlay = false) }
+    }
+
     fun ensureDefaultQtyFromPrevious() {
         val previousQty = (_uiState.value.contextInfo?.previousQuantity ?: 0).coerceAtLeast(0)
         if (_uiState.value.qtyInput.isBlank()) {
@@ -129,7 +158,7 @@ class TaskDetailViewModel(
                     ?.let { selected -> locations.firstOrNull { location -> location.id == selected.id } }
                     ?: locations.firstOrNull()
 
-                // NUEVO: Extraemos la cantidad máxima de piezas que arrojó el API
+                // Extraemos la cantidad máxima de piezas que arrojó el API
                 val fetchedContext = ctxResult.getOrNull()
                 val initialQty = (fetchedContext?.previousQuantity ?: 0).coerceAtLeast(0).toString()
 
@@ -140,7 +169,7 @@ class TaskDetailViewModel(
                     contextInfo = fetchedContext,
                     reworkLocations = locations,
                     selectedReworkLocation = selectedLocation,
-                    // NUEVO: Asignamos el valor máximo por defecto al input
+                    // Asignamos el valor máximo por defecto al input
                     qtyInput = if (initialQty == "0" && it.qtyInput.isNotBlank()) it.qtyInput else initialQty
                 )
             }
@@ -258,6 +287,9 @@ class TaskDetailViewModel(
     }
 
     fun prepareProductAdvanceRegistration(workOrderNumber: String, locationName: String) {
+        // NUEVO: Validar primero la cantidad, si está mal lanza el error rojo y bloquea el guardado
+        if (!validateManualQty()) return
+
         val state = _uiState.value
         val decision = productAdvanceScanPolicy.evaluate(
             workOrderNumber = workOrderNumber,

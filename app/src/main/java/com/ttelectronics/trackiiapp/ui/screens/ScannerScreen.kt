@@ -266,6 +266,8 @@ fun ScannerScreen(
             }
         }
 
+        com.ttelectronics.trackiiapp.ui.components.LoadingOverlay(visible = scannerUiState.isValidating)
+
         ScanResultOverlay(visible = showResultOverlay, success = overlaySuccess, message = overlayText)
     }
 }

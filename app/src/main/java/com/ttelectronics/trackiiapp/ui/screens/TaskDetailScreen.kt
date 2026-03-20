@@ -27,6 +27,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Cancel
@@ -60,7 +62,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -85,6 +90,7 @@ import com.ttelectronics.trackiiapp.ui.theme.TTRed
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
 import com.ttelectronics.trackiiapp.ui.viewmodel.TaskDetailViewModel
 import com.ttelectronics.trackiiapp.ui.viewmodel.TaskDetailViewModelFactory
+import kotlinx.coroutines.delay
 
 data class InfoItem(val title: String, val value: String, val icon: ImageVector)
 
@@ -221,7 +227,11 @@ fun TaskDetailScreen(
                             TaskType.ProductAdvance -> {
                                 val infiniteTransition = rememberInfiniteTransition(label = "glow")
                                 val glowAlpha by infiniteTransition.animateFloat(initialValue = 0.2f, targetValue = 0.8f, animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "glowAlpha")
+
+                                // NUEVO LIMITE: 20000 para nuevas, y cantidad previa para las demás
                                 val maxQty = if (uiState.contextInfo?.isNew == true) 20000 else (uiState.contextInfo?.previousQuantity ?: 0).coerceAtLeast(0)
+                                val focusManager = LocalFocusManager.current // Herramienta para ocultar teclado
+
                                 Box(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp).border(2.dp, TTBlueDark.copy(alpha = glowAlpha), RoundedCornerShape(14.dp)).background(TTBlueDark.copy(alpha = 0.05f), RoundedCornerShape(14.dp)).padding(horizontal = 12.dp, vertical = 14.dp)) {
                                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                         Row(
@@ -230,7 +240,15 @@ fun TaskDetailScreen(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Text(text = "Piezas", style = MaterialTheme.typography.labelLarge, color = TTTextSecondary)
-                                            TextButton(onClick = { manualQtyInput = !manualQtyInput }) {
+                                            TextButton(onClick = {
+                                                manualQtyInput = !manualQtyInput
+                                                if (manualQtyInput) {
+                                                    // NUEVO: Borramos la cantidad para evitar que concatenen por error
+                                                    vm.onProductAdvanceQtyChange("")
+                                                } else {
+                                                    vm.ensureDefaultQtyFromPrevious()
+                                                }
+                                            }) {
                                                 Text(text = if (manualQtyInput) "Usar slider" else "Ingresar manual")
                                             }
                                         }
@@ -242,8 +260,15 @@ fun TaskDetailScreen(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 singleLine = true,
                                                 label = { Text(text = "Piezas") },
-                                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                                                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                                                keyboardOptions = KeyboardOptions(
+                                                    keyboardType = KeyboardType.Number,
+                                                    imeAction = ImeAction.Done // Tecla de Enter/Done
+                                                ),
+                                                keyboardActions = KeyboardActions(
+                                                    onDone = {
+                                                        focusManager.clearFocus() // Oculta el teclado
+                                                        vm.validateManualQty()    // Evalúa si se pasó
+                                                    }
                                                 ),
                                                 colors = androidx.compose.material3.TextFieldDefaults.colors(
                                                     focusedContainerColor = TTBlueTint,
@@ -256,45 +281,17 @@ fun TaskDetailScreen(
                                             )
                                         } else {
                                             val sliderRangeMax = maxQty.toFloat().coerceAtLeast(1f)
-                                            val sliderValue = (uiState.qtyInput.toFloatOrNull() ?: maxQty.toFloat())
-                                                .coerceIn(0f, sliderRangeMax)
+                                            val sliderValue = (uiState.qtyInput.toFloatOrNull() ?: maxQty.toFloat()).coerceIn(0f, sliderRangeMax)
 
                                             BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                                                 val controlWidth = maxWidth * 0.2f
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                                ) {
-                                                    SoftActionButton(
-                                                        text = "-",
-                                                        onClick = { vm.adjustProductAdvanceQty(delta = -1) },
-                                                        modifier = Modifier.width(controlWidth)
-                                                    )
-
-                                                    Column(
-                                                        modifier = Modifier.weight(1f),
-                                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                                                    ) {
-                                                        Text(
-                                                            text = uiState.qtyInput.ifBlank { "0" },
-                                                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                                                            color = TTBlueDark,
-                                                            textAlign = TextAlign.Center
-                                                        )
-                                                        Slider(
-                                                            value = sliderValue,
-                                                            onValueChange = vm::onProductAdvanceSliderChange,
-                                                            valueRange = 0f..sliderRangeMax
-                                                        )
+                                                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                    SoftActionButton(text = "-", onClick = { vm.adjustProductAdvanceQty(delta = -1) }, modifier = Modifier.width(controlWidth))
+                                                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                        Text(text = uiState.qtyInput.ifBlank { "0" }, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold), color = TTBlueDark, textAlign = TextAlign.Center)
+                                                        Slider(value = sliderValue, onValueChange = vm::onProductAdvanceSliderChange, valueRange = 0f..sliderRangeMax)
                                                     }
-
-                                                    SoftActionButton(
-                                                        text = "+",
-                                                        onClick = { vm.adjustProductAdvanceQty(delta = 1) },
-                                                        modifier = Modifier.width(controlWidth)
-                                                    )
+                                                    SoftActionButton(text = "+", onClick = { vm.adjustProductAdvanceQty(delta = 1) }, modifier = Modifier.width(controlWidth))
                                                 }
                                             }
                                         }
@@ -327,6 +324,21 @@ fun TaskDetailScreen(
             FloatingHomeButton(onClick = onHome, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp))
 
             if (uiState.saveSuccess) { Box(modifier = Modifier.fillMaxSize().zIndex(10f)) { SuccessOverlay(message = "¡Registro completado exitosamente!") } }
+
+            // NUEVO: Pantalla Roja en caso de equivocarse escribiendo
+            if (uiState.showQtyErrorOverlay) {
+                Box(modifier = Modifier.fillMaxSize().zIndex(15f)) {
+                    com.ttelectronics.trackiiapp.ui.components.ScanResultOverlay(
+                        visible = true,
+                        success = false,
+                        message = uiState.qtyErrorText
+                    )
+                }
+                LaunchedEffect(uiState.showQtyErrorOverlay) {
+                    delay(3500) // Desaparece solita después de 3.5 segundos
+                    vm.dismissQtyError()
+                }
+            }
         }
     }
 }

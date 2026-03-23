@@ -17,6 +17,9 @@ android {
         versionName = "1.0.0-beta"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Inyectamos la variable directamente al BuildConfig
+        buildConfigField("String", "VERSION_NAME", "\"1.0.0-beta\"")
     }
 
     buildTypes {
@@ -34,6 +37,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

@@ -136,9 +136,8 @@ fun WelcomeScreen(
                     )
                 }
             }
-
             Text(
-                text = stringResource(R.string.app_version_label, BuildConfig.VERSION_NAME),
+                text = "v1.0.0-beta",
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.LightGray.copy(alpha = 0.38f),
                 modifier = Modifier

@@ -199,7 +199,8 @@ fun TaskSelectionScreen(
                 }
             }
 
-            Box(
+            AnimatedVisibility(
+                visible = !showAdminButtons,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(top = 20.dp, end = 20.dp)

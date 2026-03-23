@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ttelectronics.trackiiapp.core.ServiceLocator
+import com.ttelectronics.trackiiapp.core.demo.DemoMode
 import com.ttelectronics.trackiiapp.data.local.AppSession
 import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
 import com.ttelectronics.trackiiapp.ui.components.GlassCard
@@ -70,8 +71,10 @@ fun ProductAdvanceFinalReviewScreen(
     )
     val uiState by vm.uiState.collectAsState()
 
-    LaunchedEffect(partNumber) {
-        vm.loadPartInfo(partNumber)
+    val useDemoProductAdvance = DemoMode.isProductAdvanceDemoEnabled()
+
+    LaunchedEffect(partNumber, useDemoProductAdvance) {
+        vm.loadPartInfo(partNumber, useDemoProductAdvance)
     }
 
     LaunchedEffect(uiState.isSuccess) {
@@ -147,7 +150,8 @@ fun ProductAdvanceFinalReviewScreen(
                                     qtyIn = qtyIn,
                                     scrap = scrap,
                                     errorCodeId = errorCodeId,
-                                    comments = comments
+                                    comments = comments,
+                                    useDemoProductAdvance = useDemoProductAdvance
                                 )
                             },
                             modifier = Modifier.fillMaxWidth(),

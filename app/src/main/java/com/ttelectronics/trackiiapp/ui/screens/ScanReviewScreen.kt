@@ -42,6 +42,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.ttelectronics.trackiiapp.core.ServiceLocator
+import com.ttelectronics.trackiiapp.core.demo.DemoMode
 import com.ttelectronics.trackiiapp.data.models.scanner.PartLookupResponse
 import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
 import com.ttelectronics.trackiiapp.ui.components.GlassCard
@@ -73,9 +74,13 @@ fun ScanReviewScreen(
 
     LaunchedEffect(partNumber, orderFound) {
         if (orderFound && partNumber.isNotBlank()) {
-            partInfo = runCatching {
-                ServiceLocator.scannerRepository(context).lookupPart(partNumber.trim())
-            }.getOrNull()
+            partInfo = if (taskType == TaskType.ProductAdvance && DemoMode.isProductAdvanceDemoEnabled()) {
+                DemoMode.demoPartInfo(partNumber.trim())
+            } else {
+                runCatching {
+                    ServiceLocator.scannerRepository(context).lookupPart(partNumber.trim())
+                }.getOrNull()
+            }
         }
     }
 

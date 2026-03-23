@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.ttelectronics.trackiiapp.R
+import com.ttelectronics.trackiiapp.core.demo.DemoMode
+import com.ttelectronics.trackiiapp.core.demo.DemoScanScenario
 import com.ttelectronics.trackiiapp.data.models.enums.WipStatus
 import com.ttelectronics.trackiiapp.data.network.ApiErrorParser
 import com.ttelectronics.trackiiapp.data.repository.ScannerRepository
@@ -127,6 +129,11 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
             return
         }
 
+        if (taskType == TaskType.ProductAdvance && DemoMode.isProductAdvanceDemoEnabled()) {
+            validateProductAdvanceDemo()
+            return
+        }
+
         when (taskType) {
             TaskType.Rework -> {
                 validateReworkOrder(normalizedLot)
@@ -139,6 +146,26 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
             else -> {
                 validatePartExists(normalizedPartNumber)
             }
+        }
+    }
+
+
+    private fun validateProductAdvanceDemo() {
+        val scenario = DemoMode.activeProductAdvanceScenario() ?: DemoScanScenario.Success
+
+        _uiState.update {
+            it.copy(
+                isValidating = false,
+                validationError = null,
+                customValidationMessage = when (scenario) {
+                    DemoScanScenario.OutOfRoute -> "Producto fuera de ruta para esta estación demo."
+                    DemoScanScenario.NotRegistered -> "Producto no registrado en el modo demo."
+                    DemoScanScenario.Success -> null
+                },
+                isProductFound = scenario == DemoScanScenario.Success,
+                shouldNavigate = true,
+                navigationTarget = ScannerNavigationTarget.ScanReview
+            )
         }
     }
 

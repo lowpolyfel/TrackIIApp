@@ -3,6 +3,7 @@ package com.ttelectronics.trackiiapp.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.ttelectronics.trackiiapp.core.demo.DemoMode
 import com.ttelectronics.trackiiapp.data.models.auth.LocationDto
 import com.ttelectronics.trackiiapp.data.models.scanner.PartLookupResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.RegisterScanResponse
@@ -130,7 +131,7 @@ class TaskDetailViewModel(
         _uiState.update { it.copy(selectedReworkLocation = selected, errorMessage = null) }
     }
 
-    fun loadData(partNumber: String, workOrderNumber: String, deviceId: Int) {
+    fun loadData(partNumber: String, workOrderNumber: String, deviceId: Int, useDemoProductAdvance: Boolean = false, locationName: String = "") {
         if (partNumber.isBlank()) return
         viewModelScope.launch {
             _uiState.update {
@@ -145,6 +146,21 @@ class TaskDetailViewModel(
                     isSubmitting = false
                 )
             }
+
+            if (useDemoProductAdvance) {
+                val demoContext = DemoMode.demoContext(locationName)
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = null,
+                        partInfo = DemoMode.demoPartInfo(partNumber.trim()),
+                        contextInfo = demoContext,
+                        qtyInput = DemoMode.expectedPieces.toString()
+                    )
+                }
+                return@launch
+            }
+
             val partResult = runCatching { scannerRepository.lookupPart(partNumber.trim()) }
             val ctxResult = runCatching { scannerRepository.getWorkOrderContext(workOrderNumber.trim(), deviceId, partNumber.trim()) }
             val locationResult = runCatching { authRepository.getLocations() }
@@ -158,7 +174,6 @@ class TaskDetailViewModel(
                     ?.let { selected -> locations.firstOrNull { location -> location.id == selected.id } }
                     ?: locations.firstOrNull()
 
-                // Extraemos la cantidad máxima de piezas que arrojó el API
                 val fetchedContext = ctxResult.getOrNull()
                 val initialQty = (fetchedContext?.previousQuantity ?: 0).coerceAtLeast(0).toString()
 
@@ -169,7 +184,6 @@ class TaskDetailViewModel(
                     contextInfo = fetchedContext,
                     reworkLocations = locations,
                     selectedReworkLocation = selectedLocation,
-                    // Asignamos el valor máximo por defecto al input
                     qtyInput = if (initialQty == "0" && it.qtyInput.isNotBlank()) it.qtyInput else initialQty
                 )
             }

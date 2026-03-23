@@ -3,6 +3,7 @@ package com.ttelectronics.trackiiapp.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.ttelectronics.trackiiapp.core.demo.DemoMode
 import com.ttelectronics.trackiiapp.data.models.scanner.ErrorCategoryResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.ErrorCodeResponse
 import com.ttelectronics.trackiiapp.data.network.ApiErrorParser
@@ -57,32 +58,31 @@ class PartialScrapViewModel(
 
     private fun loadCategories() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingCategories = true, errorMessage = null) }
-            runCatching { scannerRepository.getErrorCategories() }
-                .onSuccess { categories ->
-                    _uiState.update {
-                        it.copy(
-                            isLoadingCategories = false,
-                            categories = categories,
-                            selectedCategory = null,
-                            selectedCode = null,
-                            codes = emptyList()
-                        )
-                    }
-                }
-                .onFailure { ex ->
-                    _uiState.update { it.copy(isLoadingCategories = false, errorMessage = ApiErrorParser.readableError(ex)) }
-                }
+            val categories = DemoMode.demoErrorCategories()
+            _uiState.update {
+                it.copy(
+                    isLoadingCategories = false,
+                    errorMessage = null,
+                    categories = categories,
+                    selectedCategory = categories.firstOrNull(),
+                    selectedCode = null,
+                    codes = DemoMode.demoErrorCodes(categories.firstOrNull()?.id ?: 1)
+                )
+            }
         }
     }
 
     fun onCategorySelected(category: ErrorCategoryResponse) {
-        _uiState.update { it.copy(selectedCategory = category, selectedCode = null, codes = emptyList(), errorMessage = null) }
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingCodes = true, errorMessage = null) }
-            runCatching { scannerRepository.getErrorCodes(category.id) }
-                .onSuccess { codes -> _uiState.update { it.copy(isLoadingCodes = false, codes = codes) } }
-                .onFailure { ex -> _uiState.update { it.copy(isLoadingCodes = false, errorMessage = ApiErrorParser.readableError(ex)) } }
+            _uiState.update {
+                it.copy(
+                    selectedCategory = category,
+                    selectedCode = null,
+                    codes = DemoMode.demoErrorCodes(category.id),
+                    isLoadingCodes = false,
+                    errorMessage = null
+                )
+            }
         }
     }
 
@@ -97,17 +97,19 @@ class PartialScrapViewModel(
     fun submit() {
         val state = _uiState.value
         if (state.shouldRegister != true) return
-        if (state.selectedCode == null) {
-            _uiState.update { it.copy(errorMessage = "Selecciona un código de falla.") }
-            return
-        }
 
-        if (state.comments.trim().isEmpty()) {
-            _uiState.update { it.copy(errorMessage = "Los comentarios son obligatorios.") }
-            return
-        }
+        val fallbackCode = state.selectedCode ?: state.codes.firstOrNull() ?: DemoMode.defaultDemoErrorCode()
+        val fallbackCategory = state.selectedCategory ?: state.categories.firstOrNull()
 
-        _uiState.update { it.copy(saveSuccess = true, errorMessage = null) }
+        _uiState.update {
+            it.copy(
+                selectedCategory = fallbackCategory,
+                selectedCode = fallbackCode,
+                comments = state.comments.ifBlank { "Scrap demo generado automáticamente." },
+                saveSuccess = true,
+                errorMessage = null
+            )
+        }
     }
 }
 

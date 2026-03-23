@@ -3,6 +3,7 @@ package com.ttelectronics.trackiiapp.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.ttelectronics.trackiiapp.core.demo.DemoMode
 import com.ttelectronics.trackiiapp.data.local.AppSession
 import com.ttelectronics.trackiiapp.data.models.scanner.PartLookupResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.ScrapOrderRequest
@@ -28,9 +29,14 @@ class ProductAdvanceFinalReviewViewModel(
     private val _uiState = MutableStateFlow(ProductAdvanceFinalReviewUiState())
     val uiState: StateFlow<ProductAdvanceFinalReviewUiState> = _uiState.asStateFlow()
 
-    fun loadPartInfo(partNumber: String) {
+    fun loadPartInfo(partNumber: String, useDemoProductAdvance: Boolean = false) {
         if (partNumber.isBlank()) return
         viewModelScope.launch {
+            if (useDemoProductAdvance) {
+                _uiState.update { it.copy(partInfo = DemoMode.demoPartInfo(partNumber.trim())) }
+                return@launch
+            }
+
             runCatching { scannerRepository.lookupPart(partNumber.trim()) }
                 .onSuccess { part ->
                     _uiState.update { it.copy(partInfo = part) }
@@ -44,31 +50,34 @@ class ProductAdvanceFinalReviewViewModel(
         qtyIn: Int,
         scrap: Int,
         errorCodeId: Int,
-        comments: String
+        comments: String,
+        useDemoProductAdvance: Boolean = false
     ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, errorMessage = null, isSuccess = false) }
             runCatching {
-                scannerRepository.registerScan(
-                    workOrderNumber = lotNumber,
-                    partNumber = partNumber,
-                    userId = appSession.userId,
-                    deviceId = appSession.deviceId,
-                    qtyIn = qtyIn
-                )
-
-                if (scrap > 0) {
-                    scannerRepository.partialScrap(
-                        ScrapOrderRequest(
-                            workOrderNumber = lotNumber,
-                            partNumber = partNumber,
-                            quantity = scrap,
-                            errorCodeId = errorCodeId,
-                            comments = comments,
-                            userId = appSession.userId,
-                            deviceId = appSession.deviceId
-                        )
+                if (!useDemoProductAdvance) {
+                    scannerRepository.registerScan(
+                        workOrderNumber = lotNumber,
+                        partNumber = partNumber,
+                        userId = appSession.userId,
+                        deviceId = appSession.deviceId,
+                        qtyIn = qtyIn
                     )
+
+                    if (scrap > 0) {
+                        scannerRepository.partialScrap(
+                            ScrapOrderRequest(
+                                workOrderNumber = lotNumber,
+                                partNumber = partNumber,
+                                quantity = scrap,
+                                errorCodeId = errorCodeId,
+                                comments = comments,
+                                userId = appSession.userId,
+                                deviceId = appSession.deviceId
+                            )
+                        )
+                    }
                 }
             }.onSuccess {
                 _uiState.update { it.copy(isSubmitting = false, isSuccess = true, errorMessage = null) }

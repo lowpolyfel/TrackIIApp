@@ -10,6 +10,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.ttelectronics.trackiiapp.core.ServiceLocator
+import com.ttelectronics.trackiiapp.core.demo.DemoMode
 import com.ttelectronics.trackiiapp.ui.screens.LoginScreen
 import com.ttelectronics.trackiiapp.ui.screens.PartialScrapScreen
 import com.ttelectronics.trackiiapp.ui.screens.ProductAdvanceFinalReviewScreen
@@ -169,7 +170,14 @@ fun TrackIINavHost(
             val current = authRepository.sessionSnapshot()
             TaskSelectionScreen(
                 onTaskSelected = { taskType ->
+                    if (taskType == TaskType.ProductAdvance) {
+                        DemoMode.activateProductAdvanceScenario(com.ttelectronics.trackiiapp.core.demo.DemoScanScenario.Success)
+                    }
                     navController.navigate(TrackIIRoute.scannerRoute(taskType))
+                },
+                onDemoProductAdvanceSelected = { scenario ->
+                    DemoMode.activateProductAdvanceScenario(scenario)
+                    navController.navigate(TrackIIRoute.scannerRoute(TaskType.ProductAdvance))
                 },
                 onHome = navigateHome,
                 onAccount = { navController.navigate(TrackIIRoute.Login) },

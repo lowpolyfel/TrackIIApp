@@ -71,6 +71,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ttelectronics.trackiiapp.core.ServiceLocator
+import com.ttelectronics.trackiiapp.core.demo.DemoMode
 import com.ttelectronics.trackiiapp.ui.components.FloatingHomeButton
 import com.ttelectronics.trackiiapp.ui.components.GlassCard
 import com.ttelectronics.trackiiapp.ui.components.PrimaryGlowButton
@@ -135,7 +136,11 @@ fun TaskDetailScreen(
 
     var manualQtyInput by remember { mutableStateOf(false) }
 
-    LaunchedEffect(partNumber, lotNumber, auth.deviceId) { vm.loadData(partNumber, lotNumber, auth.deviceId) }
+    val useDemoProductAdvance = taskType == TaskType.ProductAdvance && DemoMode.isProductAdvanceDemoEnabled()
+
+    LaunchedEffect(partNumber, lotNumber, auth.deviceId, useDemoProductAdvance) {
+        vm.loadData(partNumber, lotNumber, auth.deviceId, useDemoProductAdvance, auth.locationName)
+    }
     LaunchedEffect(initialQty) { vm.setInitialQtyInput(initialQty) }
     LaunchedEffect(uiState.contextInfo?.previousQuantity, taskType) {
         if (taskType == TaskType.ProductAdvance) vm.ensureDefaultQtyFromPrevious()
@@ -182,7 +187,7 @@ fun TaskDetailScreen(
 
             Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(text = taskType.title, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold), textAlign = TextAlign.Center)
-                Text(text = "Información capturada desde API.", style = MaterialTheme.typography.bodyMedium, color = TTTextSecondary, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp, bottom = 22.dp))
+                Text(text = if (useDemoProductAdvance) "Información demo sin validaciones reales." else "Información capturada desde API.", style = MaterialTheme.typography.bodyMedium, color = TTTextSecondary, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp, bottom = 22.dp))
                 uiState.errorMessage?.let { Text(it, color = TTRed, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 8.dp)) }
             }
 

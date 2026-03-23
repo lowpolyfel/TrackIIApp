@@ -24,13 +24,13 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.painterResource
 import com.ttelectronics.trackiiapp.R
 import androidx.compose.material3.Text
+import com.ttelectronics.trackiiapp.core.demo.DemoScanScenario
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,6 +62,7 @@ import com.ttelectronics.trackiiapp.ui.theme.TTYellowTint
 @Composable
 fun TaskSelectionScreen(
     onTaskSelected: (TaskType) -> Unit,
+    onDemoProductAdvanceSelected: (DemoScanScenario) -> Unit,
     onHome: () -> Unit,
     onAccount: () -> Unit,
     onLogout: () -> Unit,
@@ -106,7 +107,7 @@ fun TaskSelectionScreen(
                             title = "Avanzar producto",
                             description = "Registra piezas completadas y mueve la orden al siguiente paso.",
                             icon = Icons.Rounded.Description,
-                            onClick = { onTaskSelected(TaskType.ProductAdvance) },
+                            onClick = { onDemoProductAdvanceSelected(DemoScanScenario.Success) },
                             accentColor = TTBlue,
                             accentDark = TTBlueDark,
                             accentTint = TTBlueTint
@@ -133,8 +134,6 @@ fun TaskSelectionScreen(
                 }
             }
 
-// Variables de estado para el menú oculto
-            var logoClickCount by remember { mutableIntStateOf(0) }
             var showAdminButtons by remember { mutableStateOf(false) }
 
             Row(
@@ -146,35 +145,44 @@ fun TaskSelectionScreen(
             ) {
                 // 1. Logo que actúa como botón secreto
                 Image(
-                    painter = painterResource(id = R.drawable.ttlogo), // O logo_trackii, según prefieras
+                    painter = painterResource(id = R.drawable.ttlogo),
                     contentDescription = "Logo TT",
                     modifier = Modifier
-                        .height(50.dp) // Tamaño discreto, no muy ostentoso
+                        .height(50.dp)
                         .clickable(
-                            indication = null, // Oculta el efecto de "onda" gris al hacer click para mantener el secreto
+                            indication = null,
                             interactionSource = remember { MutableInteractionSource() }
                         ) {
-                            if (showAdminButtons) {
-                                // Si ya están visibles y presionas el logo, los oculta
-                                showAdminButtons = false
-                                logoClickCount = 0
-                            } else {
-                                // Incrementamos el contador de clicks
-                                logoClickCount++
-                                if (logoClickCount >= 5) {
-                                    showAdminButtons = true
-                                    logoClickCount = 0 // Reiniciamos el contador
-                                }
-                            }
+                            showAdminButtons = !showAdminButtons
                         }
                 )
 
-                // 2. Botones que solo aparecen si se activó el estado
                 AnimatedVisibility(visible = showAdminButtons) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            Text(
+                                text = "Modo demo - Avanzar producto",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                color = TTBlueDark
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedButton(onClick = { onDemoProductAdvanceSelected(DemoScanScenario.OutOfRoute) }) {
+                                    Text(text = DemoScanScenario.OutOfRoute.buttonLabel)
+                                }
+                                OutlinedButton(onClick = { onDemoProductAdvanceSelected(DemoScanScenario.Success) }) {
+                                    Text(text = DemoScanScenario.Success.buttonLabel)
+                                }
+                                OutlinedButton(onClick = { onDemoProductAdvanceSelected(DemoScanScenario.NotRegistered) }) {
+                                    Text(text = DemoScanScenario.NotRegistered.buttonLabel)
+                                }
+                            }
+                        }
                         TopAccountButton(onClick = onAccount)
                         FloatingActionButton(
                             onClick = onLogout,

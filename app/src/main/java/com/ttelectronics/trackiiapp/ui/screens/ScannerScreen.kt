@@ -3,7 +3,6 @@ package com.ttelectronics.trackiiapp.ui.screens
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Rect
-import androidx.compose.animation.Crossfade
 import android.util.Size
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -11,8 +10,7 @@ import androidx.annotation.OptIn
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -21,23 +19,34 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.DocumentScanner
 import androidx.compose.material.icons.rounded.TabletAndroid
+import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -55,26 +64,32 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
+import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.ttelectronics.trackiiapp.R
 import com.ttelectronics.trackiiapp.core.ServiceLocator
 import com.ttelectronics.trackiiapp.core.camera.CameraManager
+import com.ttelectronics.trackiiapp.core.isNetworkAvailable
 import com.ttelectronics.trackiiapp.ui.components.PermissionFallback
 import com.ttelectronics.trackiiapp.ui.components.ScanResultOverlay
-import com.ttelectronics.trackiiapp.ui.components.ScannerFrameOverlay
 import com.ttelectronics.trackiiapp.ui.components.ScannerControlsPanel
+import com.ttelectronics.trackiiapp.ui.components.ScannerFrameOverlay
 import com.ttelectronics.trackiiapp.ui.components.ScannerHeader
 import com.ttelectronics.trackiiapp.ui.components.TrackIIBackground
 import com.ttelectronics.trackiiapp.ui.components.rememberRawSoundPlayer
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
+import com.ttelectronics.trackiiapp.ui.theme.TTBlue
+import com.ttelectronics.trackiiapp.ui.theme.TTBlueDark
 import com.ttelectronics.trackiiapp.ui.theme.TTGreen
+import com.ttelectronics.trackiiapp.ui.theme.TTRed
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
 import com.ttelectronics.trackiiapp.ui.viewmodel.ScannerNavigationTarget
 import com.ttelectronics.trackiiapp.ui.viewmodel.ScannerViewModel
@@ -111,6 +126,17 @@ fun ScannerScreen(
         if (!hasCameraPermission) permissionLauncher.launch(Manifest.permission.CAMERA)
     }
 
+    // --- ESTADO Y LÓGICA DE INTERNET ---
+    var networkError by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (!isNetworkAvailable(context)) {
+            networkError = true
+            delay(2500)
+            onHome() // Lo expulsa al lobby
+        }
+    }
+    // ------------------------------------------
+
     var showInstructions by remember { mutableStateOf(true) }
     LaunchedEffect(Unit) {
         delay(INSTRUCTION_DURATION.toLong())
@@ -126,7 +152,14 @@ fun ScannerScreen(
     val rightSoundPlayer = rememberRawSoundPlayer("right")
     val wrongSoundPlayer = rememberRawSoundPlayer("wrong")
 
-    val scannerViewModel: ScannerViewModel = viewModel(factory = ScannerViewModelFactory(ServiceLocator.scannerRepository(context)))
+    // INYECCIÓN ACTUALIZADA CON AUTH REPOSITORY
+    val authRepository = ServiceLocator.authRepository(context)
+    val scannerViewModel: ScannerViewModel = viewModel(
+        factory = ScannerViewModelFactory(
+            ServiceLocator.scannerRepository(context),
+            authRepository
+        )
+    )
     val scannerUiState by scannerViewModel.uiState.collectAsState()
 
     val lotNumber = scannerUiState.scannedLot
@@ -269,6 +302,75 @@ fun ScannerScreen(
         com.ttelectronics.trackiiapp.ui.components.LoadingOverlay(visible = scannerUiState.isValidating)
 
         ScanResultOverlay(visible = showResultOverlay, success = overlaySuccess, message = overlayText)
+
+        // --- PANTALLA ROJA DE SIN INTERNET ---
+        if (networkError) {
+            Box(modifier = Modifier.fillMaxSize().zIndex(20f)) {
+                com.ttelectronics.trackiiapp.ui.components.ScanResultOverlay(
+                    visible = true,
+                    success = false,
+                    message = "Sin conexión a internet.\nRegresando al menú principal..."
+                )
+            }
+        }
+
+        // --- POKA-YOKE: POP-UP DE AUTORIZACIÓN ---
+        if (scannerUiState.isAuthRequired) {
+            var tokenInput by remember { mutableStateOf("") }
+
+            AlertDialog(
+                onDismissRequest = { scannerViewModel.cancelAuthorization() },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Rounded.Warning, contentDescription = null, tint = TTRed, modifier = Modifier.size(28.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Bloqueo de Tiempo", color = TTRed, fontWeight = FontWeight.Bold)
+                    }
+                },
+                text = {
+                    Column {
+                        Text(
+                            text = "Esta orden registró un movimiento hace menos de 1 hora. Necesitas un Token de Autorización para continuar.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TTBlueDark
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        OutlinedTextField(
+                            value = tokenInput,
+                            onValueChange = { tokenInput = it },
+                            label = { Text("Código de Autorización") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+
+                        if (scannerUiState.authError != null) {
+                            Text(
+                                text = scannerUiState.authError!!,
+                                color = TTRed,
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    androidx.compose.material3.Button(
+                        onClick = { scannerViewModel.verifyOverrideToken(tokenInput, taskType) },
+                        colors = ButtonDefaults.buttonColors(containerColor = TTBlue)
+                    ) { Text("Autorizar") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { scannerViewModel.cancelAuthorization() }) {
+                        Text("Cancelar", color = TTRed)
+                    }
+                },
+                containerColor = Color.White,
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.zIndex(30f)
+            )
+        }
     }
 }
 

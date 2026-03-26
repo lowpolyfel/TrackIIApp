@@ -25,6 +25,7 @@ import com.ttelectronics.trackiiapp.ui.screens.WelcomeScreen
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+
 private fun resolvePostRegisterRoute(nextDestination: String?, isLoggedIn: Boolean): String {
     val destination = nextDestination?.trim().orEmpty()
     if (destination.isBlank()) {
@@ -34,12 +35,12 @@ private fun resolvePostRegisterRoute(nextDestination: String?, isLoggedIn: Boole
     return when {
         destination == TrackIIRoute.Welcome || destination == TrackIIRoute.Tasks -> destination
         destination.startsWith("scanner/") ||
-            destination.startsWith("scan-review/") ||
-            destination.startsWith("task/") ||
-            destination.startsWith("rework-release") ||
-            destination.startsWith("scrap-order") ||
-            destination.startsWith("partial-scrap") ||
-            destination.startsWith("product-advance-final-review") -> destination
+                destination.startsWith("scan-review/") ||
+                destination.startsWith("task/") ||
+                destination.startsWith("rework-release") ||
+                destination.startsWith("scrap-order") ||
+                destination.startsWith("partial-scrap") ||
+                destination.startsWith("product-advance-final-review") -> destination
         destination == TaskType.ProductAdvance.route -> TrackIIRoute.scannerRoute(TaskType.ProductAdvance)
         destination == TaskType.TravelSheet.route -> TrackIIRoute.scannerRoute(TaskType.TravelSheet)
         destination == TaskType.CancelOrder.route -> TrackIIRoute.scannerRoute(TaskType.CancelOrder)
@@ -56,7 +57,8 @@ object TrackIIRoute {
     const val Tasks = "tasks"
     const val Scanner = "scanner/{task}"
     const val ScanReview = "scan-review/{task}?lot={lot}&part={part}&ok={ok}&error={error}"
-    const val Task = "task/{task}?lot={lot}&part={part}&qty={qty}"
+    // MODIFICADO: Agregamos difference y comments a Task para preservar el scrap al volver a editar
+    const val Task = "task/{task}?lot={lot}&part={part}&qty={qty}&difference={difference}&comments={comments}"
     const val ReworkRelease = "rework-release?lot={lot}&part={part}"
     const val ScrapOrder = "scrap-order?lot={lot}&part={part}"
     const val PartialScrap = "partial-scrap?lot={lot}&part={part}&difference={difference}&qtyIn={qtyIn}"
@@ -68,8 +70,9 @@ object TrackIIRoute {
         return "scan-review/${task.route}?lot=${Uri.encode(lot)}&part=${Uri.encode(part)}&ok=$ok&error=${Uri.encode(error)}"
     }
 
-    fun taskRoute(task: TaskType, lot: String, part: String, qty: String = ""): String {
-        return "task/${task.route}?lot=${Uri.encode(lot)}&part=${Uri.encode(part)}&qty=${Uri.encode(qty)}"
+    // MODIFICADO: Añadidos los parámetros de preservation
+    fun taskRoute(task: TaskType, lot: String, part: String, qty: String = "", difference: Int = 0, comments: String = ""): String {
+        return "task/${task.route}?lot=${Uri.encode(lot)}&part=${Uri.encode(part)}&qty=${Uri.encode(qty)}&difference=$difference&comments=${Uri.encode(comments)}"
     }
 
     fun reworkReleaseRoute(lot: String, part: String): String {
@@ -106,7 +109,6 @@ fun TrackIINavHost(
         navController = navController,
         startDestination = if (session.isLoggedIn) TrackIIRoute.Welcome else TrackIIRoute.Login,
         modifier = modifier,
-        // Agregamos estas 4 líneas con la duración de 800 milisegundos
         enterTransition = { fadeIn(animationSpec = tween(800)) },
         exitTransition = { fadeOut(animationSpec = tween(800)) },
         popEnterTransition = { fadeIn(animationSpec = tween(800)) },
@@ -126,7 +128,6 @@ fun TrackIINavHost(
                     }
                 },
                 onRegister = {
-                    // Registro siempre corre como flujo anónimo sin bearer o sesión previa.
                     authRepository.logout()
                     navController.navigate(TrackIIRoute.RegisterToken)
                 },
@@ -321,7 +322,8 @@ fun TrackIINavHost(
                     )
                 },
                 onBackToEdit = {
-                    navController.navigate(TrackIIRoute.taskRoute(TaskType.ProductAdvance, lot, part, qtyIn.toString())) {
+                    // Si vuelve a editar piezas desde aquí, no pierde la cantidad
+                    navController.navigate(TrackIIRoute.taskRoute(TaskType.ProductAdvance, lot, part, qtyIn.toString(), difference, "")) {
                         popUpTo(TrackIIRoute.Task) { inclusive = true }
                     }
                 },
@@ -348,6 +350,7 @@ fun TrackIINavHost(
             val errorCodeId = backStackEntry.arguments?.getInt("errorCodeId") ?: 0
             val errorCodeName = backStackEntry.arguments?.getString("errorCodeName").orEmpty()
             val comments = backStackEntry.arguments?.getString("comments").orEmpty()
+
             ProductAdvanceFinalReviewScreen(
                 lotNumber = lot,
                 partNumber = part,
@@ -362,9 +365,15 @@ fun TrackIINavHost(
                         launchSingleTop = true
                     }
                 },
-                onEdit = {
-                    navController.navigate(TrackIIRoute.taskRoute(TaskType.ProductAdvance, lot, part, qtyIn.toString())) {
+                // MODIFICADO: Ahora hay dos botones distintos de edición
+                onEditPieces = {
+                    navController.navigate(TrackIIRoute.taskRoute(TaskType.ProductAdvance, lot, part, qtyIn.toString(), scrap, comments)) {
                         popUpTo(TrackIIRoute.Task) { inclusive = true }
+                    }
+                },
+                onEditScrap = {
+                    navController.navigate(TrackIIRoute.partialScrapRoute(lot, part, scrap, qtyIn)) {
+                        popUpTo(TrackIIRoute.PartialScrap) { inclusive = true }
                     }
                 },
                 onComplete = navigateHome,
@@ -379,6 +388,8 @@ fun TrackIINavHost(
                 navArgument("lot") { defaultValue = "" },
                 navArgument("part") { defaultValue = "" },
                 navArgument("qty") { defaultValue = "" },
+                navArgument("difference") { defaultValue = 0 },
+                navArgument("comments") { defaultValue = "" },
                 navArgument("ok") { defaultValue = true },
                 navArgument("error") { defaultValue = "" }
             )

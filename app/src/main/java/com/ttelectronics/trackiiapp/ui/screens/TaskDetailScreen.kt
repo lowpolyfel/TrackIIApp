@@ -68,6 +68,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -79,6 +80,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ttelectronics.trackiiapp.core.ServiceLocator
@@ -298,14 +300,14 @@ fun TaskDetailScreen(
                                                 BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                                                     val controlWidth = maxWidth * 0.18f
                                                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                                                        SoftActionButton(text = "-", onClick = { vm.adjustProductAdvanceQty(delta = -1) }, modifier = Modifier.width(controlWidth))
+                                                        HoldableActionButton(text = "-", onAction = { delta -> vm.adjustProductAdvanceQty(delta) }, modifier = Modifier.width(controlWidth), isIncrement = false)
                                                         Slider(
                                                             value = sliderValue,
                                                             onValueChange = vm::onProductAdvanceSliderChange,
                                                             valueRange = 0f..sliderRangeMax,
                                                             modifier = Modifier.weight(1f).padding(horizontal = 16.dp)
                                                         )
-                                                        SoftActionButton(text = "+", onClick = { vm.adjustProductAdvanceQty(delta = 1) }, modifier = Modifier.width(controlWidth))
+                                                        HoldableActionButton(text = "+", onAction = { delta -> vm.adjustProductAdvanceQty(delta) }, modifier = Modifier.width(controlWidth), isIncrement = true)
                                                     }
                                                 }
                                             }
@@ -324,7 +326,7 @@ fun TaskDetailScreen(
                             TaskType.TravelSheet -> Unit
                         }
 
-                        PrimaryGlowButton(text = if (uiState.isLoading) "Guardando..." else "Guardar", onClick = {
+                        GreenGlowButton(text = if (uiState.isLoading) "Guardando..." else "Guardar", onClick = {
                             if (taskType == TaskType.ProductAdvance) {
                                 vm.prepareProductAdvanceRegistration(workOrderNumber = lotNumber, locationName = auth.locationName)
                             } else {
@@ -370,6 +372,7 @@ fun TaskDetailScreen(
         }
     }
 }
+
 
 // =========================================================================================
 
@@ -456,7 +459,7 @@ private fun SnakeRouteCircle(step: TimelineStepData) {
     }
     val pulse = if (step.state == StepState.CURRENT) {
         val transition = rememberInfiniteTransition(label = "pulse")
-        transition.animateFloat(initialValue = 1f, targetValue = 1.15f, animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse), label="p").value
+        transition.animateFloat(initialValue = 1f, targetValue = 1.15f, animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "pulse").value
     } else 1f
 
     Box(
@@ -613,4 +616,83 @@ private fun formatRouteName(rawRouteName: String?): String? {
     val routeName = rawRouteName?.trim().orEmpty()
     if (routeName.isBlank()) return null
     return if (routeName.matches(Regex("^\\d+$")) || routeName.matches(Regex("^paso\\s*\\d+$", RegexOption.IGNORE_CASE))) null else routeName
+}
+@Composable
+fun HoldableActionButton(
+    text: String,
+    onAction: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    isIncrement: Boolean
+) {
+    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+    val baseDelta = if (isIncrement) 1 else -1
+
+    androidx.compose.material3.Button(
+        onClick = { },
+        modifier = modifier.pointerInput(Unit) {
+            detectTapGestures(
+                onPress = {
+                    val job = coroutineScope.launch {
+                        var elapsedMs = 0L
+                        while(true) {
+                            if (elapsedMs == 0L) {
+                                onAction(baseDelta) // Click normal +/- 1
+                                kotlinx.coroutines.delay(500)
+                                elapsedMs += 500
+                            } else if (elapsedMs < 1000L) {
+                                onAction(baseDelta * 5) // Medio segundo a 1s
+                                kotlinx.coroutines.delay(200)
+                                elapsedMs += 200
+                            } else if (elapsedMs < 4000L) {
+                                onAction(baseDelta * 100) // 1 a 4 segundos: de 100 en 100
+                                kotlinx.coroutines.delay(500)
+                                elapsedMs += 500
+                            } else {
+                                onAction(baseDelta * 400) // Más de 4 segundos: de 400 en 400
+                                kotlinx.coroutines.delay(500)
+                                elapsedMs += 500
+                            }
+                        }
+                    }
+                    tryAwaitRelease()
+                    job.cancel()
+                }
+            )
+        },
+        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+            containerColor = TTBlue,
+            disabledContainerColor = Color.Gray.copy(alpha = 0.5f)
+        ),
+        shape = RoundedCornerShape(12.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
+    ) {
+        Text(text = text, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+    }
+}
+
+@Composable
+fun GreenGlowButton(
+    text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true
+) {
+    val transition = rememberInfiniteTransition(label = "buttonGlow")
+    val pulseAlpha by transition.animateFloat(
+        initialValue = 0.15f, targetValue = 0.45f, animationSpec = infiniteRepeatable(tween(2000), RepeatMode.Reverse), label = "pulseAlpha"
+    )
+    val gradient = Brush.linearGradient(
+        colors = listOf(Color(0xFF00C853), Color(0xFF64DD17), Color(0xFF00C853)),
+        start = Offset(0f, 0f), end = Offset(400f, 0f)
+    )
+    Box(modifier = modifier) {
+        Box(modifier = Modifier.matchParentSize().clip(RoundedCornerShape(20.dp)).background(Color(0xFF64DD17).copy(alpha = pulseAlpha)))
+        androidx.compose.material3.Button(
+            onClick = onClick, enabled = enabled, modifier = Modifier.fillMaxWidth().height(56.dp),
+            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+            shape = RoundedCornerShape(20.dp), contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(20.dp)).background(if(enabled) gradient else Brush.linearGradient(listOf(Color.Gray, Color.Gray))),
+                contentAlignment = Alignment.Center
+            ) { Text(text = text, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color.White) }
+        }
+    }
 }

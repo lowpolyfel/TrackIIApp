@@ -6,6 +6,8 @@ import com.ttelectronics.trackiiapp.data.local.SecureTokenStore
 import com.ttelectronics.trackiiapp.data.network.ApiClient
 import com.ttelectronics.trackiiapp.data.repository.AuthRepository
 import com.ttelectronics.trackiiapp.data.repository.ScannerRepository
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 
 object ServiceLocator {
     @Volatile private var authRepository: AuthRepository? = null
@@ -35,5 +37,16 @@ object ServiceLocator {
         val appSession = AppSession(context)
         val client = ApiClient(tokenStore)
         return ScannerRepository(client.scannerApiService, appSession)
+    }
+}
+fun isNetworkAvailable(context: Context): Boolean {
+    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val network = connectivityManager.activeNetwork ?: return false
+    val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false
+    return when {
+        activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
+        activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
+        activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
+        else -> false
     }
 }

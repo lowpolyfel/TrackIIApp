@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.ttelectronics.trackiiapp.R
 import com.ttelectronics.trackiiapp.data.models.enums.WipStatus
 import com.ttelectronics.trackiiapp.data.network.ApiErrorParser
+import com.ttelectronics.trackiiapp.data.repository.AuthRepository
 import com.ttelectronics.trackiiapp.data.repository.ScannerRepository
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +26,12 @@ data class ScannerUiState(
     val isLotFound: Boolean = false,
     val isPartFound: Boolean = false,
     val scannedLot: String = "",
-    val scannedPart: String = ""
+    val scannedPart: String = "",
+    // VARIABLES DEL POKA-YOKE
+    val isAuthRequired: Boolean = false,
+    val authError: String? = null,
+    val pendingLot: String = "",
+    val pendingPart: String = ""
 )
 
 enum class ScannerNavigationTarget {
@@ -34,7 +40,10 @@ enum class ScannerNavigationTarget {
     ReworkRelease
 }
 
-class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewModel() {
+class ScannerViewModel(
+    private val scannerRepository: ScannerRepository,
+    private val authRepository: AuthRepository // INYECTADO PARA VALIDAR TOKENS
+) : ViewModel() {
     private val lotRegex = Regex("^[0-9]{7}$")
     private val partRegex = Regex("^[A-Z0-9\\-]{6,25}$")
 
@@ -155,7 +164,7 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                 _uiState.update {
                     it.copy(
                         isValidating = false,
-                        isProductFound = false, // false dispara la pantalla de error roja
+                        isProductFound = false,
                         shouldNavigate = true,
                         navigationTarget = ScannerNavigationTarget.ScanReview,
                         validationError = R.string.error_order_not_found_for_part,
@@ -165,9 +174,7 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                 return@launch
             }
 
-            // NUEVO: Validar localidad antes de avanzar producto
             if (taskType == TaskType.ProductAdvance) {
-                // Obtenemos el ID real del dispositivo desde el repositorio
                 val deviceId = scannerRepository.getCurrentDeviceId()
 
                 runCatching { scannerRepository.validateAdvanceLocation(lotNumber, partNumber, deviceId) }
@@ -175,7 +182,7 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                         _uiState.update {
                             it.copy(
                                 isValidating = false,
-                                isProductFound = false, // Dispara la pantalla roja
+                                isProductFound = false,
                                 shouldNavigate = true,
                                 navigationTarget = ScannerNavigationTarget.ScanReview,
                                 customValidationMessage = ApiErrorParser.readableError(ex) ?: "La orden no pertenece a esta localidad."
@@ -185,12 +192,26 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                     }
             }
 
-            // 2. Validar el estado del lote para bloquear visualmente el escáner
             runCatching { scannerRepository.validateRework(lotNumber) }
                 .onSuccess { response ->
                     val status = parseWipStatus(response.status)
 
-                    // NUEVO: Bloquear Scrap si no ha empezado (status ERROR o no válido)
+                    // POKA-YOKE DE 1 HORA (Solo si es Avance de Producto y no está en ERROR/No empezada)
+                    if (taskType == TaskType.ProductAdvance && status != WipStatus.ERROR) {
+                        if (isWithinOneHour(response.updatedAt)) {
+                            _uiState.update {
+                                it.copy(
+                                    isValidating = false,
+                                    isAuthRequired = true,
+                                    pendingLot = lotNumber,
+                                    pendingPart = partNumber
+                                )
+                            }
+                            return@onSuccess
+                        }
+                    }
+
+                    // Bloquear Scrap si no ha empezado
                     if (taskType == TaskType.CancelOrder && status == WipStatus.ERROR) {
                         _uiState.update {
                             it.copy(
@@ -205,12 +226,11 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                     }
 
                     if (taskType == TaskType.ProductAdvance) {
-                        // REGLA: Si quiere avanzar pero está Terminada, Cancelada (Scrapped) o en Retrabajo (Hold)
                         if (status == WipStatus.FINISHED || status == WipStatus.SCRAPPED || status == WipStatus.HOLD) {
                             _uiState.update {
                                 it.copy(
                                     isValidating = false,
-                                    isProductFound = false, // Bloquea el avance y lanza sonido de error
+                                    isProductFound = false,
                                     shouldNavigate = true,
                                     navigationTarget = ScannerNavigationTarget.ScanReview,
                                     customValidationMessage = "No se puede avanzar. La orden está: ${status.toSpanish()}."
@@ -220,7 +240,6 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                         }
 
                     } else if (taskType == TaskType.CancelOrder) {
-                        // REGLA: Si quiere desechar pero ya estaba Terminada o Desechada
                         if (status == WipStatus.FINISHED || status == WipStatus.SCRAPPED) {
                             _uiState.update {
                                 it.copy(
@@ -235,7 +254,6 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                         }
                     }
 
-                    // Si todo está bien (ej. status ACTIVE), la dejamos pasar a la pantalla de captura
                     _uiState.update {
                         it.copy(
                             isValidating = false,
@@ -246,9 +264,7 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                     }
                 }
                 .onFailure {
-                    // IMPORTANTE: Si cae aquí (error 404), la orden AÚN NO EMPIEZA.
                     if (taskType == TaskType.ProductAdvance) {
-                        // Para Avanzar Producto, ESTO ES CORRECTO, porque es una orden nueva. La dejamos pasar.
                         _uiState.update {
                             it.copy(
                                 isValidating = false,
@@ -258,11 +274,10 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                             )
                         }
                     } else if (taskType == TaskType.CancelOrder) {
-                        // Para Scrap, NO PUEDES desechar algo que no ha empezado. Se bloquea.
                         _uiState.update {
                             it.copy(
                                 isValidating = false,
-                                isProductFound = false, // Bloquea el avance
+                                isProductFound = false,
                                 shouldNavigate = true,
                                 navigationTarget = ScannerNavigationTarget.ScanReview,
                                 customValidationMessage = "No se puede cancelar una orden que aún no empieza."
@@ -336,7 +351,6 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                                 )
                             }
                         }
-
                         WipStatus.HOLD -> {
                             _uiState.update {
                                 it.copy(
@@ -347,7 +361,6 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                                 )
                             }
                         }
-
                         WipStatus.FINISHED, WipStatus.SCRAPPED -> {
                             _uiState.update {
                                 it.copy(
@@ -358,7 +371,6 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                                 )
                             }
                         }
-
                         else -> {
                             _uiState.update {
                                 it.copy(
@@ -407,13 +419,61 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
 
     private fun requiredStableReads(): Int = 4
 
-    // Extensión para traducir los estados y que los errores salgan en español correcto
     fun WipStatus.toSpanish(): String = when(this) {
         WipStatus.ACTIVE -> "Activa"
         WipStatus.HOLD -> "en Retrabajo"
         WipStatus.FINISHED -> "Finalizada"
         WipStatus.SCRAPPED -> "Cancelada"
         WipStatus.ERROR -> "con Error"
+    }
+
+    // --- FUNCIONES POKA-YOKE Y TOKEN ---
+
+    private fun isWithinOneHour(updatedAtStr: String?): Boolean {
+        if (updatedAtStr.isNullOrBlank()) return false
+        return try {
+            val cleanDateStr = updatedAtStr.replace("T", " ").substringBefore(".")
+            val formatter = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+            val lastUpdateDate = formatter.parse(cleanDateStr) ?: return false
+            val diffHours = (java.util.Date().time - lastUpdateDate.time) / (1000.0 * 60 * 60)
+            diffHours in 0.0..1.0
+        } catch (e: Exception) { false }
+    }
+
+    fun verifyOverrideToken(token: String, taskType: TaskType) {
+        if (token.isBlank()) {
+            _uiState.update { it.copy(authError = "El token no puede estar vacío") }
+            return
+        }
+        viewModelScope.launch {
+            try {
+                // CORRECCIÓN: Usamos validateToken en lugar de verifyToken
+                val result = authRepository.validateToken(token)
+
+                // CORRECCIÓN: Verificamos que la llamada fue exitosa Y que el token es válido (true)
+                if (result.isSuccess && result.getOrDefault(false)) {
+                    _uiState.update {
+                        it.copy(
+                            isAuthRequired = false,
+                            authError = null,
+                            isValidating = false,
+                            isProductFound = true,
+                            shouldNavigate = true,
+                            navigationTarget = ScannerNavigationTarget.ScanReview
+                        )
+                    }
+                } else {
+                    _uiState.update { it.copy(authError = "Token inválido o expirado") }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(authError = "Error al conectar con el servidor") }
+            }
+        }
+    }
+
+    fun cancelAuthorization() {
+        _uiState.update { it.copy(isAuthRequired = false, authError = null, pendingLot = "", pendingPart = "", isValidating = false) }
+        resetScan()
     }
 }
 
@@ -426,6 +486,9 @@ private data class StableScanState(val candidate: String = "", val count: Int = 
     fun clear(): StableScanState = if (candidate.isEmpty() && count == 0) this else StableScanState(lastAcceptedAt = lastAcceptedAt)
 }
 
-class ScannerViewModelFactory(private val scannerRepository: ScannerRepository) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T = ScannerViewModel(scannerRepository) as T
+class ScannerViewModelFactory(
+    private val scannerRepository: ScannerRepository,
+    private val authRepository: AuthRepository
+) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T = ScannerViewModel(scannerRepository, authRepository) as T
 }

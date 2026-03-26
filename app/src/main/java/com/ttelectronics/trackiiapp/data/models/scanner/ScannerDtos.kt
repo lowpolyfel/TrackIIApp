@@ -116,9 +116,9 @@ data class ReworkValidationResponse(
     @SerializedName("exists") val exists: Boolean? = null,
     @SerializedName("status") val status: String? = null,
     @SerializedName("workOrderNumber") val workOrderNumber: String? = null,
-    @SerializedName("message") val message: String? = null
+    @SerializedName("message") val message: String? = null,
+    @SerializedName("updatedAt") val updatedAt: String? = null // NUEVO: Para el Poka-yoke de 1 hora
 )
-
 
 data class ReleaseWipItemResponse(
     @SerializedName("success") val success: Boolean? = null,

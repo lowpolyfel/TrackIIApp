@@ -14,6 +14,12 @@ import com.ttelectronics.trackiiapp.data.repository.AuthRepository
 import com.ttelectronics.trackiiapp.data.repository.ScannerRepository
 import com.ttelectronics.trackiiapp.domain.scanner.ProductAdvanceScanPolicy
 import com.ttelectronics.trackiiapp.ui.navigation.TaskType
+import java.time.Duration
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,7 +41,12 @@ data class TaskDetailUiState(
     val pendingQtyIn: Int = 0,
     val pendingReady: Boolean = false,
     val showQtyErrorOverlay: Boolean = false,
-    val qtyErrorText: String = ""
+    val qtyErrorText: String = "",
+    val requiresConfirmationCode: Boolean = false,
+    val confirmationCode: String = "",
+    val isValidatingConfirmationCode: Boolean = false,
+    val confirmationValidated: Boolean = false,
+    val confirmationErrorMessage: String? = null
 )
 
 
@@ -176,6 +187,7 @@ class TaskDetailViewModel(
 
                 val fetchedContext = ctxResult.getOrNull()
                 val initialQty = (fetchedContext?.previousQuantity ?: 0).coerceAtLeast(0).toString()
+                val requiresConfirmationCode = shouldRequireConfirmationCode(fetchedContext)
 
                 it.copy(
                     isLoading = false,
@@ -184,10 +196,70 @@ class TaskDetailViewModel(
                     contextInfo = fetchedContext,
                     reworkLocations = locations,
                     selectedReworkLocation = selectedLocation,
-                    qtyInput = if (initialQty == "0" && it.qtyInput.isNotBlank()) it.qtyInput else initialQty
+                    qtyInput = if (initialQty == "0" && it.qtyInput.isNotBlank()) it.qtyInput else initialQty,
+                    requiresConfirmationCode = requiresConfirmationCode,
+                    confirmationCode = "",
+                    confirmationValidated = false,
+                    confirmationErrorMessage = null,
+                    isValidatingConfirmationCode = false
                 )
             }
         }
+    }
+
+    fun onConfirmationCodeChange(value: String) {
+        _uiState.update {
+            it.copy(
+                confirmationCode = value,
+                confirmationErrorMessage = null,
+                confirmationValidated = false
+            )
+        }
+    }
+
+    fun validateConfirmationCode() {
+        val code = _uiState.value.confirmationCode.trim()
+        if (code.isBlank()) {
+            _uiState.update { it.copy(confirmationErrorMessage = "Ingresa el código de confirmación.") }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isValidatingConfirmationCode = true, confirmationErrorMessage = null) }
+            authRepository.validateToken(code)
+                .onSuccess { isValid ->
+                    _uiState.update {
+                        it.copy(
+                            isValidatingConfirmationCode = false,
+                            confirmationValidated = isValid,
+                            confirmationErrorMessage = if (isValid) null else "Código inválido. Verifica e inténtalo de nuevo."
+                        )
+                    }
+                }
+                .onFailure { ex ->
+                    _uiState.update {
+                        it.copy(
+                            isValidatingConfirmationCode = false,
+                            confirmationValidated = false,
+                            confirmationErrorMessage = ApiErrorParser.readableError(ex)
+                        )
+                    }
+                }
+        }
+    }
+
+    private fun shouldRequireConfirmationCode(context: WorkOrderContextResponse?): Boolean {
+        if (context?.isNew == true) return false
+
+        val scanInstant = parseServerDate(context?.statusUpdatedAt ?: return false) ?: return false
+        val minutes = Duration.between(scanInstant, Instant.now()).toMinutes()
+        return minutes in 0..60
+    }
+
+    private fun parseServerDate(raw: String): Instant? {
+        return runCatching { Instant.parse(raw) }.getOrNull()
+            ?: runCatching { OffsetDateTime.parse(raw).toInstant() }.getOrNull()
+            ?: runCatching { LocalDateTime.parse(raw, DateTimeFormatter.ISO_LOCAL_DATE_TIME).toInstant(ZoneOffset.UTC) }.getOrNull()
     }
 
     fun saveScan(

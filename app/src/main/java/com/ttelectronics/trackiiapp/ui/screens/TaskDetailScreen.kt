@@ -1,7 +1,18 @@
 package com.ttelectronics.trackiiapp.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlinx.coroutines.launch
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -171,6 +182,19 @@ fun TaskDetailScreen(
         previousLocationName = ctx?.currentStepName ?: "Sin localidad previa", nextLocationName = nextLoc
     )
 
+    // Calculamos el timeline aquí arriba para poder compartirlo con el dashboard
+    val timelineSteps = ctx?.timeline?.map { dto ->
+        TimelineStepData(
+            locationName = dto.locationName,
+            statusText = when (dto.state) { "DONE" -> "Completado" "CURRENT" -> "En proceso" "CANCELLED" -> "Cancelada / Scrap" else -> "Pendiente" },
+            pieces = dto.pieces,
+            scrap = dto.scrap,
+            errorCode = dto.errorCode,
+            comments = dto.comments,
+            state = when (dto.state) { "DONE" -> StepState.DONE "CURRENT" -> StepState.CURRENT "CANCELLED" -> StepState.CANCELLED else -> StepState.PENDING }
+        )
+    } ?: emptyList()
+
     // Mostrar siempre únicamente Lote y Número de Parte para ahorrar espacio
     val infoItems = listOf(
         InfoItem("No. Lote", lotNumber, Icons.Rounded.Inventory2),
@@ -197,31 +221,17 @@ fun TaskDetailScreen(
                     if (isBlocked && taskType != TaskType.TravelSheet) {
                         OrderStatusBanner(orderStatus, wipStatus, ctx?.statusUpdatedAt, ctx?.currentStepName)
                         Spacer(modifier = Modifier.height(8.dp))
-                        SoftActionButton(text = "Volver al Menú", onClick = onBack, modifier = Modifier.fillMaxWidth())
 
                     } else if (taskType == TaskType.TravelSheet) {
                         if (isBlocked) OrderStatusBanner(orderStatus, wipStatus, ctx?.statusUpdatedAt, ctx?.currentStepName)
 
                         Text(text = "Historial de Ruta", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = TTBlueDark, modifier = Modifier.padding(horizontal = 8.dp).padding(top = 8.dp))
 
-                        val timelineSteps = ctx?.timeline?.map { dto ->
-                            TimelineStepData(
-                                locationName = dto.locationName,
-                                statusText = when (dto.state) { "DONE" -> "Completado" "CURRENT" -> "En proceso" "CANCELLED" -> "Cancelada / Scrap" else -> "Pendiente" },
-                                pieces = dto.pieces,
-                                scrap = dto.scrap,
-                                errorCode = dto.errorCode,
-                                comments = dto.comments,
-                                state = when (dto.state) { "DONE" -> StepState.DONE "CURRENT" -> StepState.CURRENT "CANCELLED" -> StepState.CANCELLED else -> StepState.PENDING }
-                            )
-                        } ?: emptyList()
-
-                        TravelSheetTimeline(steps = timelineSteps)
+                        SnakeRouteTimeline(steps = timelineSteps)
                         Spacer(modifier = Modifier.height(8.dp))
-                        SoftActionButton(text = "Volver al Menú", onClick = onBack, modifier = Modifier.fillMaxWidth())
 
                     } else {
-                        ProductRouteDashboard(status = routeStatus, taskType = taskType)
+                        ProductRouteDashboard(status = routeStatus, taskType = taskType, timelineSteps = timelineSteps)
 
                         when (taskType) {
                             TaskType.ProductAdvance -> {
@@ -242,12 +252,6 @@ fun TaskDetailScreen(
                                             Text(text = "Piezas", style = MaterialTheme.typography.labelLarge, color = TTTextSecondary)
                                             TextButton(onClick = {
                                                 manualQtyInput = !manualQtyInput
-                                                if (manualQtyInput) {
-                                                    // NUEVO: Borramos la cantidad para evitar que concatenen por error
-                                                    vm.onProductAdvanceQtyChange("")
-                                                } else {
-                                                    vm.ensureDefaultQtyFromPrevious()
-                                                }
                                             }) {
                                                 Text(text = if (manualQtyInput) "Usar slider" else "Ingresar manual")
                                             }
@@ -283,15 +287,26 @@ fun TaskDetailScreen(
                                             val sliderRangeMax = maxQty.toFloat().coerceAtLeast(1f)
                                             val sliderValue = (uiState.qtyInput.toFloatOrNull() ?: maxQty.toFloat()).coerceIn(0f, sliderRangeMax)
 
-                                            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                                                val controlWidth = maxWidth * 0.2f
-                                                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                    SoftActionButton(text = "-", onClick = { vm.adjustProductAdvanceQty(delta = -1) }, modifier = Modifier.width(controlWidth))
-                                                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                        Text(text = uiState.qtyInput.ifBlank { "0" }, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold), color = TTBlueDark, textAlign = TextAlign.Center)
-                                                        Slider(value = sliderValue, onValueChange = vm::onProductAdvanceSliderChange, valueRange = 0f..sliderRangeMax)
+                                            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                                                Text(
+                                                    text = uiState.qtyInput.ifBlank { "0" },
+                                                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                                                    color = TTBlueDark,
+                                                    textAlign = TextAlign.Center
+                                                )
+                                                Spacer(modifier = Modifier.height(12.dp))
+                                                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                                                    val controlWidth = maxWidth * 0.18f
+                                                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                                        SoftActionButton(text = "-", onClick = { vm.adjustProductAdvanceQty(delta = -1) }, modifier = Modifier.width(controlWidth))
+                                                        Slider(
+                                                            value = sliderValue,
+                                                            onValueChange = vm::onProductAdvanceSliderChange,
+                                                            valueRange = 0f..sliderRangeMax,
+                                                            modifier = Modifier.weight(1f).padding(horizontal = 16.dp)
+                                                        )
+                                                        SoftActionButton(text = "+", onClick = { vm.adjustProductAdvanceQty(delta = 1) }, modifier = Modifier.width(controlWidth))
                                                     }
-                                                    SoftActionButton(text = "+", onClick = { vm.adjustProductAdvanceQty(delta = 1) }, modifier = Modifier.width(controlWidth))
                                                 }
                                             }
                                         }
@@ -316,15 +331,28 @@ fun TaskDetailScreen(
                                 vm.saveScan(taskType = taskType, workOrderNumber = lotNumber, partNumber = partNumber, userId = auth.userId, deviceId = auth.deviceId, locationName = auth.locationName)
                             }
                         }, modifier = Modifier.fillMaxWidth(), enabled = !uiState.isLoading && !uiState.isSubmitting)
-                        SoftActionButton(text = "Volver", onClick = onBack, modifier = Modifier.fillMaxWidth())
                     }
                 }
             }
 
-            FloatingHomeButton(onClick = onHome, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp))
+// Botón de Inicio reubicado arriba a la derecha, más discreto
+            FloatingHomeButton(
+                onClick = onHome,
+                modifier = Modifier.align(Alignment.TopEnd).padding(top = 48.dp, end = 20.dp).scale(0.8f)
+            )
+
+            // Nuevo botón de volver global, circular e inferior izquierdo
+            androidx.compose.material3.FloatingActionButton(
+                onClick = onBack,
+                modifier = Modifier.align(Alignment.BottomStart).padding(24.dp).size(64.dp),
+                containerColor = TTBlue,
+                contentColor = Color.White,
+                shape = CircleShape
+            ) {
+                Icon(imageVector = Icons.Rounded.ArrowBack, contentDescription = "Volver", modifier = Modifier.size(32.dp))
+            }
 
             if (uiState.saveSuccess) { Box(modifier = Modifier.fillMaxSize().zIndex(10f)) { SuccessOverlay(message = "¡Registro completado exitosamente!") } }
-
             // NUEVO: Pantalla Roja en caso de equivocarse escribiendo
             if (uiState.showQtyErrorOverlay) {
                 Box(modifier = Modifier.fillMaxSize().zIndex(15f)) {
@@ -346,91 +374,105 @@ fun TaskDetailScreen(
 // =========================================================================================
 
 @Composable
-private fun TravelSheetTimeline(steps: List<TimelineStepData>) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
-        steps.forEachIndexed { index, step ->
-            val isFirst = index == 0
-            val isLast = index == steps.size - 1
+private fun SnakeRouteTimeline(steps: List<TimelineStepData>) {
+    val columns = 3
+    Box(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)) {
+        // Líneas de fondo dibujadas con Canvas para hacer el efecto serpiente (S-shape)
+        Canvas(modifier = Modifier.matchParentSize()) {
+            val xStep = size.width / columns
+            val yStep = 90.dp.toPx() // Altura de cada fila
 
-            // Estado para expandir la tarjeta si está cancelada
-            var expanded by remember { mutableStateOf(false) }
+            for (i in 0 until steps.size - 1) {
+                val startRow = i / columns
+                val startCol = if (startRow % 2 == 0) i % columns else columns - 1 - (i % columns)
+                val endRow = (i + 1) / columns
+                val endCol = if (endRow % 2 == 0) (i + 1) % columns else columns - 1 - ((i + 1) % columns)
 
-            Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxHeight().width(32.dp)) {
-                    Box(modifier = Modifier.width(2.dp).height(24.dp).background(if (isFirst) Color.Transparent else if (step.state == StepState.PENDING) Color.LightGray else TTBlue.copy(alpha = 0.5f)))
-                    Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .background(color = when (step.state) { StepState.DONE -> TTGreen.copy(alpha = 0.2f); StepState.CURRENT -> TTBlue.copy(alpha = 0.2f); StepState.CANCELLED -> TTRed.copy(alpha = 0.1f); StepState.PENDING -> Color.White }, shape = CircleShape)
-                            .border(width = 2.dp, color = when (step.state) { StepState.DONE -> TTGreen; StepState.CURRENT -> TTBlue; StepState.CANCELLED -> TTRed; StepState.PENDING -> Color.LightGray }, shape = CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (step.state == StepState.DONE) {
-                            Icon(imageVector = Icons.Rounded.CheckCircle, contentDescription = null, tint = TTGreen, modifier = Modifier.size(16.dp))
-                        } else if (step.state == StepState.CANCELLED) {
-                            Icon(imageVector = Icons.Rounded.Cancel, contentDescription = null, tint = TTRed, modifier = Modifier.size(16.dp))
-                        } else if (step.state == StepState.CURRENT) {
-                            val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-                            val pulse by infiniteTransition.animateFloat(initialValue = 0.6f, targetValue = 1f, animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "pulse")
-                            Box(modifier = Modifier.size(10.dp).scale(pulse).background(TTBlue, CircleShape))
-                        }
-                    }
-                    Box(modifier = Modifier.width(2.dp).weight(1f).background(if (isLast) Color.Transparent else if (step.state == StepState.DONE || step.state == StepState.CANCELLED) TTBlue.copy(alpha = 0.5f) else Color.LightGray))
-                }
+                val startX = (startCol + 0.5f) * xStep
+                val startY = (startRow + 0.5f) * yStep
+                val endX = (endCol + 0.5f) * xStep
+                val endY = (endRow + 0.5f) * yStep
 
-                Card(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 12.dp, bottom = 16.dp)
-                        .then(if (step.state == StepState.CANCELLED) Modifier.clickable { expanded = !expanded } else Modifier),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = if (step.state == StepState.CANCELLED) TTRed.copy(alpha = 0.05f) else Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = if (step.state == StepState.CURRENT || step.state == StepState.CANCELLED) 6.dp else 1.dp),
-                    border = when (step.state) {
-                        StepState.CURRENT -> BorderStroke(2.dp, TTGreen.copy(alpha = 0.6f))
-                        StepState.CANCELLED -> BorderStroke(2.dp, TTRed.copy(alpha = 0.6f))
-                        else -> BorderStroke(1.dp, Color.Black.copy(alpha = 0.05f))
-                    }
+                val lineColor = if (steps[i].state == StepState.DONE || steps[i].state == StepState.CURRENT)
+                    TTGreen else TTBlue.copy(alpha = 0.3f)
+
+                drawLine(
+                    color = lineColor,
+                    start = Offset(startX, startY),
+                    end = Offset(endX, endY),
+                    strokeWidth = 10f,
+                    cap = StrokeCap.Round
+                )
+            }
+        }
+
+        // Nodos encima de las líneas
+        Column(modifier = Modifier.fillMaxWidth()) {
+            val chunked = steps.chunked(columns)
+            chunked.forEachIndexed { rowIndex, chunk ->
+                val isEven = rowIndex % 2 == 0
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(90.dp),
+                    horizontalArrangement = Arrangement.SpaceAround,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(if (step.state == StepState.CURRENT) Brush.linearGradient(listOf(TTGreenTint, Color.White)) else Brush.linearGradient(listOf(Color.Transparent, Color.Transparent)))
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = step.locationName, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = if (step.state == StepState.CURRENT) TTGreen else if (step.state == StepState.CANCELLED) TTRed else MaterialTheme.colorScheme.onSurface)
-                            Text(text = step.statusText, style = MaterialTheme.typography.labelSmall.copy(fontWeight = if (step.state == StepState.CURRENT || step.state == StepState.CANCELLED) FontWeight.Bold else FontWeight.Normal), color = when (step.state) { StepState.DONE, StepState.CURRENT -> TTGreen; StepState.CANCELLED -> TTRed; StepState.PENDING -> Color.Gray })
-                        }
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Column {
-                                Text("Piezas procesadas", style = MaterialTheme.typography.labelSmall, color = TTTextSecondary)
-                                Text(step.pieces, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
-                            }
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text("Scrap", style = MaterialTheme.typography.labelSmall, color = TTTextSecondary)
-                                Text(text = step.scrap, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold), color = if (step.scrap != "0" && step.scrap != "-") TTRed else MaterialTheme.colorScheme.onSurface)
+                    val items = if (isEven) chunk else chunk.reversed()
+                    if (!isEven && chunk.size < columns) {
+                        repeat(columns - chunk.size) { Spacer(modifier = Modifier.weight(1f)) }
+                    }
+                    items.forEach { step ->
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                SnakeRouteCircle(step = step)
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = step.locationName,
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = TTBlueDark,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 2,
+                                    modifier = Modifier.padding(horizontal = 4.dp)
+                                )
                             }
                         }
-
-                        // 🔥 DETALLES DE CANCELACIÓN (Se expanden al dar clic)
-                        AnimatedVisibility(visible = expanded && step.state == StepState.CANCELLED) {
-                            Column(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
-                                androidx.compose.material3.HorizontalDivider(color = TTRed.copy(alpha = 0.2f), modifier = Modifier.padding(bottom = 8.dp))
-                                Text("Motivo de Falla:", style = MaterialTheme.typography.labelSmall, color = TTRed)
-                                Text(step.errorCode ?: "Motivo desconocido", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
-
-                                if (!step.comments.isNullOrBlank()) {
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text("Comentarios del operador:", style = MaterialTheme.typography.labelSmall, color = TTRed)
-                                    Text(step.comments, style = MaterialTheme.typography.bodyMedium)
-                                }
-                            }
-                        }
+                    }
+                    if (isEven && chunk.size < columns) {
+                        repeat(columns - chunk.size) { Spacer(modifier = Modifier.weight(1f)) }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SnakeRouteCircle(step: TimelineStepData) {
+    val size = 46.dp
+    val color = when (step.state) {
+        StepState.DONE -> TTGreen
+        StepState.CURRENT -> TTBlue
+        StepState.CANCELLED -> TTRed
+        StepState.PENDING -> Color.LightGray
+    }
+    val pulse = if (step.state == StepState.CURRENT) {
+        val transition = rememberInfiniteTransition(label = "pulse")
+        transition.animateFloat(initialValue = 1f, targetValue = 1.15f, animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse), label="p").value
+    } else 1f
+
+    Box(
+        modifier = Modifier
+            .size(size)
+            .scale(pulse)
+            .background(Color.White, CircleShape)
+            .border(3.dp, color, CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        if (step.state == StepState.DONE) {
+            Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = TTGreen, modifier = Modifier.size(28.dp))
+        } else if (step.state == StepState.CANCELLED) {
+            Icon(Icons.Rounded.Cancel, contentDescription = null, tint = TTRed, modifier = Modifier.size(28.dp))
+        } else {
+            Text(text = step.pieces.ifBlank { "0" }, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = color)
         }
     }
 }
@@ -458,36 +500,69 @@ private fun OrderStatusBanner(orderStatus: String, wipStatus: String, updatedAt:
 }
 
 @Composable
-private fun ProductRouteDashboard(status: ProductRouteStatus, taskType: TaskType) {
+private fun ProductRouteDashboard(status: ProductRouteStatus, taskType: TaskType, timelineSteps: List<TimelineStepData> = emptyList()) {
     val breath = rememberInfiniteTransition(label = "breath")
     val scale = breath.animateFloat(initialValue = 1f, targetValue = 1.15f, animationSpec = infiniteRepeatable(animation = tween(1500), repeatMode = RepeatMode.Reverse), label = "breathScale").value
+    var showFullRoute by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(TTBlueTint.copy(alpha = 0.5f), Color.White)), shape = RoundedCornerShape(20.dp)).padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        if ((status.isStarted || status.isEligible) && taskType != TaskType.Rework) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(imageVector = if (status.isEligible) Icons.Rounded.CheckCircle else Icons.Rounded.Error, contentDescription = null, tint = if (status.isEligible) TTGreen else TTRed, modifier = Modifier.size(22.dp))
-                Text(text = if (status.isEligible) "Producto en ruta correcta" else "Fuera de ruta / Acción inválida", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = if (status.isEligible) TTGreen else TTRed)
+
+        AnimatedVisibility(
+            visible = showFullRoute,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("Ruta Completa", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = TTBlueDark)
+                    TextButton(onClick = { showFullRoute = false }) { Text("Ocultar") }
+                }
+                SnakeRouteTimeline(steps = timelineSteps)
             }
         }
-        val showNewOrder = !status.isStarted
-        if (showNewOrder) { Text("Esta orden se abrirá por primera vez", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold), color = TTTextSecondary, textAlign = TextAlign.Center) } else { Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = TTBlue.copy(alpha = 0.1f))) { Text(text = "Localidad actual: ${status.currentLocationName}", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), color = TTBlueDark, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) } }
-        val node1Label = if (showNewOrder) "Localidad inicial" else "Localidad previa"
-        val node1Value = if (showNewOrder) status.currentLocationName else status.previousLocationName
-        val node2Label = if (showNewOrder) "Localidad destino" else "Siguiente localidad"
-        val node2Value = status.nextLocationName
 
-        Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Box(modifier = Modifier.fillMaxWidth(0.5f).height(4.dp).background(brush = Brush.horizontalGradient(colors = listOf(if (showNewOrder) TTGreen.copy(alpha = 0.6f) else TTBlue.copy(alpha = 0.3f), if (!showNewOrder) TTGreen.copy(alpha = 0.6f) else TTBlue.copy(alpha = 0.3f))), shape = RoundedCornerShape(2.dp)))
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) { RouteCircle(value = node1Value, isCurrent = showNewOrder, scale = if (showNewOrder) scale else 0.85f) }
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) { RouteCircle(value = node2Value, isCurrent = !showNewOrder, scale = if (!showNewOrder) scale else 0.85f) }
+        if (!showFullRoute) {
+            if ((status.isStarted || status.isEligible) && taskType != TaskType.Rework) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(imageVector = if (status.isEligible) Icons.Rounded.CheckCircle else Icons.Rounded.Error, contentDescription = null, tint = if (status.isEligible) TTGreen else TTRed, modifier = Modifier.size(22.dp))
+                    Text(text = if (status.isEligible) "Producto en ruta correcta" else "Fuera de ruta / Acción inválida", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = if (status.isEligible) TTGreen else TTRed)
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-                Text(text = node1Label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = TTTextSecondary, textAlign = TextAlign.Center)
-                Text(text = node2Label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = TTTextSecondary, textAlign = TextAlign.Center)
+
+            val showNewOrder = !status.isStarted
+            if (showNewOrder) {
+                Text("Esta orden se abrirá por primera vez", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold), color = TTTextSecondary, textAlign = TextAlign.Center)
+            } else {
+                Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = TTBlue.copy(alpha = 0.1f))) {
+                    Text(text = "Localidad actual: ${status.currentLocationName}", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), color = TTBlueDark, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                }
+            }
+
+            val prevLoc = if (showNewOrder) "Inicio" else status.previousLocationName
+            val currLoc = status.currentLocationName
+            val nextLoc = status.nextLocationName
+
+            Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.fillMaxWidth(0.66f).height(4.dp).background(brush = Brush.horizontalGradient(colors = listOf(TTBlue.copy(alpha = 0.3f), TTGreen.copy(alpha = 0.6f), TTBlue.copy(alpha = 0.3f))), shape = RoundedCornerShape(2.dp)))
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) { RouteCircle(value = prevLoc, isCurrent = false, scale = 0.85f) }
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) { RouteCircle(value = currLoc, isCurrent = true, scale = scale) }
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) { RouteCircle(value = nextLoc, isCurrent = false, scale = 0.85f) }
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+                    Text(text = "Anterior", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = TTTextSecondary, textAlign = TextAlign.Center)
+                    Text(text = "Actual", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = TTTextSecondary, textAlign = TextAlign.Center)
+                    Text(text = "Siguiente", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = TTTextSecondary, textAlign = TextAlign.Center)
+                }
+            }
+
+            if (timelineSteps.isNotEmpty() && taskType != TaskType.TravelSheet) {
+                TextButton(onClick = { showFullRoute = true }) {
+                    Text("Ver ruta completa", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                }
             }
         }
     }
@@ -519,9 +594,17 @@ private fun InfoGrid(items: List<InfoItem>) {
 @Composable
 private fun InfoTile(title: String, value: String, icon: ImageVector, modifier: Modifier = Modifier) {
     Card(modifier = modifier, shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
-        Column(modifier = Modifier.background(Brush.linearGradient(listOf(TTGreenTint, Color.White))).padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { Icon(imageVector = icon, contentDescription = null, tint = TTGreen, modifier = Modifier.size(18.dp)); Text(text = title, style = MaterialTheme.typography.labelLarge, color = TTTextSecondary) }
-            Text(text = value, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.onSurface)
+        Column(
+            modifier = Modifier.background(Brush.linearGradient(listOf(TTGreenTint, Color.White))).padding(14.dp).fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                Icon(imageVector = icon, contentDescription = null, tint = TTGreen, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(text = title, style = MaterialTheme.typography.labelLarge, color = TTTextSecondary)
+            }
+            Text(text = value, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = TTBlueDark, textAlign = TextAlign.Center)
         }
     }
 }

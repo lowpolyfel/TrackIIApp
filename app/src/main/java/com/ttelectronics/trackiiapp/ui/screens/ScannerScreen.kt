@@ -86,7 +86,7 @@ private const val SCAN_WINDOW_LEFT = 0f
 private const val SCAN_WINDOW_TOP = 0f
 private const val SCAN_WINDOW_RIGHT = 1f
 private const val SCAN_WINDOW_BOTTOM = 1f
-private const val INSTRUCTION_DURATION = 3000
+private const val INSTRUCTION_DURATION = 1500 // Cambiado a 1.5 segundos
 private const val SHEET_LOOP_DURATION_MS = 2500
 
 @OptIn(ExperimentalGetImage::class)
@@ -182,11 +182,11 @@ fun ScannerScreen(
                     } else {
                         overlaySuccess = false
                         overlayText = scannerUiState.customValidationMessage
-                            ?: validationErrorText // <-- USAMOS LA VARIABLE YA EXTRAÍDA
+                            ?: validationErrorText
                                     ?: orderNotFoundText
                         showResultOverlay = true
                         wrongSoundPlayer.play()
-                        delay(1300)
+                        delay(3000) // Cambiado a 3 segundos para que la alerta roja dure más
                         onComplete(lotNumber, normalizedPartNumber, false, overlayText)
                     }
                 }

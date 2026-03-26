@@ -213,11 +213,12 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
                                     isProductFound = false, // Bloquea el avance y lanza sonido de error
                                     shouldNavigate = true,
                                     navigationTarget = ScannerNavigationTarget.ScanReview,
-                                    customValidationMessage = "No se puede avanzar. La orden está en estado: $status"
+                                    customValidationMessage = "No se puede avanzar. La orden está: ${status.toSpanish()}."
                                 )
                             }
                             return@onSuccess
                         }
+
                     } else if (taskType == TaskType.CancelOrder) {
                         // REGLA: Si quiere desechar pero ya estaba Terminada o Desechada
                         if (status == WipStatus.FINISHED || status == WipStatus.SCRAPPED) {
@@ -405,6 +406,15 @@ class ScannerViewModel(private val scannerRepository: ScannerRepository) : ViewM
         value.trim().uppercase().replace("\\s+".toRegex(), "")
 
     private fun requiredStableReads(): Int = 4
+
+    // Extensión para traducir los estados y que los errores salgan en español correcto
+    fun WipStatus.toSpanish(): String = when(this) {
+        WipStatus.ACTIVE -> "Activa"
+        WipStatus.HOLD -> "en Retrabajo"
+        WipStatus.FINISHED -> "Finalizada"
+        WipStatus.SCRAPPED -> "Cancelada"
+        WipStatus.ERROR -> "con Error"
+    }
 }
 
 private data class StableScanState(val candidate: String = "", val count: Int = 0, val lastAcceptedAt: Long = 0L) {

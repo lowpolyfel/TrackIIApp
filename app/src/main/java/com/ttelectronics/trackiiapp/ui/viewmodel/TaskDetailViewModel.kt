@@ -251,7 +251,14 @@ class TaskDetailViewModel(
     private fun shouldRequireConfirmationCode(context: WorkOrderContextResponse?): Boolean {
         if (context?.isNew == true) return false
 
-        val scanInstant = parseServerDate(context?.statusUpdatedAt ?: return false) ?: return false
+        val latestPreviousScanRaw = listOf(
+            context?.previousWipScannedAt,
+            context?.previousStepScannedAt,
+            context?.lastScannedAt,
+            context?.statusUpdatedAt
+        ).firstOrNull { !it.isNullOrBlank() } ?: return false
+
+        val scanInstant = parseServerDate(latestPreviousScanRaw) ?: return false
         val minutes = Duration.between(scanInstant, Instant.now()).toMinutes()
         return minutes in 0..60
     }

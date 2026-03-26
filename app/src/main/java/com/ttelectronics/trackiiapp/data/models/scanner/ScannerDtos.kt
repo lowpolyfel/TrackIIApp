@@ -21,6 +21,18 @@ data class WorkOrderContextResponse(
     @SerializedName("orderStatus") val orderStatus: String? = null,
     @SerializedName("wipStatus") val wipStatus: String? = null,
     @SerializedName("statusUpdatedAt") val statusUpdatedAt: String? = null,
+    @SerializedName(
+        value = "previousStepScannedAt",
+        alternate = ["previousStepScanAt", "previousStepScanDate", "lastPreviousStepScanAt"]
+    ) val previousStepScannedAt: String? = null,
+    @SerializedName(
+        value = "previousWipScannedAt",
+        alternate = ["previousWipScanAt", "previousWipScanDate", "lastPreviousWipScanAt"]
+    ) val previousWipScannedAt: String? = null,
+    @SerializedName(
+        value = "lastScannedAt",
+        alternate = ["lastScanAt", "scannedAt"]
+    ) val lastScannedAt: String? = null,
     @SerializedName("previousQuantity") val previousQuantity: Int? = null,
     @SerializedName("currentStepNumber") val currentStepNumber: Int? = null,
     @SerializedName("currentStepName") val currentStepName: String? = null,

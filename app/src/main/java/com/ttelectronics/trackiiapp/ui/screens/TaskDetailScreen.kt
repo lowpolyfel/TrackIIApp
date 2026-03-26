@@ -355,7 +355,7 @@ fun TaskDetailScreen(
                     text = {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text(
-                                "Esta hoja viajera fue escaneada hace menos de 1 hora en el paso anterior. Ingresa un código para continuar."
+                                "Esta hoja viajera fue escaneada hace menos de 1 hora en el WIP o paso anterior. Ingresa un código para continuar."
                             )
                             TrackIITextField(
                                 label = "Código de confirmación",

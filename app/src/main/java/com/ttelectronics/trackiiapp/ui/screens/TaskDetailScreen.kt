@@ -43,6 +43,7 @@ import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -135,6 +136,8 @@ fun TaskDetailScreen(
     val uiState by vm.uiState.collectAsState()
 
     var manualQtyInput by remember { mutableStateOf(false) }
+    var showConfirmationDialog by remember { mutableStateOf(false) }
+    var pendingProductAdvanceSave by remember { mutableStateOf(false) }
 
     val useDemoProductAdvance = taskType == TaskType.ProductAdvance && DemoMode.isProductAdvanceDemoEnabled()
 
@@ -151,6 +154,13 @@ fun TaskDetailScreen(
             if (uiState.piecesDifference > 0) onNavigateToPartialScrap(uiState.piecesDifference, uiState.pendingQtyIn)
             else onNavigateToFinalReview(uiState.pendingQtyIn, 0)
             vm.clearPendingRegistration()
+        }
+    }
+    LaunchedEffect(uiState.confirmationValidated, pendingProductAdvanceSave) {
+        if (pendingProductAdvanceSave && uiState.confirmationValidated) {
+            pendingProductAdvanceSave = false
+            showConfirmationDialog = false
+            vm.prepareProductAdvanceRegistration(workOrderNumber = lotNumber, locationName = auth.locationName)
         }
     }
 
@@ -316,7 +326,12 @@ fun TaskDetailScreen(
 
                         PrimaryGlowButton(text = if (uiState.isLoading) "Guardando..." else "Guardar", onClick = {
                             if (taskType == TaskType.ProductAdvance) {
-                                vm.prepareProductAdvanceRegistration(workOrderNumber = lotNumber, locationName = auth.locationName)
+                                if (uiState.requiresConfirmationCode && !uiState.confirmationValidated) {
+                                    pendingProductAdvanceSave = true
+                                    showConfirmationDialog = true
+                                } else {
+                                    vm.prepareProductAdvanceRegistration(workOrderNumber = lotNumber, locationName = auth.locationName)
+                                }
                             } else {
                                 vm.saveScan(taskType = taskType, workOrderNumber = lotNumber, partNumber = partNumber, userId = auth.userId, deviceId = auth.deviceId, locationName = auth.locationName)
                             }
@@ -329,6 +344,44 @@ fun TaskDetailScreen(
             FloatingHomeButton(onClick = onHome, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp))
 
             if (uiState.saveSuccess) { Box(modifier = Modifier.fillMaxSize().zIndex(10f)) { SuccessOverlay(message = "¡Registro completado exitosamente!") } }
+
+            if (showConfirmationDialog) {
+                AlertDialog(
+                    onDismissRequest = {
+                        showConfirmationDialog = false
+                        pendingProductAdvanceSave = false
+                    },
+                    title = { Text("Código de confirmación requerido") },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text(
+                                "Esta hoja viajera fue escaneada hace menos de 1 hora en el paso anterior. Ingresa un código para continuar."
+                            )
+                            TrackIITextField(
+                                label = "Código de confirmación",
+                                value = uiState.confirmationCode,
+                                onValueChange = vm::onConfirmationCodeChange
+                            )
+                            uiState.confirmationErrorMessage?.let {
+                                Text(text = it, color = TTRed, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = vm::validateConfirmationCode, enabled = !uiState.isValidatingConfirmationCode) {
+                            Text(if (uiState.isValidatingConfirmationCode) "Validando..." else "Confirmar")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = {
+                            showConfirmationDialog = false
+                            pendingProductAdvanceSave = false
+                        }) {
+                            Text("Cancelar")
+                        }
+                    }
+                )
+            }
 
             // NUEVO: Pantalla Roja en caso de equivocarse escribiendo
             if (uiState.showQtyErrorOverlay) {

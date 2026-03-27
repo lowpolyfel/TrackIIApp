@@ -37,7 +37,6 @@ data class TaskDetailUiState(
     val qtyErrorText: String = ""
 )
 
-
 class TaskDetailViewModel(
     private val scannerRepository: ScannerRepository,
     private val authRepository: AuthRepository
@@ -71,7 +70,7 @@ class TaskDetailViewModel(
         _uiState.update { it.copy(qtyInput = boundedQty.toString(), errorMessage = null) }
     }
 
-    // NUEVA FUNCIÓN: Valida la cantidad al presionar Enter o Guardar
+    // Valida la cantidad al presionar Enter o Guardar
     fun validateManualQty(): Boolean {
         val state = _uiState.value
         val typedQty = state.qtyInput.toIntOrNull() ?: 0
@@ -236,17 +235,20 @@ class TaskDetailViewModel(
                         deviceId = deviceId
                     )
                 } else {
+                    // AQUÍ ESTABA EL ERROR: Agregamos los parámetros faltantes en 0/null
                     scannerRepository.registerScan(
                         workOrderNumber = workOrderNumber,
                         partNumber = partNumber,
                         userId = userId,
                         deviceId = deviceId,
-                        qtyIn = if (taskType == TaskType.ProductAdvance) (decision?.qtyIn ?: 0) else (qtyFromInput ?: 0)
+                        qtyIn = if (taskType == TaskType.ProductAdvance) (decision?.qtyIn ?: 0) else (qtyFromInput ?: 0),
+                        scrap = 0,               // No hay scrap directo desde esta pantalla
+                        errorCodeId = null,      // Sin código de error
+                        comments = null          // Sin comentarios
                     )
                 }
             }.onSuccess { response ->
                 val responseSuccess = when (response) {
-                    // Si llegó aquí sin lanzar excepción, el registro de avance fue exitoso
                     is RegisterScanResponse -> true
                     is ReworkResponse -> response.success == true
                     else -> true
@@ -287,7 +289,6 @@ class TaskDetailViewModel(
     }
 
     fun prepareProductAdvanceRegistration(workOrderNumber: String, locationName: String) {
-        // NUEVO: Validar primero la cantidad, si está mal lanza el error rojo y bloquea el guardado
         if (!validateManualQty()) return
 
         val state = _uiState.value
@@ -321,7 +322,6 @@ class TaskDetailViewModel(
     fun clearPendingRegistration() {
         _uiState.update { it.copy(pendingReady = false) }
     }
-
 }
 
 class TaskDetailViewModelFactory(

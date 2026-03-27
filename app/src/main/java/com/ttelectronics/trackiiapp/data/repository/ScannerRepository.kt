@@ -35,7 +35,10 @@ class ScannerRepository(
         partNumber: String,
         userId: Int,
         deviceId: Int,
-        qtyIn: Int
+        qtyIn: Int,
+        scrap: Int,
+        errorCodeId: Int?,
+        comments: String?
     ): RegisterScanResponse {
         val effectiveUserId = if (userId > 0) userId else appSession.userId
         val effectiveDeviceId = if (deviceId > 0) deviceId else appSession.deviceId
@@ -44,6 +47,9 @@ class ScannerRepository(
                 workOrderNumber = workOrderNumber,
                 partNumber = partNumber,
                 quantity = qtyIn,
+                scrapQuantity = scrap,
+                errorCodeId = errorCodeId,
+                comments = comments,
                 userId = effectiveUserId,
                 deviceId = effectiveDeviceId
             )

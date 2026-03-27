@@ -163,7 +163,8 @@ fun TrackIINavHost(
             val current = authRepository.sessionSnapshot()
             WelcomeScreen(
                 onStart = { navController.navigate(TrackIIRoute.Tasks) },
-                userName = current.username
+                userName = current.username,
+                locationName = current.locationName // <--- LE PASAMOS LA LOCALIDAD AQUÍ
             )
         }
         composable(TrackIIRoute.Tasks) {

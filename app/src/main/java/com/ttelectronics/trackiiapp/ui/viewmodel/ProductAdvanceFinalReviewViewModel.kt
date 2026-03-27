@@ -41,35 +41,31 @@ class ProductAdvanceFinalReviewViewModel(
     fun submitAll(
         lotNumber: String,
         partNumber: String,
-        qtyIn: Int,
-        scrap: Int,
+        qtyIn: Int, // La cantidad de piezas buenas que entran
+        scrap: Int, // La cantidad de scrap que ya viene calculada de tu UI
         errorCodeId: Int,
         comments: String
     ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, errorMessage = null, isSuccess = false) }
             runCatching {
+
+                // Enviamos ABSOLUTAMENTE TODO en una sola petición
                 scannerRepository.registerScan(
                     workOrderNumber = lotNumber,
                     partNumber = partNumber,
                     userId = appSession.userId,
                     deviceId = appSession.deviceId,
-                    qtyIn = qtyIn
+                    qtyIn = qtyIn,
+                    scrap = scrap,
+                    // Si el scrap es 0, mandamos los errores como nulos para que la BD no marque error de llaves foráneas
+                    errorCodeId = if (scrap > 0) errorCodeId else null,
+                    comments = if (scrap > 0) comments else null
                 )
 
-                if (scrap > 0) {
-                    scannerRepository.partialScrap(
-                        ScrapOrderRequest(
-                            workOrderNumber = lotNumber,
-                            partNumber = partNumber,
-                            quantity = scrap,
-                            errorCodeId = errorCodeId,
-                            comments = comments,
-                            userId = appSession.userId,
-                            deviceId = appSession.deviceId
-                        )
-                    )
-                }
+                // NOTA: Se eliminó la llamada a partialScrap porque ahora la API
+                // se encargará de procesar ambos movimientos (Avance + Scrap) a la vez.
+
             }.onSuccess {
                 _uiState.update { it.copy(isSubmitting = false, isSuccess = true, errorMessage = null) }
             }.onFailure { ex ->

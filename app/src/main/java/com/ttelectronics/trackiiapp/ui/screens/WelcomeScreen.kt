@@ -51,9 +51,10 @@ private const val WELCOME_JOURNEY_DURATION_MS = 2500L
 @Composable
 fun WelcomeScreen(
     onStart: () -> Unit,
-    userName: String = "Usuario"
+    userName: String = "Usuario",
+    locationName: String = "Localidad" // <--- NUEVO PARÁMETRO
 ) {
-    val displayName = userName.ifBlank { "Usuario" }
+    val displayLocation = locationName.ifBlank { "Localidad Desconocida" }
     val transition = rememberInfiniteTransition(label = "arrowWave")
     val arrowOne by transition.animateFloat(
         initialValue = 0.2f,
@@ -102,7 +103,7 @@ fun WelcomeScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "Bienvenido, $displayName",
+                    text = "Bienvenido\n$displayLocation",
                     style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                     textAlign = TextAlign.Center
                 )
@@ -137,7 +138,7 @@ fun WelcomeScreen(
                 }
             }
             Text(
-                text = "v1.0.0-beta",
+                text = "1.2.0-betatest",
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.LightGray.copy(alpha = 0.38f),
                 modifier = Modifier

@@ -50,10 +50,14 @@ data class RegisterScanRequest(
     @SerializedName("WorkOrderNumber") val workOrderNumber: String,
     @SerializedName("PartNumber") val partNumber: String,
     @SerializedName("Quantity") val quantity: Int,
+
+    @SerializedName("ScrapQuantity") val scrapQuantity: Int,
+    @SerializedName("ErrorCodeId") val errorCodeId: Int?,
+    @SerializedName("Comments") val comments: String?,
+
     @SerializedName("UserId") val userId: Int,
     @SerializedName("DeviceId") val deviceId: Int
 )
-
 data class RegisterScanResponse(
     @SerializedName("message") val message: String? = null,
     @SerializedName("workOrderId") val workOrderId: Int? = null,

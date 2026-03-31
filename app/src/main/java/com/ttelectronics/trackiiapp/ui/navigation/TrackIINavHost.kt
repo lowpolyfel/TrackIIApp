@@ -25,6 +25,8 @@ import com.ttelectronics.trackiiapp.ui.screens.WelcomeScreen
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 private fun resolvePostRegisterRoute(nextDestination: String?, isLoggedIn: Boolean): String {
     val destination = nextDestination?.trim().orEmpty()
@@ -61,9 +63,9 @@ object TrackIIRoute {
     const val Task = "task/{task}?lot={lot}&part={part}&qty={qty}&difference={difference}&comments={comments}"
     const val ReworkRelease = "rework-release?lot={lot}&part={part}"
     const val ScrapOrder = "scrap-order?lot={lot}&part={part}"
+    const val ScrapLocationCheck = "scrap-location-check?lot={lot}&part={part}&difference={difference}&qtyIn={qtyIn}"
     const val PartialScrap = "partial-scrap?lot={lot}&part={part}&difference={difference}&qtyIn={qtyIn}"
     const val ProductAdvanceFinalReview = "product-advance-final-review?lot={lot}&part={part}&qtyIn={qtyIn}&scrap={scrap}&errorCodeId={errorCodeId}&errorCodeName={errorCodeName}&comments={comments}"
-
     fun scannerRoute(task: TaskType) = "scanner/${task.route}"
 
     fun scanReviewRoute(task: TaskType, lot: String, part: String, ok: Boolean, error: String = ""): String {
@@ -77,6 +79,10 @@ object TrackIIRoute {
 
     fun reworkReleaseRoute(lot: String, part: String): String {
         return "rework-release?lot=${Uri.encode(lot)}&part=${Uri.encode(part)}"
+    }
+
+    fun scrapLocationCheckRoute(lot: String, part: String, difference: Int, qtyIn: Int): String {
+        return "scrap-location-check?lot=${Uri.encode(lot)}&part=${Uri.encode(part)}&difference=$difference&qtyIn=$qtyIn"
     }
 
     fun partialScrapRoute(lot: String, part: String, difference: Int, qtyIn: Int): String {
@@ -169,6 +175,16 @@ fun TrackIINavHost(
         }
         composable(TrackIIRoute.Tasks) {
             val current = authRepository.sessionSnapshot()
+            val scannerRepository = ServiceLocator.scannerRepository(context)
+
+            // Estado reactivo para guardar la cantidad
+            var dailyOrdersCount by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
+
+            // Se ejecuta automáticamente al abrir esta pantalla para consultar la BD
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                dailyOrdersCount = scannerRepository.getDailyOrdersCount()
+            }
+
             TaskSelectionScreen(
                 onTaskSelected = { taskType ->
                     navController.navigate(TrackIIRoute.scannerRoute(taskType))
@@ -184,7 +200,8 @@ fun TrackIINavHost(
                 },
                 username = current.username,
                 locationName = current.locationName,
-                deviceName = current.deviceName
+                deviceName = current.deviceName,
+                dailyOrdersCount = dailyOrdersCount // Pasamos la variable real que se actualiza
             )
         }
         composable(
@@ -288,6 +305,50 @@ fun TrackIINavHost(
                 onComplete = navigateHome,
                 onBack = { navController.popBackStack() },
                 onHome = navigateHome
+            )
+        }
+
+// --- NUEVA PANTALLA INTERMEDIA DE PREGUNTA ---
+        composable(
+            route = TrackIIRoute.ScrapLocationCheck,
+            arguments = listOf(
+                navArgument("lot") { defaultValue = "" },
+                navArgument("part") { defaultValue = "" },
+                navArgument("difference") { defaultValue = 0 },
+                navArgument("qtyIn") { defaultValue = 0 }
+            )
+        ) { backStackEntry ->
+            val lot = backStackEntry.arguments?.getString("lot").orEmpty()
+            val part = backStackEntry.arguments?.getString("part").orEmpty()
+            val difference = backStackEntry.arguments?.getInt("difference") ?: 0
+            val qtyIn = backStackEntry.arguments?.getInt("qtyIn") ?: 0
+
+            com.ttelectronics.trackiiapp.ui.screens.ScrapLocationCheckScreen(
+                lotNumber = lot,
+                partNumber = part,
+                scrapAmount = difference,
+                qtyIn = qtyIn,
+                onThisArea = {
+                    navController.navigate(TrackIIRoute.partialScrapRoute(lot, part, difference, qtyIn)) {
+                        popUpTo(TrackIIRoute.ScrapLocationCheck) { inclusive = true }
+                    }
+                },
+                onPreviousArea = {
+                    navController.navigate(
+                        TrackIIRoute.productAdvanceFinalReviewRoute(
+                            lot = lot,
+                            part = part,
+                            qtyIn = qtyIn,
+                            scrap = difference,
+                            errorCodeId = 123,
+                            errorCodeName = "P001 - Perdida de piezas en localidad anterior",
+                            comments = "El scrap se detecto en localidad anterior"
+                        )
+                    ) {
+                        popUpTo(TrackIIRoute.ScrapLocationCheck) { inclusive = true }
+                    }
+                },
+                onBack = { navController.popBackStack() }
             )
         }
 
@@ -411,7 +472,7 @@ fun TrackIINavHost(
                 },
                 onComplete = navigateHome,
                 onNavigateToPartialScrap = { difference, qtyIn ->
-                    navController.navigate(TrackIIRoute.partialScrapRoute(lot, part, difference, qtyIn))
+                    navController.navigate(TrackIIRoute.scrapLocationCheckRoute(lot, part, difference, qtyIn))
                 },
                 onNavigateToFinalReview = { qtyIn, scrap ->
                     navController.navigate(TrackIIRoute.productAdvanceFinalReviewRoute(lot, part, qtyIn, scrap))

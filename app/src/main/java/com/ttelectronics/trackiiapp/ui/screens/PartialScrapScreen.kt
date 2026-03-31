@@ -3,6 +3,7 @@
 package com.ttelectronics.trackiiapp.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,8 +11,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -28,8 +31,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -38,6 +46,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ttelectronics.trackiiapp.core.ServiceLocator
@@ -54,6 +63,8 @@ import com.ttelectronics.trackiiapp.ui.theme.TTRed
 import com.ttelectronics.trackiiapp.ui.theme.TTTextSecondary
 import com.ttelectronics.trackiiapp.ui.viewmodel.PartialScrapViewModel
 import com.ttelectronics.trackiiapp.ui.viewmodel.PartialScrapViewModelFactory
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun PartialScrapScreen(
@@ -73,13 +84,13 @@ fun PartialScrapScreen(
         )
     )
     val uiState by viewModel.uiState.collectAsState()
+
     LaunchedEffect(lotNumber, partNumber, difference) {
         viewModel.initialize(lotNumber, partNumber, difference)
     }
 
     LaunchedEffect(uiState.saveSuccess) {
         if (uiState.saveSuccess) {
-            // Ya no registramos ni mostramos el éxito aquí, avanzamos directo llevando los datos
             val state = viewModel.uiState.value
             state.selectedCode?.let { code ->
                 onNavigateToReview(
@@ -103,7 +114,9 @@ fun PartialScrapScreen(
 
             // Header
             Column(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 32.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp, vertical = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 ScannerHeader(taskTitle = "Registro de Scrap")
@@ -139,6 +152,53 @@ fun PartialScrapScreen(
 
                         // Tarjetas informativas
                         PartialScrapInfoGrid(items = infoItems)
+
+                        // --- SECCIÓN DE BURBUJAS RÁPIDAS ---
+                        var isQuickLoading by remember { mutableStateOf(false) }
+                        val coroutineScope = rememberCoroutineScope()
+
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = "Causas Frecuentes",
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                color = TTTextSecondary
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                QuickCauseBubble(
+                                    text = "⚡ Falla eléctrica",
+                                    isLoading = isQuickLoading,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            isQuickLoading = true
+                                            viewModel.applyQuickCause(isPowerOutage = true)
+                                            delay(800) // Animación visual
+                                            isQuickLoading = false
+                                        }
+                                    }
+                                )
+
+                                QuickCauseBubble(
+                                    text = "⚙️ Falla de equipo",
+                                    isLoading = isQuickLoading,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            isQuickLoading = true
+                                            viewModel.applyQuickCause(isPowerOutage = false)
+                                            delay(800) // Animación visual
+                                            isQuickLoading = false
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                        // --- FIN SECCIÓN BURBUJAS ---
 
                         TrackIIDropdownField(
                             label = "Categoría de falla",
@@ -200,7 +260,9 @@ fun PartialScrapScreen(
 
             FloatingHomeButton(
                 onClick = onHome,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp)
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(20.dp)
             )
 
         }
@@ -229,7 +291,9 @@ private fun PartialScrapInfoGrid(items: List<PartialScrapInfoItem>) {
                         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = Color.White)
                     ) {
                         Column(
-                            modifier = Modifier.background(Brush.linearGradient(listOf(bgTint, Color.White))).padding(14.dp),
+                            modifier = Modifier
+                                .background(Brush.linearGradient(listOf(bgTint, Color.White)))
+                                .padding(14.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -246,6 +310,47 @@ private fun PartialScrapInfoGrid(items: List<PartialScrapInfoItem>) {
                 }
                 if (rowItems.size == 1) Spacer(modifier = Modifier.weight(1f))
             }
+        }
+    }
+}
+
+@Composable
+fun QuickCauseBubble(
+    text: String,
+    isLoading: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    androidx.compose.material3.Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = com.ttelectronics.trackiiapp.ui.theme.TTBlueLight.copy(alpha = 0.35f)),
+        modifier = modifier
+            .height(52.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .clickable { if (!isLoading) onClick() }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    color = com.ttelectronics.trackiiapp.ui.theme.TTBlueDark,
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            Text(
+                text = text,
+                color = com.ttelectronics.trackiiapp.ui.theme.TTBlueDark,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }

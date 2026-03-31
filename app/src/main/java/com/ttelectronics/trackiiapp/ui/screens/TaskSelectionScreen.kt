@@ -88,7 +88,8 @@ fun TaskSelectionScreen(
     onLogout: () -> Unit,
     username: String,
     locationName: String,
-    deviceName: String
+    deviceName: String,
+    dailyOrdersCount: Int
 ) {
     // --- TIMER DE INACTIVIDAD (1 Minuto) ---
     var lastInteractionTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -101,10 +102,6 @@ fun TaskSelectionScreen(
     // ESTADOS PARA EL MENÚ SECRETO
     var secretClickCount by remember { mutableIntStateOf(0) }
     var showAdminButtons by remember { mutableStateOf(false) }
-
-    // DATO MOCKADO
-    // TODO: En el ViewModel, asegurarse que este conteo traiga SOLO las órdenes donde fecha = HOY
-    val currentDayOrdersCount = 45
 
     Column(
         modifier = Modifier
@@ -129,7 +126,7 @@ fun TaskSelectionScreen(
                 .fillMaxWidth()
                 .weight(1.3f), // Peso extra para la letra gigante
             locationName = locationName,
-            dailyOrdersCount = currentDayOrdersCount,
+            dailyOrdersCount = dailyOrdersCount,
             showAdminButtons = showAdminButtons,
             onAccount = onAccount,
             onLogout = onLogout,

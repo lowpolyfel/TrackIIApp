@@ -627,46 +627,49 @@ fun HoldableActionButton(
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
     val baseDelta = if (isIncrement) 1 else -1
 
-    androidx.compose.material3.Button(
-        onClick = { },
-        modifier = modifier.pointerInput(Unit) {
-            detectTapGestures(
-                onPress = {
-                    val job = coroutineScope.launch {
-                        var elapsedMs = 0L
-                        while(true) {
-                            if (elapsedMs == 0L) {
-                                onAction(baseDelta) // Click normal +/- 1
-                                kotlinx.coroutines.delay(500)
-                                elapsedMs += 500
-                            } else if (elapsedMs < 1000L) {
-                                onAction(baseDelta * 5) // Medio segundo a 1s
-                                kotlinx.coroutines.delay(200)
-                                elapsedMs += 200
-                            } else if (elapsedMs < 4000L) {
-                                onAction(baseDelta * 100) // 1 a 4 segundos: de 100 en 100
-                                kotlinx.coroutines.delay(500)
-                                elapsedMs += 500
-                            } else {
-                                onAction(baseDelta * 400) // Más de 4 segundos: de 400 en 400
-                                kotlinx.coroutines.delay(500)
-                                elapsedMs += 500
+    Box(
+        modifier = modifier
+            .height(48.dp) // Le damos la altura estándar de un botón
+            .clip(RoundedCornerShape(12.dp))
+            .background(com.ttelectronics.trackiiapp.ui.theme.TTBlue)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        val job = coroutineScope.launch {
+                            var elapsedMs = 0L
+                            val repeatDelay = 150L // Velocidad ultra fluida
+
+                            while(true) {
+                                if (elapsedMs == 0L) {
+                                    onAction(baseDelta * 1)
+                                    kotlinx.coroutines.delay(500)
+                                    elapsedMs += 500
+                                } else {
+                                    val currentMultiplier = when {
+                                        elapsedMs >= 3000L -> 200 // Más de 3s: 200 en 200
+                                        elapsedMs >= 2000L -> 100 // Más de 2s: 100 en 100
+                                        elapsedMs >= 1000L -> 10  // Más de 1s: 10 en 10
+                                        else -> 1                 // 0.5 a 1s: 1 en 1
+                                    }
+                                    onAction(baseDelta * currentMultiplier)
+                                    kotlinx.coroutines.delay(repeatDelay)
+                                    elapsedMs += repeatDelay
+                                }
                             }
                         }
+                        // tryAwaitRelease() espera pacientemente a que levantes el dedo sin conflictos
+                        tryAwaitRelease()
+                        job.cancel() // En cuanto levantas el dedo, detiene el contador al instante
                     }
-                    tryAwaitRelease()
-                    job.cancel()
-                }
-            )
-        },
-        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-            containerColor = TTBlue,
-            disabledContainerColor = Color.Gray.copy(alpha = 0.5f)
-        ),
-        shape = RoundedCornerShape(12.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
+                )
+            },
+        contentAlignment = Alignment.Center
     ) {
-        Text(text = text, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+            color = Color.White
+        )
     }
 }
 

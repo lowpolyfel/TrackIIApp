@@ -64,4 +64,7 @@ interface ScannerApiService {
         @Query("partNumber") partNumber: String,
         @Query("deviceId") deviceId: Int
     ): Boolean
+
+    @GET("api/scanner/daily-orders-count")
+    suspend fun getDailyOrdersCount(@Query("locationId") locationId: Int): Int
 }

@@ -16,7 +16,7 @@ import com.ttelectronics.trackiiapp.data.models.scanner.ScrapResponse
 import com.ttelectronics.trackiiapp.data.models.scanner.WorkOrderContextResponse
 import com.ttelectronics.trackiiapp.data.network.ScannerApiService
 import retrofit2.HttpException
-
+import android.util.Log
 class ScannerRepository(
     private val api: ScannerApiService,
     private val appSession: AppSession
@@ -115,5 +115,20 @@ class ScannerRepository(
 
     suspend fun validateAdvanceLocation(noLote: String, partNumber: String, deviceId: Int): Boolean {
         return api.validateAdvanceLocation(noLote, partNumber, deviceId) // <-- AQUÍ ESTABA EL ERROR (api en lugar de apiService)
+    }
+
+    suspend fun getDailyOrdersCount(): Int {
+        return try {
+            val locationId = appSession.locationId
+            Log.d("TrackII_Conteo", "1. Solicitando conteo para Localidad ID: $locationId")
+
+            val count = api.getDailyOrdersCount(locationId)
+
+            Log.d("TrackII_Conteo", "2. Éxito: El servidor devolvió $count")
+            count
+        } catch (e: Exception) {
+            Log.e("TrackII_Conteo", "3. ERROR CRÍTICO al consultar el servidor", e)
+            0
+        }
     }
 }

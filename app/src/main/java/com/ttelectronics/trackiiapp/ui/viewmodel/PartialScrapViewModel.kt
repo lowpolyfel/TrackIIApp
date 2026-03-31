@@ -94,6 +94,41 @@ class PartialScrapViewModel(
         _uiState.update { it.copy(comments = value, errorMessage = null) }
     }
 
+    fun applyQuickCause(isPowerOutage: Boolean) {
+        viewModelScope.launch {
+            val targetCategoryName = "Causa Externa"
+            val targetCode = if (isPowerOutage) "X001" else "X002"
+            val causeDesc = if (isPowerOutage) "se fue la luz en la planta" else "Fallo de la maquina o equipo"
+
+            // 1. Buscar la categoría en la lista cargada
+            val category = _uiState.value.categories.find { it.name.contains(targetCategoryName, ignoreCase = true) }
+
+            if (category != null) {
+                // 2. Seleccionar categoría y descargar sus códigos
+                onCategorySelected(category)
+
+                val result = runCatching { scannerRepository.getErrorCodes(category.id) }
+                if (result.isSuccess) {
+                    val codes = result.getOrNull() ?: emptyList()
+                    _uiState.update { it.copy(isLoadingCodes = false, codes = codes) }
+
+                    // 3. Buscar el código específico
+                    val code = codes.find { it.code.contains(targetCode, ignoreCase = true) }
+                    if (code != null) {
+                        onCodeSelected(code)
+
+                        // 4. Autollenar comentarios con fecha y hora
+                        val sdf = java.text.SimpleDateFormat("dd/MM/yyyy 'a las' HH:mm", java.util.Locale.getDefault())
+                        val currentDate = sdf.format(java.util.Date())
+                        val autoComment = "Se perdio material ($targetCode - $causeDesc) el dia $currentDate"
+
+                        onCommentsChange(autoComment)
+                    }
+                }
+            }
+        }
+    }
+
     fun submit() {
         val state = _uiState.value
         if (state.shouldRegister != true) return

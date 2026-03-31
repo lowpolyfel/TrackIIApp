@@ -138,7 +138,7 @@ fun WelcomeScreen(
                 }
             }
             Text(
-                text = "1.2.0-betatest",
+                text = "1.3.0",
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.LightGray.copy(alpha = 0.38f),
                 modifier = Modifier
